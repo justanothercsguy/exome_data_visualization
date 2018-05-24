@@ -1,0 +1,64 @@
+ul {
+    background-color: #333333;
+    list-style-type: none;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+}
+
+/* list entry in general */
+li {
+    float: left;
+    text-align: center;
+}
+
+/* list entry with <a href> */
+li a {
+    color: white;
+    display: block;
+    padding: 16px;
+    text-align: center;
+    text-decoration: none;
+}
+
+/* list entry with <a href> when mouse hovers over */
+li a:hover {
+    background-color: #a50f0f;
+}
+
+/* CSS class: navbar */
+.navbar {
+    text-align: center;
+}
+
+/* CSS id: description-exome */
+#description-exome {
+    /* background-color: #187e97; */
+    font-size: 20px;
+    padding: 48px;
+    text-align: left;
+}
+
+/* CSS id: search-box */
+#searchbox {
+    padding: 16px;
+    text-align: center;
+}
+
+/* CSS id: search-box input */
+#searchbox-input {
+    height: 30px;
+    padding: 4px;
+    width: 80%;
+}
+
+/* CSS class: text-muted */
+.text-muted {
+    color: #666666;
+    text-align: center;
+}
+
+/* CSS class: paragraph-title */
+.paragraph-title {
+    text-align: center;
+}
