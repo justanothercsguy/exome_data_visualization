@@ -1,53 +1,724 @@
 <!DOCTYPE html>
-<html lang="en-US">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="description" content="Exome Data Visualization Tool" />
-        <meta name="keywords" content="Exome,Extron,Visualization" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang='en-US'>
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
+  <style>
+    .exon-chart rect {
+      /*  hsl(color, saturation, lightness/transparency) */
+      fill:hsl(200, 50%, 70%); 
+    }
+
+    .exon-chart text {
+      fill: white;
+      font: 10px sans-serif;
+      text-anchor: end;
+    }
+    
+    .variant-chart rect {
+
+    }
+
+    .variant-chart circle {
+      font: 10px sans-serif;
+      background-color: steelblue;
+      text-align: right;
+      padding: 3px;
+      margin: 1px;
+      font-color: black;
+    }
+
+    circle.text {
+      width: 30px;
+      height: 30px;
+    }
+
+  </style>
+  </head>
+
+  <body>
+    <!-- container for horizontal bars representing exons -->
+    <svg class="exon-chart"></svg>
+
+    <!-- container for lollipop plot representing variants -->
+    <svg class="variant-chart"></svg>
+
+    <!-- container for zoomed in view of a single exon -->
+    <svg class="zoom-in-single-exon-chart"></svg>
+
+    <!-- container for zoomed-in view of lollipop plot for a single exon -->
+    <svg class="zoom-in-single-exon-variant-chart"></svg>
+
+    <!-- process data from Django server and sqlite3 database file below -->
+    <script>
+
+      // given an array, return a new array with each of the elements of the first array 
+      // subtracted by the offset value
+      function subtractArrayByOffset(array, offset) {
+        var offsettedArray = [];
+        var length = array.length;
+
+        for (var i = 0; i < length; i++) {
+          offsettedArray.push(array[i] - offset);
+        }
+
+        return offsettedArray;
+      }
+
+
+      function subtractValuesOfTwoArrays(array1, array2) {
+        var differenceValues = [];
+        var length = array1.length;
+
+        if (array1.length > array2.length) {
+          length = array2.length;
+        }
+
+        for (var i = 0; i < length; i++) {
+          differenceValues.push(array1[i] - array2[i]);
+        }
+
+        return differenceValues;
+      }
+
+
+      function variantAnnotationToLollipopColor(annotation) {
+        var mapVariantAnnotationToLollipopColor = d3.scaleOrdinal();
+
+        mapVariantAnnotationToLollipopColor.domain(["3' UTR", "5' UTR", "downstream gene",
+          "frameshift", "inframe insertion", "intron", "missense", "non coding transcript exon",
+          "splice acceptor", "splice donor", "splice region", "stop gained", "stop lost", 
+          "synonymous"]);
+
+        mapVariantAnnotationToLollipopColor.range(['brown', 'steelblue', 'violet',
+          'red', 'darkgoldenrod', 'gray', 'forestgreen', 'sienna', 
+          'darkkhaki', 'navy', 'magenta', 'turquoise', 'deepskyblue',
+          'orange']);
+
+        var color = mapVariantAnnotationToLollipopColor(annotation);
+        if (!color) {
+          return 'black';
+        }
+
+        return color;
+      }
+
+
+      function removeExonsBeforeStartPosition(startPosition, exonStarts, exonEnds) {
+        var length = exonStarts.length;
+
+        // Exons that end before the startPosition will not be returned. Therefore, 
+        // if the first exon has (start < startPosition) and (end >= startPosition),
+        // then it will be split into a non-coding part and a coding part.
+        for (var i = 0; i < length; i++) {
+          if (exonEnds[i] >= startPosition) {
+            return {              
+              exonStarts: exonStarts.slice(i),
+              exonEnds: exonEnds.slice(i)
+            };
+          }
+        }
+
+        return { exonStarts: exonStarts, exonEnds: exonEnds };
+      }
+
+
+      function removeExonsAfterEndPosition(endPosition, exonStarts, exonEnds) {
+        var length = exonStarts.length;
+
+        // Exons that start after the endPosition will not be returned. Therefore, 
+        // if the last exon has (start <= endPosition) and (end > endPosition),
+        // then it will be split into a coding part and a non-coding part.
+        for (var i = length - 1; i >= 0; i--) {
+          if (exonStarts[i] <= endPosition) {
+            return {              
+              exonStarts: exonStarts.slice(0, i+1),
+              exonEnds: exonEnds.slice(0, i+1)
+            };
+          }
+        }
+
+        return { exonStarts: exonStarts, exonEnds: exonEnds };
+      }
+
+
+      function doesExonContainCodingStartPosition (exonStart, exonEnd, codingStartPosition) {
+        // Don't split in the case where exonStart >= cdsStart and everything is coding,
+        // or the case where exonEnd < cdsStart and everything is non-coding
+        return (exonStart < codingStartPosition && exonEnd >= codingStartPosition);
+      }
+
+
+      function doesExonContainCodingEndPosition (exonStart, exonEnd, codingEndPosition) { 
+        // Don't split in the case where exonEnds[length - 1] <= cdsEnd and everything is coding,
+        // or the case where exonStarts[length - 1] > cdsEnd and everything is non-coding 
+        return (exonStart <= codingEndPosition && exonEnd > codingEndPosition);
+      }
+
+
+      // Let i be the index of the exon that contains cdsStart within its domain
+      // Let j be the index of the exon that contains cdsEnd within its domain
+      // If (cdsStart - exonStarts[i]) > nonCodingLengthLimit, then we need to change exonStarts[i]
+      // so that (cdsStart - exonStarts[i]) = 200. Same thing if (exonEnds[j] - cdsEnd) > 200.
+      // Here, (cdsStart - exonStarts[i]) and (exonEnds[i] - cdsEnd) are the lengths of the non-coding
+      // exon partitions.
+      function limitNonCodingExonLength(codingStartPosition, codingEndPosition, 
+        exonStarts, exonEnds, nonCodingLengthLimit) {
         
-        <link rel="stylesheet" href="css/styles.css" />
-        <title>Exome Data Visualization</title>
-        <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js">
-        </script>
-        <![endif]-->
-    </head>
-    <body>
-        <!-- This section is a navigation bar for different pages in website -->
-        <div class="navbar">
-            <ul>
-                <li><a href="#home">Home</a></li>
-                <li><a href="#news">News</a></li>
-                <li><a href="#contact">Contact</a></li>
-                <li><a href="#about">About</a></li>
-            </ul>
-        </div>
+        var exonStartsReduced = exonStarts.slice();
+        var exonEndsReduced = exonEnds.slice();
+        var firstIndex = 0;
+        var lastIndex = exonStarts.length - 1;
 
-        <!-- This section is a searchbox for genes -->
-        <div id="searchbox">
-            <form action="/search-gene">
-                <input id="searchbox-input" name="query" type="text" placeholder="Search for a gene"/>
-            </form>
-            <p class="text-muted">
-                Examples - Gene: <a href="/search-gene?query=PCSK9">PCSK9</a>
-            </p>
-        </div>
+        if (doesExonContainCodingStartPosition(exonStarts[firstIndex], exonEnds[firstIndex],
+          codingStartPosition) && (cdsStart - exonStarts[0] > nonCodingLengthLimit)) {
+          exonStartsReduced[firstIndex] = cdsStart - nonCodingLengthLimit;
+        }
+        
+        if (doesExonContainCodingEndPosition(exonStarts[lastIndex], exonEnds[lastIndex], codingEndPosition) && (exonEnds[lastIndex] - cdsEnd > nonCodingLengthLimit)) {
+          exonEndsReduced[lastIndex] = cdsEnd + nonCodingLengthLimit;
+        }
 
-        <!-- This section describes the exome -->
-        <div id="description-exome">
-            <div class="paragraph-title"><h3>About</h3></div>
-            <p> 
-                The <strong>exome</strong> consists of the 1-2% of base pairs in the genome that encodes 
-                proteins. By studying the exome, we hope to discover the base pair sequences in genes that 
-                cause rare neurodegenerative disorders such as Hereditary Spastic Paraplegia.
-            </p>
-            <p>    
-                The exome is made of sequences of base pairs called exons, while the rest of the genome 
-                is made up of sequences of base pairs called introns. Together, groups of exons and introns
-                form genes.
-            </p>
-            <img src="images/exon_intron.png" alt="exons and introns" width="480" height="300">
-        </div>
-    </body>
+        return { 
+          exonStarts: exonStartsReduced, exonEnds: exonEndsReduced
+        };
+      }
+
+    
+      function splitExonAtCodingStartPosition(codingStartPosition, exonStarts, exonEnds) {
+        var exonStartsSplit = exonStarts.slice();
+        var exonEndsSplit = exonEnds.slice();
+        var nonCodingIndex = null;
+
+        if (doesExonContainCodingStartPosition(exonStarts[0], exonEnds[0], codingStartPosition)) {
+          exonStartsSplit.splice(1, 0, codingStartPosition);
+
+          // Why not (startPosition - 1)? This would mess up the length calculation
+          // of each exon parition. For example, suppose the original exon goes from 10 to 20,
+          // and cdsStart = 15. The length of the exon is (20 - 10) = 10. 
+          // Then if we use (startPosition - 1), we would get:
+          // exonStarts[0] = 10, exonEnds[0] = 14, exonStarts[1] = 15, exonEnds[1] = 20.
+          // Length = (14 - 10) + (20 - 15) = 4 + 5 = 9. This is not the correct length.
+          exonEndsSplit.splice(0, 0, codingStartPosition);
+          nonCodingIndex = 0;
+        }
+
+        return { 
+          exonStarts: exonStartsSplit, exonEnds: exonEndsSplit, nonCodingIndex: nonCodingIndex
+        };
+      }
+
+
+      function splitExonAtCodingEndPosition(codingEndPosition, exonStarts, exonEnds) {
+        var exonStartsSplit = exonStarts.slice();
+        var exonEndsSplit = exonEnds.slice();
+        var length = exonStartsSplit.length;
+        var nonCodingIndex = null;
+
+        if (doesExonContainCodingEndPosition(exonStarts[length - 1], exonEnds[length - 1], 
+          codingEndPosition)) {
+          exonEndsSplit.splice(length - 1, 0, codingEndPosition);
+
+          // Why not (endPosition + 1)? This would mess up the length calculation
+          // of each exon partition. For example, suppose the original exon goes from
+          // 10 to 20, and cdsEnd = 15. The length of the exon is (20 - 10) = 10.
+          // Then if we use (endPosition + 1), we would get:
+          // exonStarts[0] = 10, exonEnds[0] = 15, exonStarts[1] = 16, exonEnds[1] = 20.
+          // Length = (15 - 10) + (20 - 16) = 5 + 4 = 9. This is not the correct length.
+          exonStartsSplit.push(codingEndPosition);
+
+          // account for appending endPosition = cdsEnd to exonStartsSplit and exonEndsSplit 
+          // by incrementing length
+          length = length + 1;
+          nonCodingIndex = length - 1;
+        }
+
+        return { 
+          exonStarts: exonStartsSplit, exonEnds: exonEndsSplit, nonCodingIndex: nonCodingIndex
+        };
+      }
+
+      
+      function getExonPositionsWithUniformIntronLengths(exonStarts, exonEnds, 
+        INTRON_LENGTH, exonLengths) {
+
+        // EXON_COUNT is the number of exons, not counting the non-coding exon partitions.
+        // If EXON_COUNT = 1, then there are no introns so return the original exonStarts and exonEnds.
+        const EXON_COUNT = exonStarts.length;
+        if (EXON_COUNT == 1) {
+          return { 
+            exonStartsWithUniformIntronLengths: exonStarts, 
+            exonEndsWithUniformIntronLengths: exonEnds
+          };
+        }
+    
+        var exonStartsWithUniformIntronLengths = [];
+        var exonEndsWithUniformIntronLengths = [];
+
+        for (var i = 0; i < EXON_COUNT; i++) {
+          if (i == 0) { // first exon has no introns before it so it retains the same position
+            exonStartsWithUniformIntronLengths.push(exonStarts[0]);
+            exonEndsWithUniformIntronLengths.push(exonEnds[0]);
+          }
+          else {
+            exonStartsWithUniformIntronLengths.push(
+              exonStartsWithUniformIntronLengths[i-1] + exonLengths[i-1] + INTRON_LENGTH);
+            exonEndsWithUniformIntronLengths.push(
+              exonStartsWithUniformIntronLengths[i] + exonLengths[i]);
+          }
+        }
+
+        return { 
+          exonStartsWithUniformIntronLengths: exonStartsWithUniformIntronLengths, 
+          exonEndsWithUniformIntronLengths: exonEndsWithUniformIntronLengths
+        };
+      }
+
+
+      function roundToTwoDecimalPlaces(x) {
+        return Math.round(x * 100) / 100;
+      }
+
+
+      // Return an array of values containing the starting point of each exon and intron,
+      // where intron have their original lengths that have not been modified into a uniform length.
+      // Here, exonStarts[i] = starting point of exon i, and exonEnds[i] = starting point of intron i
+      // 
+      // Introns with length > (3 * basePairsOutsideExonLimit) will be split into three uneven parts:
+      // 1. [exonEnds[i], exonEnds[i] + basePairsOutsideExonLimit]
+      // 2. [exonEnds[i] + basePairsOutsideExonLimit, exonStarts[i+1] - basePairsOutsideExonLimit]
+      // 3. [exonStarts[i+1] - basePairsOutsideExonLimit, exonStarts[i+1]
+      // 
+      // Of the variants that are within an intron region, almost all are within 100 base pairs away 
+      // from the start or end point of an exon, so set basePairsOutsideExonLimit = 100.
+      // Introns with length <= (3 * basePairsOutsideExonLimit) will not be split.
+      //
+      // TODO: Should i just make getting domain and range one function, so that I don't have to pass
+      // in splitIntronIndices to function getRange()?
+      function getDomain(exonStarts, exonEnds, basePairsOutsideExonLimit) {
+        const length = exonStarts.length;
+        var domain = [];
+        var splitIntronIndices = [];
+        var threshold = 3 * basePairsOutsideExonLimit;
+
+        for (var i = 0; i < length - 1; i++) {
+          domain.push(exonStarts[i]);
+
+          if (exonStarts[i+1] - exonEnds[i] > threshold) {
+            domain.push(exonEnds[i]);
+            domain.push(exonEnds[i] + basePairsOutsideExonLimit);
+            domain.push(exonStarts[i+1] - basePairsOutsideExonLimit);
+            splitIntronIndices.push(i);
+          }
+          else {
+            domain.push(exonEnds[i]);
+          }
+        }
+
+        // last exon does not have a intron after it
+        domain.push(exonStarts[length - 1]);
+        domain.push(exonEnds[length - 1]);
+
+        return { domain: domain, splitIntronIndices: splitIntronIndices };
+      }
+
+
+      // Return an array of values containing the starting point of each exon and intron,
+      // where introns have the same length.
+      // Here, exonStartsWithUniformIntronLengths[i] = starting point of exon i, 
+      // and exonEndsWithUniformIntronLengths[i] = starting point of intron i
+      // 
+      // splitIntronIndices contains indices of original intron lengths that exceeded the
+      // basePairsOutsideExonLimit and had to be split into three parts in the domain. 
+      // The introns in the corresponding indices in the range array will also be split
+      // into three event parts.
+      function getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
+        basePairsOutsideExonLimit, splitIntronIndices, INTRON_LENGTH) {
+
+        const length = exonStartsWithUniformIntronLengths.length;
+        const INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
+        var range = [];
+        var reverseSplitIntronIndices = splitIntronIndices.reverse();
+        var currentSplitIntronIndex = reverseSplitIntronIndices.pop();
+
+        for (var i = 0; i < length - 1; i++) {
+          range.push(exonStartsWithUniformIntronLengths[i]);
+
+          if (i == currentSplitIntronIndex) {
+            range.push(exonEndsWithUniformIntronLengths[i]);
+            range.push(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE);
+            range.push(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE);
+            currentSplitIntronIndex = reverseSplitIntronIndices.pop();
+          }
+          else {
+            range.push(exonEndsWithUniformIntronLengths[i]);
+          }
+        }
+
+        // last exon does not have a intron after it
+        range.push(exonStartsWithUniformIntronLengths[length - 1]);
+        range.push(exonEndsWithUniformIntronLengths[length - 1]);
+
+        return range;
+      }
+
+
+      /* Step 1: Get variables from the Exac dataset
+       *
+       * cdsStart: start of the gene's coding sequence
+       * cdsEnd: end of the gene's coding sequence
+       * exonStarts: array of the starting base pair index of each exon in the gene
+       * exonEnds: array of the ending base pair index of each exon in the gene
+       *
+       * TODO: Figure out and correct bug: when cdsStart >= exonEnds[0], exon bars the
+       *   and variants excluding the first coding exon partition all disappear. 
+       * Check if when cdsEnd <= exonStarts[length - 1], same disappearance occurs.
+       * UPDATE: Bug does not occur when drawing rectangles, so perhaps it occurs when
+       * mapping variants to scale functions. Have to test to make sure.
+       */
+      var cdsStart = 55505510; // 55505717 + 1;
+      var cdsEnd = 55529257; // 55529041 - 1;
+      
+      var exonStarts = [55505000,55505148,55509515,55512195,55517950,55518322,55521665,55523003,
+        55523708,55524171,55525158,55527047,55529041,55531000];
+      var exonEnds = [55505100,55505717,55509707,55512319,55518084,55518464,55521862,55523187,
+        55523882,55524320,55525336,55527229,55530526,55532000];
+
+
+      /* Step 2: Remove exons that end before cdsStart or start after cdsEnd
+       * This way, the first exon must contain cdsStart or begin after cdsStart
+       * Also, the last exon must contain cdsEnd or end before cdsEnd
+       */
+      var exonPositions = removeExonsBeforeStartPosition(cdsStart, exonStarts, exonEnds);
+      exonStarts = exonPositions.exonStarts;
+      exonEnds = exonPositions.exonEnds;
+
+      exonPositions = removeExonsAfterEndPosition(cdsEnd, exonStarts, exonEnds);
+      exonStarts = exonPositions.exonStarts;
+      exonEnds = exonPositions.exonEnds;
+
+
+      /* Step 3: Limit the length of the non-coding parts of an exon. 
+       * The non-coding part for the exon containing cdsStart would be everything before cdsStart
+       * The non-coding part for the exon containing cdsEnd would be everything after cdsEnd
+       */
+      const NON_CODING_LENGTH_LIMIT = 200;
+      exonPositions = limitNonCodingExonLength(cdsStart, cdsEnd, exonStarts, exonEnds,
+        NON_CODING_LENGTH_LIMIT);
+      exonStarts = exonPositions.exonStarts;
+      exonEnds = exonPositions.exonEnds;
+
+
+      /* Step 4: Calculate the length of each exon. Note that an exon that has been split into
+       * a coding part and a non-coding part will be counted as two separate length values.
+       * Then calculate the sum of these length values, and use this sum to calculate the
+       * length of each uniformly-lengthed intron for the visualization.
+       */
+      const EXON_COUNT = exonStarts.length;
+      var exonLengths = [];
+      
+      exonLengths = subtractValuesOfTwoArrays(exonEnds, exonStarts);
+      const SUM_EXON_LENGTHS = d3.sum(exonLengths);
+
+      const INTRON_LENGTH = Math.ceil((SUM_EXON_LENGTHS / 2) / (EXON_COUNT - 1));
+      const SUM_INTRON_LENGTHS = INTRON_LENGTH * (EXON_COUNT - 1);
+
+
+      /* Step 5: Subtract each value in exonStarts and exonEnds by the offset = exonStarts[0].
+       * This way, when the exons are displayed using exonStarts and exonLengths, 
+       * the first exon will start at position x = 0.
+       */
+      OFFSET = exonStarts[0];
+      exonStarts = subtractArrayByOffset(exonStarts, OFFSET);
+      exonEnds = subtractArrayByOffset(exonEnds, OFFSET);
+      cdsStart = cdsStart - OFFSET;
+      cdsEnd = cdsEnd - OFFSET;
+
+
+      /* Step 6: Calculate the domain array for d3.scaleLinear(), which consists of 
+       * the starting position of each exon and intron assuming the original intron lengths. 
+       * Introns with length > (3 * basePairsOutsideExonLimit) will be split into three partitions.
+       * Using d3.scaleLinear, the domain array will map to variant base pair positions 
+       * assuming uniformly-lengthed introns (range).
+       */
+      const basePairsOutsideExonLimit = 100;
+      var domainAndSplitIntronIndices = getDomain(exonStarts, exonEnds, basePairsOutsideExonLimit);
+      var domain = domainAndSplitIntronIndices.domain;
+      var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
+
+
+      /* Step 7: Calculate exonStarts and exonEnds with uniformly-lengthed introns.
+       * Note that exonEnds[i] = the starting position of intron i.
+       */
+      var exonStartsWithUniformIntronLengths = [];
+      var exonEndsWithUniformIntronLengths = [];
+
+      exonPositions = getExonPositionsWithUniformIntronLengths(exonStarts, exonEnds, 
+        INTRON_LENGTH, exonLengths);
+      exonStartsWithUniformIntronLengths = exonPositions.exonStartsWithUniformIntronLengths;
+      exonEndsWithUniformIntronLengths = exonPositions.exonEndsWithUniformIntronLengths;
+
+
+      /* Step 8: Calculate the range array for d3.scaleLinear(), which consists of 
+       * the starting position of each exon and intron assuming uniformly-lengthed introns. 
+       * Introns whose indices match those in the domain that were split into three partitions, 
+       * will likewise be split into three partitions.
+       * Using d3.scaleLinear, a domain array will map variant base pair positions 
+       * assuming the original intron lengths, to the range array.
+       * Then initialize the function d3.scaleLinear(), using domain and range.
+       */
+      var range = getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
+        basePairsOutsideExonLimit, splitIntronIndices, INTRON_LENGTH);
+
+      var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
+        .domain(domain)
+        .range(range);
+
+
+      /* Step 9: Split the first and last exons into their coding and non-coding parts,
+       * for exonStarts and exonEnds. Then recalculate exonLengths to include non-coding partitions.
+       * 
+       * For the first exon, everything before cdsStart is non-coding, while everything 
+       * that is greater than or equal to cdsStart is coding.
+       * For the last exon, everything after cdsEnd is non-coding, while everything 
+       * that is less than or equal to cdsEnd is coding.
+       */
+      var exonPartitionNonCodingIndices = [];
+
+      exonPositions = splitExonAtCodingStartPosition(cdsStart, exonStarts, exonEnds);
+      exonStarts = exonPositions.exonStarts;
+      exonEnds = exonPositions.exonEnds;
+
+      if (exonPositions.nonCodingIndex != null) {
+        exonPartitionNonCodingIndices.push(exonPositions.nonCodingIndex);
+      }
+
+      exonPositions = splitExonAtCodingEndPosition(cdsEnd, exonStarts, exonEnds);
+      exonStarts = exonPositions.exonStarts;
+      exonEnds = exonPositions.exonEnds;
+
+      if (exonPositions.nonCodingIndex != null) {
+        exonPartitionNonCodingIndices.push(exonPositions.nonCodingIndex);
+      }
+
+      exonLengths = subtractValuesOfTwoArrays(exonEnds, exonStarts);
+
+
+      /* Step 10: Split the first and last exons into their coding and non-coding parts,
+       * for exonStartsWithUniformIntronLengths and exonEndsWithUniformIntronLengths.
+       *
+       * NOTE: Calculate new position of cdsEnd with uniform intron length using d3.scaleLinear()
+       * with domain = [exonStarts[0], exonEnds[0], exonStarts[1], exonEnds[1], ...] and 
+       * range = [exonStartsWithUniformIntronLengths[0], exonEndsWithUniformIntronLengths[0], 
+       * exonStartsWithUniformIntronLengths[1], exonEndsWithUniformIntronLengths[1], ...].
+       * Then use new cdsEnd to check if last exon in exonEndsWithUniformIntronLengths needs to be split. 
+       * 
+       * This scaling does not need to be performed on cdsStart, because it is contained in the first exon
+       * which has no adjusted intron lengths occuring before it. Hence exonStarts[0] and 
+       * exonStartsWithUniformIntronLengths[0] are equal.
+       */
+      exonPositions = splitExonAtCodingStartPosition(cdsStart, exonStartsWithUniformIntronLengths,
+        exonEndsWithUniformIntronLengths);
+      exonStartsWithUniformIntronLengths = exonPositions.exonStarts;
+      exonEndsWithUniformIntronLengths = exonPositions.exonEnds;
+
+      var cdsEndWithUniformINTRON_LENGTHs = scaleVariableIntronsToUniformIntrons(cdsEnd);
+      
+      exonPositions = splitExonAtCodingEndPosition(cdsEndWithUniformINTRON_LENGTHs,
+        exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths);
+      exonStartsWithUniformIntronLengths = exonPositions.exonStarts;
+      exonEndsWithUniformIntronLengths = exonPositions.exonEnds;
+      
+
+      /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
+       * and shorter height rectangles representing non-coding exon partitions.
+       */ 
+      var chartWidth = 800;
+      var chartHeight = 20;
+      var barHeightCoding = chartHeight - 2;
+      var barHeightNonCoding = barHeightCoding / 2;
+
+      // TODO: I'm not sure if exonNonCodingLimit is included in TOTAL_LENGTH calculation
+      const TOTAL_LENGTH = SUM_EXON_LENGTHS + SUM_INTRON_LENGTHS;
+
+      var scaleUniformIntronsToChart = d3.scaleLinear()
+          .domain([0, TOTAL_LENGTH])
+          .range([0, chartWidth - 10]);
+
+      var chart = d3.select(".exon-chart")
+          .attr("width", chartWidth)
+          .attr("height", chartHeight);
+
+      var bar = chart.selectAll("g")
+          .data(exonLengths)
+        .enter().append("g")
+          .attr("transform", function(d, i) { 
+            if (exonPartitionNonCodingIndices.includes(i)) {
+              return "translate(" + 
+                scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i]) + "," + 
+                ((barHeightCoding - barHeightNonCoding) / 2) + ")";
+            }
+            return "translate(" + scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i])
+             + "," + 0 + ")";
+          });
+
+      bar.append("rect")
+          .attr("width", scaleUniformIntronsToChart)
+          .attr("height", function(d, i) {
+            if (exonPartitionNonCodingIndices.includes(i)) {
+              return barHeightNonCoding;
+            }
+            return barHeightCoding;
+          });
+
+
+      /* Step 12: TODO: Upon clicking an exon in the general view chart, a single exon in a zoomed-in view
+       * will pop up in a div below the general view's exon chart.
+       */
+      var exonZoomChart = d3.select("zoom-in-single-exon-chart")
+          .attr("width", chartWidth)
+          .attr("height", chartHeight);
+
+      bar.on("click", function(d, i) {   
+          // console.log("pressed exon at index: " + i);
+      });
+
+
+      /* Step 13: Use unary symbol to convert strings into numbers, and implement
+       * row function to tell d3.csv() how to parse each row in csv file.
+       * https://bl.ocks.org/curran/d867264d468b323c2e76886d44e7e8f9
+       */
+      const row = function(d) {
+        const chromosomeString = d['Chrom'];
+        const positionString = d['Position'];
+        const alleleCountString = d['Allele Count'];
+        const alleleNumberString = d['Allele Number'];
+        const alleleFrequencyString = d['Allele Frequency'];
+
+        return {
+          chromosome: +chromosomeString,
+          reference: d['Reference'],
+          alternate: d['Alternate'],
+          annotation: d['Annotation'],
+          position: +positionString,
+          alleleCount: +alleleCountString,
+          alleleNumber: +alleleNumberString,
+          alleleFrequency: +alleleFrequencyString
+        };
+      };
+
+
+      /* Step 14: Use the function d3.csv() to read through variant dataset.
+       * d3.csv can request csv files from a specified url and parse them, 
+       * so we need to find links to variant datasets based on gene names.
+       * https://stackoverflow.com/questions/42285441/how-to-read-in-csv-with-d3-v4
+       */
+      d3.csv('exac_PCSK9_variant_data.csv', row, function(data) {
+
+        const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
+        const UPPER_THRESHOLD = exonEnds[EXON_COUNT + exonPartitionNonCodingIndices.length - 1] + OFFSET;
+        data = data.filter(function(d) {
+          if (d.position >= LOWER_THRESHOLD && d.position <= UPPER_THRESHOLD) {
+            return true;
+          }
+          return false;
+        });
+
+        // key representing variant base pair position is mapped to an array of variant(s) in that position
+        variant_map = {};
+        data.forEach(function(variant) {
+          var position = variant.position;
+          if (!variant_map[position]) {
+            variant_map[position] = [variant];
+          }
+          else {
+            variant_map[position].push(variant);
+          }
+        });
+
+
+       /* Step 15: Render lollipops representing variants, using SVG rectangles and circles.
+        */
+        chartHeight = chartHeight * 2;
+        var lollipopHeight = chartHeight * 0.75;
+        var lollipopRadius = (chartHeight - lollipopHeight) / 2;
+        var lollipopRectWidth = 0.5;
+        chartHeight = chartHeight * 8;
+
+        // handle for div that will display text when hovering over over lollipop circle
+        var div = d3.select("body").append("div") 
+              .attr("class", "tooltip")       
+              .style("opacity", 0);
+
+        var variantChart = d3.select(".variant-chart")
+            .attr("width", chartWidth)
+            .attr("height", chartHeight);
+
+        var lollipopRect = variantChart.selectAll("g")
+            .data(data)
+          .enter().append("g")
+            .attr("transform", function(d) {
+              return "translate(" + 
+                scaleUniformIntronsToChart(scaleVariableIntronsToUniformIntrons(d.position - OFFSET)) 
+                  + "," + 0 + ")";
+            })
+            .append("rect")
+            .attr("width", lollipopRectWidth)
+            .attr("height", function(d) {
+              return (lollipopHeight - 1) * Math.sqrt(variant_map[d.position].length);
+            })
+            .attr('fill', function(d) {
+              return variantAnnotationToLollipopColor(d.annotation);
+            });
+
+        // TODO: fix text function to make it show up on circle
+        var lollipopCircle = variantChart.selectAll('circle')
+            .data(data)
+          .enter().append('circle')
+            .attr('cx', function(d) {
+              return scaleUniformIntronsToChart(scaleVariableIntronsToUniformIntrons(d.position - OFFSET));
+            })
+            .attr('cy', function(d) {
+              return (lollipopHeight - 1) * Math.sqrt(variant_map[d.position].length);
+            })
+            .attr('r', lollipopRadius)
+            .attr('fill', function(d) {
+              return variantAnnotationToLollipopColor(d.annotation);
+            });
+
+        lollipopCircle.append("text")
+          .text(function(d) { 
+            return variant_map[d.position].length; 
+          });
+
+        /* Step 16: When hovering over a circle, open a tooltip displaying variant data
+         * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
+         */
+        lollipopCircle.on("mouseover", function(d, i) {   
+          div.transition()    
+              .duration(200)    
+              .style("opacity", .9); 
+
+          div.html("chromosome: " + d.chromosome + "<br/>"
+            + "position: " + d.position + "<br/>"
+            + "referenceAllele: " + d.reference + "<br/>"
+            + "alternateAllele: " + d.alternate + "<br/>"
+            + "annotation: " + d.annotation + "<br/>"
+            + "alleleCount: " + d.alleleCount + "<br/>"
+            + "alleleNumber: " + d.alleleNumber + "<br/>"
+            + "alleleFrequency: " + d.alleleFrequency + "<br/>"
+            + "number of variants: " + variant_map[d.position].length)
+              .style("left", (d3.event.pageX) + "px")   
+              .style("top", (d3.event.pageY - 28) + "px");  
+          })          
+        .on("mouseout", function(d) {   
+          div.transition()    
+              .duration(500)    
+              .style("opacity", 0);
+        });
+      });
+      
+    </script>
+  </body>
 </html>
