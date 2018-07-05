@@ -34,6 +34,11 @@
       height: 30px;
     }
 
+    .zoom-in-single-exon-chart rect {
+      /*  hsl(color, saturation, lightness/transparency) */
+      fill:hsl(200, 50%, 70%); 
+    }
+
   </style>
   </head>
 
@@ -326,8 +331,10 @@
 
       // Return an array of values containing the starting point of each exon and intron,
       // where introns have the same length.
-      // Here, exonStartsWithUniformIntronLengths[i] = starting point of exon i, 
+      // TODO: Theoretically, exonStartsWithUniformIntronLengths[i] = starting point of exon i, 
       // and exonEndsWithUniformIntronLengths[i] = starting point of intron i
+      // But I split every intron since it would be extra work to keep track of which introns 
+      // are split and which are not.
       // 
       // splitIntronIndices contains indices of original intron lengths that exceeded the
       // basePairsOutsideExonLimit and had to be split into three parts in the domain. 
@@ -361,6 +368,21 @@
         range.push(exonEndsWithUniformIntronLengths[length - 1]);
 
         return range;
+      }
+
+
+      // Given a dictionary of arrays, each containing variants located in the same base pair position,
+      // return the length of the longest array
+      function getMaxArrayLengthInDictionary(dictionary) {
+        var max = 0;
+
+        for (const [ key, value ] of Object.entries(dictionary)) {
+          if (value.length > max) {
+            max = value.length;
+          }
+        }     
+
+        return max;
       }
 
 
@@ -442,8 +464,8 @@
        * Using d3.scaleLinear, the domain array will map to variant base pair positions 
        * assuming uniformly-lengthed introns (range).
        */
-      const basePairsOutsideExonLimit = 100;
-      var domainAndSplitIntronIndices = getDomain(exonStarts, exonEnds, basePairsOutsideExonLimit);
+      const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 100;
+      var domainAndSplitIntronIndices = getDomain(exonStarts, exonEnds, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
       var domain = domainAndSplitIntronIndices.domain;
       var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
 
@@ -469,7 +491,7 @@
        * Then initialize the function d3.scaleLinear(), using domain and range.
        */
       var range = getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
-        basePairsOutsideExonLimit, splitIntronIndices, INTRON_LENGTH);
+        BASE_PAIRS_OUTSIDE_EXON_LIMIT, splitIntronIndices, INTRON_LENGTH);
 
       var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
         .domain(domain)
@@ -529,22 +551,20 @@
         exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths);
       exonStartsWithUniformIntronLengths = exonPositions.exonStarts;
       exonEndsWithUniformIntronLengths = exonPositions.exonEnds;
-      
+
 
       /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
        * and shorter height rectangles representing non-coding exon partitions.
        */ 
-      var chartWidth = 800;
-      var chartHeight = 20;
-      var barHeightCoding = chartHeight - 2;
-      var barHeightNonCoding = barHeightCoding / 2;
-
-      // TODO: I'm not sure if exonNonCodingLimit is included in TOTAL_LENGTH calculation
+      const chartWidth = 800;
+      const chartHeight = 20;
+      const barHeightCoding = chartHeight - 2;
+      const barHeightNonCoding = barHeightCoding / 2;
       const TOTAL_LENGTH = SUM_EXON_LENGTHS + SUM_INTRON_LENGTHS;
 
       var scaleUniformIntronsToChart = d3.scaleLinear()
           .domain([0, TOTAL_LENGTH])
-          .range([0, chartWidth - 10]);
+          .range([0, chartWidth]);
 
       var chart = d3.select(".exon-chart")
           .attr("width", chartWidth)
@@ -573,16 +593,7 @@
           });
 
 
-      /* Step 12: TODO: Upon clicking an exon in the general view chart, a single exon in a zoomed-in view
-       * will pop up in a div below the general view's exon chart.
-       */
-      var exonZoomChart = d3.select("zoom-in-single-exon-chart")
-          .attr("width", chartWidth)
-          .attr("height", chartHeight);
-
-      bar.on("click", function(d, i) {   
-          // console.log("pressed exon at index: " + i);
-      });
+      /* Step 12: Location moved inside to d3.csv() for testing purposes */
 
 
       /* Step 13: Use unary symbol to convert strings into numbers, and implement
@@ -616,8 +627,15 @@
        */
       d3.csv('exac_PCSK9_variant_data.csv', row, function(data) {
 
+        // exonStarts and exonEnds have already had non coding exon parts limited in length
+        // if exonPartitionNonCodingIndices.length = 0 then all exons are coding and exonEnds[EXON_COUNT - 1]
+        // is the end position of the last exon. Otherwise, exonPartitionNonCodingIndices.length should
+        // have value of 1 or 2. It's unlikely that there are multiple cdsStart and cdsEnd values because
+        // intron,s which are non-coding areas, already form mini-cdsStart and mini-cdsEnd values. 
+        // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds // to get threshold values for filtering out variants that are outside of exon.
         const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
-        const UPPER_THRESHOLD = exonEnds[EXON_COUNT + exonPartitionNonCodingIndices.length - 1] + OFFSET;
+        const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1 + exonPartitionNonCodingIndices.length] + OFFSET;
+
         data = data.filter(function(d) {
           if (d.position >= LOWER_THRESHOLD && d.position <= UPPER_THRESHOLD) {
             return true;
@@ -626,7 +644,8 @@
         });
 
         // key representing variant base pair position is mapped to an array of variant(s) in that position
-        variant_map = {};
+        var variant_map = {};
+
         data.forEach(function(variant) {
           var position = variant.position;
           if (!variant_map[position]) {
@@ -638,13 +657,14 @@
         });
 
 
-       /* Step 15: Render lollipops representing variants, using SVG rectangles and circles.
-        */
-        chartHeight = chartHeight * 2;
-        var lollipopHeight = chartHeight * 0.75;
-        var lollipopRadius = (chartHeight - lollipopHeight) / 2;
-        var lollipopRectWidth = 0.5;
-        chartHeight = chartHeight * 8;
+        /* Step 15: Render lollipops for variants of the exon in the general view of all exons
+         */
+        const mostFrequentVariantPositionCount = getMaxArrayLengthInDictionary(variant_map);
+        const lollipopRectHeight = 1.5 * chartHeight;
+        const lollipopRectWidth = 0.3;
+        const lollipopRadius = lollipopRectHeight / 8;
+        const variantChartHeight = (lollipopRectHeight + lollipopRectHeight) 
+          * Math.sqrt(mostFrequentVariantPositionCount);
 
         // handle for div that will display text when hovering over over lollipop circle
         var div = d3.select("body").append("div") 
@@ -653,7 +673,7 @@
 
         var variantChart = d3.select(".variant-chart")
             .attr("width", chartWidth)
-            .attr("height", chartHeight);
+            .attr("height", variantChartHeight);
 
         var lollipopRect = variantChart.selectAll("g")
             .data(data)
@@ -666,13 +686,13 @@
             .append("rect")
             .attr("width", lollipopRectWidth)
             .attr("height", function(d) {
-              return (lollipopHeight - 1) * Math.sqrt(variant_map[d.position].length);
+              return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
             })
             .attr('fill', function(d) {
               return variantAnnotationToLollipopColor(d.annotation);
             });
 
-        // TODO: fix text function to make it show up on circle
+        
         var lollipopCircle = variantChart.selectAll('circle')
             .data(data)
           .enter().append('circle')
@@ -680,17 +700,19 @@
               return scaleUniformIntronsToChart(scaleVariableIntronsToUniformIntrons(d.position - OFFSET));
             })
             .attr('cy', function(d) {
-              return (lollipopHeight - 1) * Math.sqrt(variant_map[d.position].length);
+              return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
             })
             .attr('r', lollipopRadius)
             .attr('fill', function(d) {
               return variantAnnotationToLollipopColor(d.annotation);
             });
 
+        // TODO: fix text function to make it show up on circle
         lollipopCircle.append("text")
-          .text(function(d) { 
+          .text(function(d) {
             return variant_map[d.position].length; 
           });
+
 
         /* Step 16: When hovering over a circle, open a tooltip displaying variant data
          * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
@@ -700,6 +722,8 @@
               .duration(200)    
               .style("opacity", .9); 
 
+          // TODO: If there is more that one variant in a position, we need to show a table
+          // of variants when clicking or hovering over that lollipop circle
           div.html("chromosome: " + d.chromosome + "<br/>"
             + "position: " + d.position + "<br/>"
             + "referenceAllele: " + d.reference + "<br/>"
@@ -716,6 +740,202 @@
           div.transition()    
               .duration(500)    
               .style("opacity", 0);
+        });
+
+
+        /* Step 12: TODO: Upon clicking an exon in the general view chart, a single exon in zoomed-in view
+         * will pop up in a div below the general view's exon chart.
+         * 
+         * NOTE: d3 functions transforms variant_map into an array of SVG objects, one for each rectangle,
+         * so I made another map and used Object.assign() to copy contents of variant_map to new map. 
+         * But I cannot figure out how to pass in the new map to the anonymous function in bar.on("click"),
+         * so I will copy and paste csv code for now. I prefer to pass in the new map and not do so many
+         * csv file reads because this seems inefficient.
+         */
+        bar.on("click", function(d, i) {   
+          const clickedExonIndex = i;
+          console.log("pressed exon at index: " + clickedExonIndex);
+
+          /* TODO: Right now I am using old scale functions and a hack using INTRON_LENGTH * 2/3
+           * or BASE_PAIRS_OUTSIDE_EXON_LIMIT as the length of the one-third of total intron length
+           * of the introns that are between the exon. But I don't have a clear idea of how the scale
+           * works and need to review the old scale function later to see if I need a new one.
+           * Make sure that scale function and filter function gets all the variants on the 
+           * intron edges of each exon. 
+           * INTRON_LENGTH_TWO_THIRDS = 75.34 for PCSK9 dataset
+           * BASE_PAIRS_OUTSIDE_EXON_LIMIT = 100, constant for all datasets. Probably a better limit.
+           */
+          const CLICKED_EXON_OFFSET = exonStarts[clickedExonIndex] + OFFSET;
+          // const INTRON_LENGTH_TWO_THIRDS = 2 * roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
+          const INTRON_LENGTH_TWO_THIRDS = BASE_PAIRS_OUTSIDE_EXON_LIMIT;
+
+          // NOTE: For now, scale treats non-coding partition and coding partition of an exon 
+          // separately when clicked. Each whole exon or exon partition will get a white area 
+          // to its left and right representing introns.
+          var scaleSingleExonToUniformIntrons = d3.scaleLinear()
+              .domain([ 0, exonLengths[clickedExonIndex] + INTRON_LENGTH_TWO_THIRDS * 2])
+              .range([ 0, chartWidth ])
+
+          var zoomInSingleExonChart = d3.select(".zoom-in-single-exon-chart")
+              .attr("width", chartWidth)
+              .attr("height", chartHeight);
+
+            zoomInSingleExonChart.selectAll("g").remove();
+
+            var zoomBar = zoomInSingleExonChart.selectAll("g")
+                .data([ (exonLengths[clickedExonIndex] ) ])
+              .enter().append("g")
+                .attr("transform", function(d) { 
+                  if (exonPartitionNonCodingIndices.includes(clickedExonIndex)) {
+                    return "translate(" + 
+                      scaleSingleExonToUniformIntrons(
+                        INTRON_LENGTH_TWO_THIRDS
+                      ) + "," + ((barHeightCoding - barHeightNonCoding) / 2) + ")";
+                  }
+                  return "translate(" + 
+                    scaleSingleExonToUniformIntrons(
+                      INTRON_LENGTH_TWO_THIRDS
+                    ) + "," + 0 + ")";
+                });
+
+            zoomBar.append("rect")
+                .attr("width", scaleSingleExonToUniformIntrons)
+                .attr("height", function(d) {
+                  if (exonPartitionNonCodingIndices.includes(clickedExonIndex)) {
+                    return barHeightNonCoding;
+                  }
+                  return barHeightCoding;
+                });
+
+
+            /* Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
+             */
+            d3.csv('exac_PCSK9_variant_data.csv', row, function(data) {
+              const CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
+              const CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
+                + exonLengths[clickedExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;
+              
+              data = data.filter(function(d) {
+                if (d.position >= CLICKED_EXON_LOWER_THRESHOLD 
+                  && d.position <= CLICKED_EXON_UPPER_THRESHOLD) {
+                  return true;
+                }
+                return false;
+              });
+
+              var variant_map = {};
+
+              data.forEach(function(variant) {
+                var position = variant.position;
+                if (!variant_map[position]) {
+                  variant_map[position] = [variant];
+                }
+                else {
+                  variant_map[position].push(variant);
+                }
+              });
+
+              const mostFrequentVariantPositionCount = getMaxArrayLengthInDictionary(variant_map);
+              const lollipopRectHeight = 1.5 * chartHeight;
+              const lollipopRectWidth = 0.3;
+              const lollipopRadius = lollipopRectHeight / 8;
+              const variantChartHeight = (lollipopRectHeight + lollipopRectHeight) 
+                * Math.sqrt(mostFrequentVariantPositionCount);
+
+
+              // TODO: Figure out if there is a more efficient way than deleting the previous div 
+              // and creating a new one. Current way removes tooltip when hovering over variants 
+              // in the general view. This prevents user from hovering over and getting info on a 
+              // few variants outside of BASE_PAIRS_OUTSIDE_EXON_LIMIT.
+              var body_divs = d3.select("body").select("div").remove();
+              console.log(body_divs);
+              
+              var div = d3.select("body").append("div") 
+                    .attr("class", "tooltip")       
+                    .style("opacity", 0);
+
+              var variantChart = d3.select(".zoom-in-single-exon-variant-chart")
+                  .attr("width", chartWidth)
+                  .attr("height", variantChartHeight);
+
+              variantChart.selectAll("g").remove();
+
+              var lollipopRect = variantChart.selectAll("g")
+                  .data(data)
+                .enter().append("g")
+                  .attr("transform", function(d) {
+                    return "translate(" + 
+                      scaleSingleExonToUniformIntrons(
+                        scaleVariableIntronsToUniformIntrons(
+                          (d.position - CLICKED_EXON_OFFSET + INTRON_LENGTH_TWO_THIRDS)
+                        )
+                      ) + "," + 0 + ")";
+                  })
+                  .append("rect")
+                  .attr("width", lollipopRectWidth)
+                  .attr("height", function(d) {
+                    return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
+                  })
+                  .attr('fill', function(d) {
+                    return variantAnnotationToLollipopColor(d.annotation);
+                  });
+
+              variantChart.selectAll("circle").remove();
+
+              var lollipopCircle = variantChart.selectAll('circle')
+                  .data(data)
+                .enter().append('circle')
+                  .attr('cx', function(d) {
+                    return scaleSingleExonToUniformIntrons(
+                      scaleVariableIntronsToUniformIntrons(
+                        (d.position - CLICKED_EXON_OFFSET + INTRON_LENGTH_TWO_THIRDS)
+                      )
+                    );
+                  })
+                  .attr('cy', function(d) {
+                    return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
+                  })
+                  .attr('r', lollipopRadius)
+                  .attr('fill', function(d) {
+                    return variantAnnotationToLollipopColor(d.annotation);
+                  });
+
+              // TODO: fix text function to make it show up on circle
+              lollipopCircle.append("text")
+                .text(function(d) {
+                  return variant_map[d.position].length; 
+                });
+
+
+              /* Step 16: When hovering over a circle, open a tooltip displaying variant data
+               * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
+               */
+              lollipopCircle.on("mouseover", function(d, i) {   
+                div.transition()    
+                    .duration(200)    
+                    .style("opacity", .9); 
+
+                // TODO: If there is more that one variant in a position, we need to show a table
+                // of variants when clicking or hovering over that lollipop circle
+                div.html("chromosome: " + d.chromosome + "<br/>"
+                  + "position: " + d.position + "<br/>"
+                  + "referenceAllele: " + d.reference + "<br/>"
+                  + "alternateAllele: " + d.alternate + "<br/>"
+                  + "annotation: " + d.annotation + "<br/>"
+                  + "alleleCount: " + d.alleleCount + "<br/>"
+                  + "alleleNumber: " + d.alleleNumber + "<br/>"
+                  + "alleleFrequency: " + d.alleleFrequency + "<br/>"
+                  + "number of variants: " + variant_map[d.position].length)
+                    .style("left", (d3.event.pageX) + "px")   
+                    .style("top", (d3.event.pageY - 28) + "px");  
+                })          
+              .on("mouseout", function(d) {   
+                div.transition()    
+                    .duration(500)    
+                    .style("opacity", 0);
+              });
+            });
+
         });
       });
       
