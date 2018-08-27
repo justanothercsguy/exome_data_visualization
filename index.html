@@ -7,17 +7,13 @@
   <style>
     .exon-chart rect {
       /*  hsl(color, saturation, lightness/transparency) */
-      fill:hsl(200, 50%, 70%); 
+      /* fill:hsl(200, 50%, 70%); */
     }
 
     .exon-chart text {
       fill: white;
       font: 10px sans-serif;
       text-anchor: end;
-    }
-    
-    .variant-chart rect {
-
     }
 
     .variant-chart circle {
@@ -590,6 +586,7 @@
           });
       
       bar.append("rect")
+          .attr("fill", "lightblue")
           .attr("width", scaleUniformIntronsToChart)
           .attr("height", function(d, i) {
             if (exonPartitionNonCodingIndices.includes(i)) {
@@ -816,18 +813,24 @@
 
         /* Step 12: When mouse hovers over, show the hovered over exon in magnified view below.
          * Then if mouse clicks on an exon, lock that exon in a magnified view below and do not
-         * change exons if a different exon is hovered over.
+         * change exons if a different exon is hovered over. Change the color of the clicked exon.
          * Then if mouse clicks on any exons from the top row displaying the unmagnified view, 
-         * unlock the magnified exon and show an exon in magnified view when hovered over.
+         * unlock the magnified exon and show an exon in magnified view when hovered over. Undo the
+         * color change of the exon that is freed from the locked magnified view.
          */
         var clickToLockMagnifiedExon = false;
+        var clickedExonIndex = -1;
+        var hoveredExonIndex = -1;
         bar.on("mouseover", function(d, i) {
           if (!clickToLockMagnifiedExon) { 
-            bar.on("click", function() {
+            bar.on("click", function(d, j) {
               clickToLockMagnifiedExon = true; 
+              clickedExonIndex = j;
+              console.log("clicked over exon at index: " + clickedExonIndex);
+              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","indigo"); // <== D3 selector (node)
             });
-            const clickedExonIndex = i;
-            console.log("pressed exon at index: " + clickedExonIndex);
+            hoveredExonIndex = i;
+            // console.log("hovered over exon at index: " + hoveredExonIndex);
 
             /* TODO: Right now I am using old scale functions and a hack using INTRON_LENGTH * 2/3
             * or BASE_PAIRS_OUTSIDE_EXON_LIMIT as the length of the one-third of total intron length
@@ -839,7 +842,7 @@
             * BASE_PAIRS_OUTSIDE_EXON_LIMIT = 100, constant for all datasets.
             * TODO: use another dataset and figure out if its better to use variable or constant.
             */
-            const CLICKED_EXON_OFFSET = exonStarts[clickedExonIndex] + OFFSET;
+            const CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
             const INTRON_LENGTH_TWO_THIRDS = 2 * roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
             //const INTRON_LENGTH_TWO_THIRDS = BASE_PAIRS_OUTSIDE_EXON_LIMIT;
 
@@ -847,7 +850,7 @@
             // separately when clicked. Each whole exon or exon partition will get a white area 
             // to its left and right representing introns.
             var scaleSingleExonToUniformIntrons = d3.scaleLinear()
-                .domain([ 0, exonLengths[clickedExonIndex] + INTRON_LENGTH_TWO_THIRDS * 2])
+                .domain([ 0, exonLengths[hoveredExonIndex] + INTRON_LENGTH_TWO_THIRDS * 2])
                 .range([ 0, chartWidth ])
 
             var zoomInSingleExonChart = d3.select(".zoom-in-single-exon-chart")
@@ -858,10 +861,10 @@
             
             // input a one-element array containing the clicked exon
             var zoomBar = zoomInSingleExonChart.selectAll("g")
-                .data([ (exonLengths[clickedExonIndex] ) ])
+                .data([ (exonLengths[hoveredExonIndex] ) ])
               .enter().append("g")
                 .attr("transform", function(d) { 
-                  if (exonPartitionNonCodingIndices.includes(clickedExonIndex)) {
+                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
                     return "translate(" + 
                       scaleSingleExonToUniformIntrons(
                         INTRON_LENGTH_TWO_THIRDS
@@ -876,7 +879,7 @@
             zoomBar.append("rect")
                 .attr("width", scaleSingleExonToUniformIntrons)
                 .attr("height", function(d) {
-                  if (exonPartitionNonCodingIndices.includes(clickedExonIndex)) {
+                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
                     return barHeightNonCoding;
                   }
                   return barHeightCoding;
@@ -888,8 +891,7 @@
             // d3.csv('exac_PCSK9_variant_data.csv', row, function(data) {
               const CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
               const CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
-                + exonLengths[clickedExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;
-              
+                + exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;       
               
               data = variant_data.filter(function(d) {
                 if (d.position >= CLICKED_EXON_LOWER_THRESHOLD 
@@ -898,11 +900,6 @@
                 }
                 return false;
               });
-
-              console.log('data');
-              console.log(data);
-              console.log('variant_data');
-              console.log(variant_data);
 
               var variant_map_single_exon = {}
               for (let [key, value] of Object.entries(variant_map)) {
@@ -921,13 +918,12 @@
               const variantChartHeight = (lollipopRectHeight + lollipopRectHeight) 
                 * Math.sqrt(mostFrequentVariantPositionCount);
 
-
               // TODO: Figure out if there is a more efficient way than deleting the previous div 
               // and creating a new one. Current way removes tooltip when hovering over variants 
               // in the general view. This prevents user from hovering over and getting info on a 
               // few variants outside of BASE_PAIRS_OUTSIDE_EXON_LIMIT - DONT WORRY FOR NOW
               var body_divs = d3.select("body").select("div").remove();
-              console.log(body_divs);
+              // console.log(body_divs);
               
               var div = d3.select("body").append("div") 
                     .attr("class", "tooltip")       
@@ -985,7 +981,6 @@
                   return variant_map_single_exon[d.position].length; 
                 });
 
-
               /* Step 16: When hovering over a circle, open a tooltip displaying variant data
                * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
                */
@@ -1018,6 +1013,7 @@
           else {
             bar.on('click', function() {
               clickToLockMagnifiedExon = false;
+              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","lightblue");
             });
           }
           });
