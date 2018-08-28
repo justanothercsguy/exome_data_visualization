@@ -549,7 +549,6 @@
       exonStartsWithUniformIntronLengths = exonPositions.exonStarts;
       exonEndsWithUniformIntronLengths = exonPositions.exonEnds;
 
-
       /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
        * and shorter height rectangles representing non-coding exon partitions. To represent introns,
        * render horizontal dashed lines in the white space between the rectangles. Cheap and fast
@@ -632,34 +631,7 @@
             })
             .attr("d", d3.line());
 
-      /*
-      var bar = chart.selectAll("g")
-          .data(uniformIntronLengthArray)
-        .enter().append("g")
-          .attr("transform", function(d, i) { 
-            return "translate(" + scaleUniformIntronsToChart(intronStartsWithUniformIntronLength[i])
-             + "," + 0 + ")";
-          });
-      */ 
-      /*
-      var bar = chart.selectAll("g")
-          .data(exonLengths)
-        .enter().append("g")
-          .attr("transform", function(d, i) { 
-            if (exonPartitionNonCodingIndices.includes(i)) {
-              return "translate(" + 
-                scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i]) + "," + 
-                ((barHeightCoding - barHeightNonCoding) / 2) + ")";
-            }
-            return "translate(" + scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i])
-             + "," + 0 + ")";
-          });
-      */
-      // <path d="M87.47984954325632,10L111.76786673831273,10" 
-      // style="stroke: black; stroke-dasharray: 2, 2;"></path>
-
       /* Step 12: Location moved inside to d3.csv() for testing purposes */
-
 
       /* Step 13: Use unary symbol to convert strings into numbers, and implement
        * row function to tell d3.csv() how to parse each row in csv file.
@@ -721,7 +693,6 @@
             variant_map[position].push(variant);
           }
         });
-
 
         /* Step 15: Render lollipops for variants of the exon in the general view of all exons
          */
@@ -809,7 +780,6 @@
               .style("opacity", 0);
         });
 
-
         /* Step 12: When mouse hovers over, show the hovered over exon in magnified view below.
          * Then if mouse clicks on an exon, lock that exon in a magnified view below and do not
          * change exons if a different exon is hovered over. Change the color of the clicked exon.
@@ -859,6 +829,9 @@
             zoomInSingleExonChart.selectAll("g").remove();
             
             // input a one-element array containing the clicked exon
+            // put a horizontal line representing the extent of the limit on the number of base pairs
+            // outside of the exon to be shown
+            // tutorial: https://www.dashingd3js.com/svg-paths-and-d3js
             var zoomBar = zoomInSingleExonChart.selectAll("g")
                 .data([ (exonLengths[hoveredExonIndex] ) ])
               .enter().append("g")
@@ -884,8 +857,22 @@
                   }
                   return barHeightCoding;
                 });
+            
+            /*
+            var zoomBasePairsOutsideExonLimitScale = [];
+            zoomBasePairsOutsideExonLimitScale.push([
+              [scaleSingleExonToUniformIntrons(INTRON_LENGTH_TWO_THIRDS - 50), 9], 
+              [scaleSingleExonToUniformIntrons(INTRON_LENGTH_TWO_THIRDS + 50), 9]]);
 
-
+            var zoomLine = zoomInSingleExonChart.selectAll("path")
+                .data(zoomBasePairsOutsideExonLimitScale)
+                .enter().append("path")
+                  .style("stroke", "black")
+                  .attr("stroke-width", 2)
+                  .style("stroke-dasharray", "2,1")
+                  .attr("d", d3.line());
+            */
+           
             /* Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
              */
             // d3.csv('exac_PCSK9_variant_data.csv', row, function(data) {
