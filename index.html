@@ -336,7 +336,7 @@
       // The introns in the corresponding indices in the range array will also be split
       // into three event parts.
       function getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
-        basePairsOutsideExonLimit, splitIntronIndices, INTRON_LENGTH) {
+        splitIntronIndices, INTRON_LENGTH) {
 
         const length = exonStartsWithUniformIntronLengths.length;
         const INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
@@ -459,7 +459,9 @@
        * Using d3.scaleLinear, the domain array will map to variant base pair positions 
        * assuming uniformly-lengthed introns (range).
        */
-      const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 100;
+      // Dr. Zuchner said BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50 for now
+      // TODO: This does exclude a few variants, so I should ask him if he wishes to increase the limit
+      const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
       var domainAndSplitIntronIndices = getDomain(exonStarts, exonEnds, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
       var domain = domainAndSplitIntronIndices.domain;
       var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
@@ -488,7 +490,7 @@
        * Then initialize the function d3.scaleLinear(), using domain and range.
        */
       var range = getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
-        BASE_PAIRS_OUTSIDE_EXON_LIMIT, splitIntronIndices, INTRON_LENGTH);
+        splitIntronIndices, INTRON_LENGTH);
 
       var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
         .domain(domain)
@@ -551,8 +553,7 @@
 
       /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
        * and shorter height rectangles representing non-coding exon partitions. To represent introns,
-       * render horizontal dashed lines in the white space between the rectangles. Cheap and fast
-       * way of doing this would be to put dash line behind the rectangles but in front of white spaces.
+       * render horizontal dashed lines in the white space between the rectangles.
        */ 
       const chartWidth = 800;
       const chartHeight = 20;
@@ -593,13 +594,13 @@
             return barHeightCoding;
           });
 
-      // calculate starting positions of uniform introns when scaled to chart
+      // Given the starting positions of uniform introns when scaled to chart, 
+      // split each intron into three sections and add the starting and ending positions
+      // of those sections into an array
       var intronStartsAndEndsWithUniformIntronLength = [];
       const NUM_EXONS = exonEndsWithUniformIntronLengths.length - exonPartitionNonCodingIndices.length;
       for (var i = 1; i < NUM_EXONS; i++) {
         if (!exonPartitionNonCodingIndices.includes(i)) {
-          // split dashed line representing intron into three parts and highlight the outer two parts 
-          // to represent the location range where variants exist
           var start1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i]), barHeightNonCoding];
           var end1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
           var start2 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
@@ -613,7 +614,10 @@
       }
       console.log("intronStartsAndEndsWithUniformIntronLength");
       console.log(intronStartsAndEndsWithUniformIntronLength);
-
+      
+      // Render different dashed lines for the three different sections of each intron
+      // Darker and wider for the two side sections that contain variants
+      // Lighter and thinner for the middle section that does not contain variants
       var lines = chart.selectAll("path")
           .data(intronStartsAndEndsWithUniformIntronLength)
           .enter().append("path")
@@ -673,7 +677,8 @@
         // is the end position of the last exon. Otherwise, exonPartitionNonCodingIndices.length should
         // have value of 1 or 2. It's unlikely that there are multiple cdsStart and cdsEnd values because
         // introns which are non-coding areas, already form mini-cdsStart and mini-cdsEnd values. 
-        // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds // to get threshold values for filtering out variants that are outside of exon.
+        // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 
+        // to get threshold values for filtering out variants that are outside of exon.
         const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
         const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1 + exonPartitionNonCodingIndices.length] + OFFSET;
         variant_data = data;
@@ -791,6 +796,8 @@
         var clickedExonIndex = -1;
         var hoveredExonIndex = -1;
         bar.on("mouseover", function(d, i) {
+          hoveredExonIndex = i;
+ 
           if (!clickToLockMagnifiedExon) { 
             bar.on("click", function(d, j) {
               clickToLockMagnifiedExon = true; 
@@ -798,72 +805,70 @@
               console.log("clicked over exon at index: " + clickedExonIndex);
               d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","lightblue"); // <== D3 selector (node)
             });
-            hoveredExonIndex = i;
-            // console.log("hovered over exon at index: " + hoveredExonIndex);
 
-            /* TODO: Right now I am using old scale functions and a hack using INTRON_LENGTH * 2/3
-            * or BASE_PAIRS_OUTSIDE_EXON_LIMIT as the length of the one-third of total intron length
-            * of the introns that are between the exon. But I don't have a clear idea of how the scale
-            * works and need to review the old scale function later to see if I need a new one.
-            * Make sure that scale function and filter function gets all the variants on the 
-            * intron edges of each exon. 
-            * INTRON_LENGTH_TWO_THIRDS = 75.34 for PCSK9 dataset, varies among datasets
-            * BASE_PAIRS_OUTSIDE_EXON_LIMIT = 100, constant for all datasets.
-            * TODO: use another dataset and figure out if its better to use variable or constant.
-            */
+            /* Currently using const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50
+             * In the case that other datasets have many variants outside this limit, change the value
+             */
             const CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
-            const INTRON_LENGTH_TWO_THIRDS = 2 * roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
-            //const INTRON_LENGTH_TWO_THIRDS = BASE_PAIRS_OUTSIDE_EXON_LIMIT;
-
-            // NOTE: For now, scale treats non-coding partition and coding partition of an exon 
+          
+            // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
             // separately when clicked. Each whole exon or exon partition will get a white area 
             // to its left and right representing introns.
-            var scaleSingleExonToUniformIntrons = d3.scaleLinear()
-                .domain([ 0, exonLengths[hoveredExonIndex] + INTRON_LENGTH_TWO_THIRDS * 2])
-                .range([ 0, chartWidth ])
-
+            var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT * 2;
+            
+            var scaleSingleExonToChart = d3.scaleLinear()
+                .domain([ 0, singleExonAndPaddingLength ])
+                .range([ 0, chartWidth ]);
+          
             var zoomInSingleExonChart = d3.select(".zoom-in-single-exon-chart")
                 .attr("width", chartWidth)
                 .attr("height", chartHeight);
 
             zoomInSingleExonChart.selectAll("g").remove();
             
-            // input a one-element array containing the clicked exon
+            // Step 18: create a one-element array containing the hovered/clicked exon
             // put a horizontal line representing the extent of the limit on the number of base pairs
             // outside of the exon to be shown
             // tutorial: https://www.dashingd3js.com/svg-paths-and-d3js
             var zoomBar = zoomInSingleExonChart.selectAll("g")
-                .data([ (exonLengths[hoveredExonIndex] ) ])
+                .data([ (exonLengths[hoveredExonIndex]) ])
               .enter().append("g")
                 .attr("transform", function(d) { 
                   if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
                     return "translate(" + 
-                      scaleSingleExonToUniformIntrons(
-                        INTRON_LENGTH_TWO_THIRDS
+                      scaleSingleExonToChart(
+                        BASE_PAIRS_OUTSIDE_EXON_LIMIT
                       ) + "," + ((barHeightCoding - barHeightNonCoding) / 2) + ")";
                   }
                   return "translate(" + 
-                    scaleSingleExonToUniformIntrons(
-                      INTRON_LENGTH_TWO_THIRDS
+                    scaleSingleExonToChart(
+                      BASE_PAIRS_OUTSIDE_EXON_LIMIT
                     ) + "," + 0 + ")";
                 });
-
+            
+            // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
             zoomBar.append("rect")
                 .attr("fill", "#868686")
-                .attr("width", scaleSingleExonToUniformIntrons)
+                .attr("width", scaleSingleExonToChart)
                 .attr("height", function(d) {
                   if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
                     return barHeightNonCoding;
                   }
                   return barHeightCoding;
-                });
+                });       
             
-            /*
+            // STEP 19: set coordinates of dashed line which serves to indicate that BASE_PAIR_OUTSIDE_EXON_LIMIT = 50
+            // PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
+            // SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
+            // MAYBE PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
+            // with variants which are first scaled from variableIntronsToUniformIntrons and then from
+            // singleExonToChart
             var zoomBasePairsOutsideExonLimitScale = [];
             zoomBasePairsOutsideExonLimitScale.push([
-              [scaleSingleExonToUniformIntrons(INTRON_LENGTH_TWO_THIRDS - 50), 9], 
-              [scaleSingleExonToUniformIntrons(INTRON_LENGTH_TWO_THIRDS + 50), 9]]);
-
+              [scaleSingleExonToChart( 0 ), 9], 
+              [scaleSingleExonToChart( BASE_PAIRS_OUTSIDE_EXON_LIMIT), 9]]);
+            
+            zoomInSingleExonChart.selectAll("path").remove();
             var zoomLine = zoomInSingleExonChart.selectAll("path")
                 .data(zoomBasePairsOutsideExonLimitScale)
                 .enter().append("path")
@@ -871,8 +876,7 @@
                   .attr("stroke-width", 2)
                   .style("stroke-dasharray", "2,1")
                   .attr("d", d3.line());
-            */
-           
+
             /* Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
              */
             // d3.csv('exac_PCSK9_variant_data.csv', row, function(data) {
@@ -909,8 +913,8 @@
               // and creating a new one. Current way removes tooltip when hovering over variants 
               // in the general view. This prevents user from hovering over and getting info on a 
               // few variants outside of BASE_PAIRS_OUTSIDE_EXON_LIMIT - DONT WORRY FOR NOW
+              // MAYBE SOLUTION: put the tooltip in its own div so it does not get deleted - NEED TO TEST
               var body_divs = d3.select("body").select("div").remove();
-              // console.log(body_divs);
               
               var div = d3.select("body").append("div") 
                     .attr("class", "tooltip")       
@@ -922,14 +926,15 @@
 
               variantChart.selectAll("g").remove();
 
+              // subtracting by CLICKED_EXON_OFFSET prevents variant from flying off the screen
               var lollipopRect = variantChart.selectAll("g")
                   .data(data)
                 .enter().append("g")
                   .attr("transform", function(d) {
                     return "translate(" + 
-                      scaleSingleExonToUniformIntrons(
+                      scaleSingleExonToChart(
                         scaleVariableIntronsToUniformIntrons(
-                          (d.position - CLICKED_EXON_OFFSET + INTRON_LENGTH_TWO_THIRDS)
+                          (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT)
                         )
                       ) + "," + 0 + ")";
                   })
@@ -948,9 +953,9 @@
                   .data(data)
                 .enter().append('circle')
                   .attr('cx', function(d) {
-                    return scaleSingleExonToUniformIntrons(
+                    return scaleSingleExonToChart(
                       scaleVariableIntronsToUniformIntrons(
-                        (d.position - CLICKED_EXON_OFFSET + INTRON_LENGTH_TWO_THIRDS)
+                        (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT)
                       )
                     );
                   })
@@ -989,14 +994,13 @@
                   + "number of variants: " + variant_map_single_exon[d.position].length)
                     .style("left", (d3.event.pageX) + "px")   
                     .style("top", (d3.event.pageY - 28) + "px");  
-                })          
+              })          
               .on("mouseout", function(d) {   
                 div.transition()    
                     .duration(500)    
                     .style("opacity", 0);
               });
-            }
-          
+          }
           else {
             bar.on('click', function() {
               clickToLockMagnifiedExon = false;
