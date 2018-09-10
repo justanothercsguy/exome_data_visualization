@@ -857,21 +857,24 @@
                   return barHeightCoding;
                 });       
             
-            // STEP 19: set coordinates of dashed line which serves to indicate that BASE_PAIR_OUTSIDE_EXON_LIMIT = 50
+            // Step 19: set coordinates of dashed line which serves to indicate that BASE_PAIR_OUTSIDE_EXON_LIMIT = 50
             // PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
             // SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
             // MAYBE PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
             // with variants which are first scaled from variableIntronsToUniformIntrons and then from
             // singleExonToChart
-            var zoomBasePairsOutsideExonLimitScale = [];
-            zoomBasePairsOutsideExonLimitScale.push([
-              [scaleSingleExonToChart( 0 ), 9], 
+            var zoomLineHorizontalCoordinates = [];
+            zoomLineHorizontalCoordinates.push([
+              [scaleSingleExonToChart( scaleSingleExonToChart(0) ), 0], 
+              [scaleSingleExonToChart( scaleSingleExonToChart(0) ), 9], 
               [scaleSingleExonToChart( BASE_PAIRS_OUTSIDE_EXON_LIMIT), 9]]);
             
+            // try to add vertical and horizontal path to the same object and disable filling the path into triangle
             zoomInSingleExonChart.selectAll("path").remove();
-            var zoomLine = zoomInSingleExonChart.selectAll("path")
-                .data(zoomBasePairsOutsideExonLimitScale)
+            var zoomLineHorizontal = zoomInSingleExonChart.selectAll("path")
+                .data(zoomLineHorizontalCoordinates)
                 .enter().append("path")
+                  .style("fill", "none")
                   .style("stroke", "black")
                   .attr("stroke-width", 2)
                   .style("stroke-dasharray", "2,1")
