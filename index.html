@@ -814,9 +814,8 @@
                 .attr("width", chartWidth)
                 .attr("height", chartHeight);
 
-            zoomInSingleExonChart.selectAll("g").remove();
-            
             // Step 18: create a one-element array containing the hovered/clicked exon
+            zoomInSingleExonChart.selectAll("g").remove();
             var zoomBar = zoomInSingleExonChart.selectAll("g")
                 .data([ exonLengths[hoveredExonIndex] ])
               .enter().append("g")
@@ -858,7 +857,6 @@
               [scaleSingleExonToChart( leftMarginPadding ), barHeightNonCoding], 
               [scaleSingleExonToChart( BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding), barHeightNonCoding]]);
             
-            // try to add vertical and horizontal path to the same object and disable filling the path into triangle
             zoomInSingleExonChart.selectAll("path").remove();
             var zoomLine = zoomInSingleExonChart.selectAll("path")
                 .data(zoomLineCoordinates)
@@ -876,19 +874,13 @@
                 .data(zoomLineCoordinates)
                 .enter().append("text");
             
-            // need to make margins for the chart
             var textLabels = text
                 .attr("x", scaleSingleExonToChart(leftMarginPadding) + 5)
                 .attr("y", barHeightCoding / 3)
-                .text( function (d) { return BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp"; })
+                .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
                 .attr("font-family", "sans-serif")
-                .attr("font-size", "8px")
-                .attr("fill", "black");
+                .attr("font-size", "8px");
             
-            /* Step 20: add vertical scale representing allele frequencies of lollipops 
-             * of the exon in the zoomed in view
-             */
-
             // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
             const CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
             const CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
@@ -910,16 +902,6 @@
               }
             }
 
-            // console.log('variant_map'); console.log(variant_map);
-            //console.log('variant_map_single_exon'); console.log(variant_map_single_exon);
-
-            const mostFrequentVariantPositionCount = getMaxArrayLengthInDictionary(variant_map_single_exon);
-            const lollipopRectHeight = 1.5 * chartHeight;
-            const lollipopRectWidth = 0.3;
-            const lollipopRadius = lollipopRectHeight / 8;
-            const variantChartHeight = (lollipopRectHeight + lollipopRectHeight) 
-              * Math.sqrt(mostFrequentVariantPositionCount);
-
             // TODO: Figure out if there is a more efficient way than deleting the previous div 
             // and creating a new one. Current way removes tooltip when hovering over variants 
             // in the general view. This prevents user from hovering over and getting info on a 
@@ -936,8 +918,6 @@
                 .attr("height", variantChartHeight);
 
             variantChart.selectAll("g").remove();
-
-            // subtracting by CLICKED_EXON_OFFSET prevents variant from flying off the screen
             var lollipopRect = variantChart.selectAll("g")
                 .data(data)
               .enter().append("g")
@@ -959,7 +939,6 @@
                 });
 
             variantChart.selectAll("circle").remove();
-
             var lollipopCircle = variantChart.selectAll('circle')
                 .data(data)
               .enter().append('circle')
@@ -978,11 +957,27 @@
                   return variantAnnotationToLollipopColor(d.annotation);
                 });
 
-            // TODO: fix text function to make it show up on circle
-            lollipopCircle.append("text")
-              .text(function(d) {
-                return variant_map_single_exon[d.position].length; 
-              });
+            /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
+             * Tutorial: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
+             */
+            // Scale the range of the data
+            var y = d3.scaleLinear().range([ variantChartHeight, 0 ]);
+            y.domain([ 0, mostFrequentVariantPositionCount ]);
+
+            // add the y Axis
+            variantChart.append("g")
+                .call(d3.axisLeft(y))
+                .attr("transform", "translate(" + (leftMarginPadding * 2) + ")")
+
+            // text label for the y axis
+            variantChart.selectAll("text").remove();
+            variantChart.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 )//- margin.left)
+                .attr("x", 0 - (variantChartHeight / 4))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .text("MAF");      
 
             /* Step 16: When hovering over a circle, open a tooltip displaying variant data
               * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
