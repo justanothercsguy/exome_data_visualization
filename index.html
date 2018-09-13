@@ -24,16 +24,6 @@
       padding: 3px;
       margin: 1px;
     }
-
-    circle.text {
-      width: 30px;
-      height: 30px;
-    }
-    /*
-    .zoom-in-single-exon-chart rect {
-      fill:hsl(200, 50%, 70%);
-    }
-    */
   </style>
   </head>
 
@@ -704,7 +694,7 @@
         const lollipopRectHeight = 1.5 * chartHeight;
         const lollipopRectWidth = 0.3;
         const lollipopRadius = lollipopRectHeight / 8;
-        const variantChartHeight = (lollipopRectHeight + lollipopRectHeight) 
+        const variantChartHeight = (lollipopRectHeight + lollipopRadius) 
           * Math.sqrt(mostFrequentVariantPositionCount);
 
         // handle for div that will display text when hovering over over lollipop circle
@@ -958,26 +948,40 @@
                 });
 
             /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
+             *
+             * TODO: change length of lollipops to reflect the allele frequencies
              * Tutorial: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
+             *
+             * TODO: add left margin padding and y-axis padding (upper and lower bound of svg container)
+             * so that the y-axis text next to tick marks will be displayed correctly
+             * Tutorial: https://bl.ocks.org/mbostock/3885304
              */
             // Scale the range of the data
-            var y = d3.scaleLinear().range([ variantChartHeight, 0 ]);
-            y.domain([ 0, mostFrequentVariantPositionCount ]);
-
-            // add the y Axis
-            variantChart.append("g")
-                .call(d3.axisLeft(y))
-                .attr("transform", "translate(" + (leftMarginPadding * 2) + ")")
+            var yAxisPadding = 10;
+            var y = d3.scaleLinear()
+                .domain([ 0, mostFrequentVariantPositionCount ])
+                .range([ 0, variantChartHeight - yAxisPadding ]);
 
             // text label for the y axis
+            // we don't want to remove tick mark labels before removing and re-rendering y-axis label
+            // TODO: preset margins and render scale position according to margins
+            // But should the scale values be based on the max allele frequency from all the variants
+            // from all the eons in the gene, or the max allele frequency fro the variants from the 
+            // currently selected exon?
             variantChart.selectAll("text").remove();
             variantChart.append("text")
                 .attr("transform", "rotate(-90)")
-                .attr("y", 0 )//- margin.left)
-                .attr("x", 0 - (variantChartHeight / 4))
+                .attr("y", 0)
+                .attr("x", 0 - (variantChartHeight / 2))
                 .attr("dy", "1em")
-                .style("text-anchor", "middle")
-                .text("MAF");      
+                .attr("text-anchor", "middle")
+                .text("MAF");
+
+            variantChart.append("g")
+                .attr("class", "axis axis--y")
+                .attr("transform", "translate(" + (leftMarginPadding * 2) + "," + 
+                  (yAxisPadding / 2) + ")")
+                .call(d3.axisLeft(y).ticks(6));
 
             /* Step 16: When hovering over a circle, open a tooltip displaying variant data
               * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
