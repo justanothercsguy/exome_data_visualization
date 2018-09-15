@@ -601,8 +601,6 @@
           intronStartsAndEndsWithUniformIntronLength.push([start3, end3]);
         }
       }
-      console.log("intronStartsAndEndsWithUniformIntronLength");
-      console.log(intronStartsAndEndsWithUniformIntronLength);
       
       // Render different dashed lines for the three different sections of each intron
       // Darker and wider for the two side sections that contain variants
@@ -623,8 +621,6 @@
               return "2,1";
             })
             .attr("d", d3.line());
-
-      /* Step 12: Location moved inside to d3.csv() for testing purposes */
 
       /* Step 13: Use unary symbol to convert strings into numbers, and implement
        * row function to tell d3.csv() how to parse each row in csv file.
@@ -660,16 +656,12 @@
        * https://stackoverflow.com/questions/42285441/how-to-read-in-csv-with-d3-v4
        */
       d3.csv('exac_PCSK9_variant_data.csv', row, function(data) {
-
-        // exonStarts and exonEnds have already had non coding exon parts limited in length
-        // if exonPartitionNonCodingIndices.length = 0 then all exons are coding and exonEnds[EXON_COUNT - 1]
-        // is the end position of the last exon. Otherwise, exonPartitionNonCodingIndices.length should
-        // have value of 1 or 2. It's unlikely that there are multiple cdsStart and cdsEnd values because
-        // introns which are non-coding areas, already form mini-cdsStart and mini-cdsEnd values. 
         // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 
-        // to get threshold values for filtering out variants that are outside of exon.
+        // to get threshold values for filtering out variants that are greater than NON_CODING_LENGTH_LIMIT
+        // number of base pairs outside of the exon
         const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
         const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1 + exonPartitionNonCodingIndices.length] + OFFSET;
+        
         variant_data = data;
         data = data.filter(function(d) {
           if (d.position >= LOWER_THRESHOLD && d.position <= UPPER_THRESHOLD) {
@@ -691,11 +683,24 @@
         /* Step 15: Render lollipops for variants of the exon in the general view of all exons
          */
         const mostFrequentVariantPositionCount = getMaxArrayLengthInDictionary(variant_map);
-        const lollipopRectHeight = 1.5 * chartHeight;
-        const lollipopRectWidth = 0.3;
-        const lollipopRadius = lollipopRectHeight / 8;
-        const variantChartHeight = (lollipopRectHeight + lollipopRadius) 
-          * Math.sqrt(mostFrequentVariantPositionCount);
+        const lollipopRectHeight = 10;
+        const lollipopRectWidth = 0.2;
+        const lollipopRadius = 3;
+        const variantChartVerticalPadding = 20;
+        const variantChartHeight = 150; // lollipopRectHeight + lollipopRadius + variantChartVerticalPadding;
+
+        // scale lollipop rectangle height based on allele frequency
+        // Dr. Zuchner said: For the scale I recommend MAF > 0.01, MAF < 0.001, MAF < 0.0001
+        // Zishi: I recommend an extra MAF < 0.00001
+        const multiplyByBase10ToMakeYAxisLabelWork = 1000000;
+        var yScaleLollipop = d3.scaleLog()
+            .domain([ 1/multiplyByBase10ToMakeYAxisLabelWork, 1 ])
+            // .domain([ 0, d3.max(data, function(d) { return d.alleleFrequency; }) ])
+            .range([0, 
+              (variantChartHeight - variantChartVerticalPadding)
+            ]);
+        console.log(yScaleLollipop(10));
+        console.log(yScaleLollipop(100));
 
         // handle for div that will display text when hovering over over lollipop circle
         var div = d3.select("body").append("div") 
@@ -717,7 +722,8 @@
             .append("rect")
             .attr("width", lollipopRectWidth)
             .attr("height", function(d) {
-              return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
+              return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
+              // return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
             })
             .attr('fill', function(d) {
               return variantAnnotationToLollipopColor(d.annotation);
@@ -731,7 +737,8 @@
               return scaleUniformIntronsToChart(scaleVariableIntronsToUniformIntrons(d.position - OFFSET));
             })
             .attr('cy', function(d) {
-              return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
+              return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
+              // return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
             })
             .attr('r', lollipopRadius)
             .attr('fill', function(d) {
@@ -747,16 +754,16 @@
               .style("opacity", .9); 
 
           // TODO: If there is more that one variant in a position, we need to show a table
-          // of variants when clicking or hovering over that lollipop circle
-          // Currently, only the first variant shows up on the tooltip
-          div.html("chromosome: " + d.chromosome + "<br/>"
-            + "position: " + d.position + "<br/>"
-            + "referenceAllele: " + d.reference + "<br/>"
-            + "alternateAllele: " + d.alternate + "<br/>"
-            + "annotation: " + d.annotation + "<br/>"
-            + "alleleCount: " + d.alleleCount + "<br/>"
-            + "alleleNumber: " + d.alleleNumber + "<br/>"
-            + "alleleFrequency: " + d.alleleFrequency + "<br/>"
+          // of variants when clicking or hovering over that lollipop circle.
+          // For now if a position has multiple variants, the tooltip shows the first variant
+          div.html("chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
+            + "position: " + variant_map[d.position][0].position + "<br/>"
+            + "referenceAllele: " + variant_map[d.position][0].reference + "<br/>"
+            + "alternateAllele: " + variant_map[d.position][0].alternate + "<br/>"
+            + "annotation: " + variant_map[d.position][0].annotation + "<br/>"
+            + "alleleCount: " + variant_map[d.position][0].alleleCount + "<br/>"
+            + "alleleNumber: " + variant_map[d.position][0].alleleNumber + "<br/>"
+            + "alleleFrequency: " + variant_map[d.position][0].alleleFrequency + "<br/>"
             + "number of variants: " + variant_map[d.position].length)
               .style("left", (d3.event.pageX) + "px")   
               .style("top", (d3.event.pageY - 28) + "px");  
@@ -792,7 +799,7 @@
             // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
             // separately when clicked. Each whole exon or exon partition will get a white area 
             // to its left and right representing introns.
-            const leftMarginPadding = 20;
+            const leftMarginPadding = 30;
             var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
               + leftMarginPadding + BASE_PAIRS_OUTSIDE_EXON_LIMIT * 2;
 
@@ -837,9 +844,9 @@
              * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
              * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
              * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
-             * MAYBE PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
+             * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
              * with variants which are first scaled from variableIntronsToUniformIntrons and then from
-             * singleExonToChart
+             * singleExonToChart.
              */
             var zoomLineCoordinates = [];
             zoomLineCoordinates.push([
@@ -891,7 +898,6 @@
                 variant_map_single_exon[key] = value;
               }
             }
-
             // TODO: Figure out if there is a more efficient way than deleting the previous div 
             // and creating a new one. Current way removes tooltip when hovering over variants 
             // in the general view. This prevents user from hovering over and getting info on a 
@@ -917,12 +923,13 @@
                       scaleVariableIntronsToUniformIntrons(
                         (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding)
                       )
-                    ) + "," + 0 + ")";
+                    ) + "," + (variantChartVerticalPadding / 2) + ")";
                 })
                 .append("rect")
                 .attr("width", lollipopRectWidth)
                 .attr("height", function(d) {
-                  return (lollipopRectHeight - 1) * Math.sqrt(variant_map_single_exon[d.position].length);
+                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
+                  // return (lollipopRectHeight - 1) * Math.sqrt(variant_map_single_exon[d.position].length);
                 })
                 .attr('fill', function(d) {
                   return variantAnnotationToLollipopColor(d.annotation);
@@ -940,7 +947,9 @@
                   );
                 })
                 .attr('cy', function(d) {
-                  return (lollipopRectHeight - 1) * Math.sqrt(variant_map_single_exon[d.position].length);
+                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency 
+                    ) + (variantChartVerticalPadding / 2);
+                  // return (lollipopRectHeight - 1) * Math.sqrt(variant_map_single_exon[d.position].length);
                 })
                 .attr('r', lollipopRadius)
                 .attr('fill', function(d) {
@@ -957,17 +966,16 @@
              * Tutorial: https://bl.ocks.org/mbostock/3885304
              */
             // Scale the range of the data
-            var yAxisPadding = 10;
             var y = d3.scaleLinear()
                 .domain([ 0, mostFrequentVariantPositionCount ])
-                .range([ 0, variantChartHeight - yAxisPadding ]);
+                .range([ 0, variantChartHeight - variantChartVerticalPadding ]);
 
             // text label for the y axis
             // we don't want to remove tick mark labels before removing and re-rendering y-axis label
             // TODO: preset margins and render scale position according to margins
             // But should the scale values be based on the max allele frequency from all the variants
             // from all the eons in the gene, or the max allele frequency fro the variants from the 
-            // currently selected exon?
+            // currently selected exon? Currently scale has domain = [0, 0,00001, 0.0001, 0.001, 0.1, 1]
             variantChart.selectAll("text").remove();
             variantChart.append("text")
                 .attr("transform", "rotate(-90)")
@@ -980,8 +988,8 @@
             variantChart.append("g")
                 .attr("class", "axis axis--y")
                 .attr("transform", "translate(" + (leftMarginPadding * 2) + "," + 
-                  (yAxisPadding / 2) + ")")
-                .call(d3.axisLeft(y).ticks(6));
+                  (variantChartVerticalPadding / 2) + ")")
+                .call(d3.axisLeft(yScaleLollipop));
 
             /* Step 16: When hovering over a circle, open a tooltip displaying variant data
               * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
@@ -992,15 +1000,16 @@
                   .style("opacity", .9); 
 
               // TODO: If there is more that one variant in a position, we need to show a table
-              // of variants when clicking or hovering over that lollipop circle
-              div.html("chromosome: " + d.chromosome + "<br/>"
-                + "position: " + d.position + "<br/>"
-                + "referenceAllele: " + d.reference + "<br/>"
-                + "alternateAllele: " + d.alternate + "<br/>"
-                + "annotation: " + d.annotation + "<br/>"
-                + "alleleCount: " + d.alleleCount + "<br/>"
-                + "alleleNumber: " + d.alleleNumber + "<br/>"
-                + "alleleFrequency: " + d.alleleFrequency + "<br/>"
+              // of variants when clicking or hovering over that lollipop circle.
+              // For now if a position has multiple variants, the tooltip shows the first variant
+              div.html("chromosome: " + variant_map_single_exon[d.position][0].chromosome + "<br/>"
+                + "position: " + variant_map_single_exon[d.position][0].position + "<br/>"
+                + "referenceAllele: " + variant_map_single_exon[d.position][0].reference + "<br/>"
+                + "alternateAllele: " + variant_map_single_exon[d.position][0].alternate + "<br/>"
+                + "annotation: " + variant_map_single_exon[d.position][0].annotation + "<br/>"
+                + "alleleCount: " + variant_map_single_exon[d.position][0].alleleCount + "<br/>"
+                + "alleleNumber: " + variant_map_single_exon[d.position][0].alleleNumber + "<br/>"
+                + "alleleFrequency: " + variant_map_single_exon[d.position][0].alleleFrequency + "<br/>"
                 + "number of variants: " + variant_map_single_exon[d.position].length)
                   .style("left", (d3.event.pageX) + "px")   
                   .style("top", (d3.event.pageY - 28) + "px");  
