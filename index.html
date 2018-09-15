@@ -10,6 +10,18 @@
       fill:hsl(200, 50%, 70%);
     }
     */
+    div.tooltip {	
+      position: absolute;			
+      text-align: left;			
+      width: 280px;					
+      height: 140px;					
+      padding: 4px;				
+      font: 12px sans-serif;		
+      background: lightsteelblue;	
+      border: 0px;		
+      border-radius: 8px;			
+      pointer-events: none;			
+    }
 
     .exon-chart text {
       fill: white;
@@ -692,20 +704,22 @@
         // scale lollipop rectangle height based on allele frequency
         // Dr. Zuchner said: For the scale I recommend MAF > 0.01, MAF < 0.001, MAF < 0.0001
         // Zishi: I recommend an extra MAF < 0.00001
-        const multiplyByBase10ToMakeYAxisLabelWork = 1000000;
+        // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
+        // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
+        var yScaleMin = d3.min(data, function(d) { return d.alleleFrequency; });
+        var yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
+        yScaleMin = Math.pow(10, yScaleMinExponent);
+
         var yScaleLollipop = d3.scaleLog()
-            .domain([ 1/multiplyByBase10ToMakeYAxisLabelWork, 1 ])
-            // .domain([ 0, d3.max(data, function(d) { return d.alleleFrequency; }) ])
-            .range([0, 
-              (variantChartHeight - variantChartVerticalPadding)
-            ]);
-        console.log(yScaleLollipop(10));
-        console.log(yScaleLollipop(100));
+            .domain([ yScaleMin, 1 ])
+            // .domain([ 0, d3.min(data, function(d) { return d.alleleFrequency; }) ])
+            .range([ 0, variantChartHeight - variantChartVerticalPadding ]);
 
         // handle for div that will display text when hovering over over lollipop circle
         var div = d3.select("body").append("div") 
               .attr("class", "tooltip")       
-              .style("opacity", 0);
+              .style("opacity", 0)
+              .style("font-size", 8);
 
         var variantChart = d3.select(".variant-chart")
             .attr("width", chartWidth)
@@ -723,13 +737,11 @@
             .attr("width", lollipopRectWidth)
             .attr("height", function(d) {
               return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
-              // return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
             })
             .attr('fill', function(d) {
               return variantAnnotationToLollipopColor(d.annotation);
             });
 
-        
         var lollipopCircle = variantChart.selectAll('circle')
             .data(data)
           .enter().append('circle')
@@ -738,7 +750,6 @@
             })
             .attr('cy', function(d) {
               return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
-              // return (lollipopRectHeight - 1) * Math.sqrt(variant_map[d.position].length);
             })
             .attr('r', lollipopRadius)
             .attr('fill', function(d) {
@@ -929,7 +940,6 @@
                 .attr("width", lollipopRectWidth)
                 .attr("height", function(d) {
                   return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
-                  // return (lollipopRectHeight - 1) * Math.sqrt(variant_map_single_exon[d.position].length);
                 })
                 .attr('fill', function(d) {
                   return variantAnnotationToLollipopColor(d.annotation);
@@ -949,7 +959,6 @@
                 .attr('cy', function(d) {
                   return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency 
                     ) + (variantChartVerticalPadding / 2);
-                  // return (lollipopRectHeight - 1) * Math.sqrt(variant_map_single_exon[d.position].length);
                 })
                 .attr('r', lollipopRadius)
                 .attr('fill', function(d) {
@@ -971,11 +980,8 @@
                 .range([ 0, variantChartHeight - variantChartVerticalPadding ]);
 
             // text label for the y axis
-            // we don't want to remove tick mark labels before removing and re-rendering y-axis label
-            // TODO: preset margins and render scale position according to margins
-            // But should the scale values be based on the max allele frequency from all the variants
-            // from all the eons in the gene, or the max allele frequency fro the variants from the 
-            // currently selected exon? Currently scale has domain = [0, 0,00001, 0.0001, 0.001, 0.1, 1]
+            // Note: do not remove tick mark labels before removing and re-rendering y-axis label
+            // TODO: preset vertical and horizontal margins and render scale position according to margin
             variantChart.selectAll("text").remove();
             variantChart.append("text")
                 .attr("transform", "rotate(-90)")
