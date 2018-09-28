@@ -32,12 +32,6 @@
        * cdsEnd: end of the gene's coding sequence
        * exonStarts: array of the starting base pair index of each exon in the gene
        * exonEnds: array of the ending base pair index of each exon in the gene
-       *
-       * TODO: Figure out and correct bug: when cdsStart >= exonEnds[0], exon bars the
-       *   and variants excluding the first coding exon partition all disappear. 
-       * Check if when cdsEnd <= exonStarts[length - 1], same disappearance occurs.
-       * UPDATE: Bug does not occur when drawing rectangles, so perhaps it occurs when
-       * mapping variants to scale functions. Have to test to make sure.
        */
 
       // TEST 3 - FAILED
@@ -50,11 +44,12 @@
 
       // NOTE: added two elements to head and tail of exonStarts and exonEnds to test functions
       // removeExonsBeforeStartPosition() and removeExonsAfterEndPosition()
-      var exonStarts = [48599594, 48599512,48600360,48604408, 48604594];
-      var exonEnds = [48599594, 48599678,48600888,48605423, 48604594];	
+      var exonStarts = [48599595, 48599012,48600360,48604408];
+      var exonEnds = [48599595, 48599678,48600888,48605423];	
+      const NON_CODING_LENGTH_LIMIT = 200;
 
       // create a gene object
-      let gene = new Gene( cdsStart, cdsEnd, initializeExons(exonStarts, exonEnds) );
+      var gene = new Gene( cdsStart, cdsEnd, initializeExons(exonStarts, exonEnds) );
       console.log(gene);
 
       /* Step 2: Remove exons that end before cdsStart or start after cdsEnd
@@ -62,6 +57,7 @@
        * Also, the last exon must contain cdsEnd or end before cdsEnd
        */
       gene = removeExonsBeforeStartPosition(gene);
+      console.log(gene);
       gene = removeExonsAfterEndPosition(gene);
       console.log(gene);
 
@@ -69,38 +65,56 @@
        * The non-coding part for the exon containing cdsStart would be everything before cdsStart
        * The non-coding part for the exon containing cdsEnd would be everything after cdsEnd
        */
-      const NON_CODING_LENGTH_LIMIT = 200;
-      exonPositions = limitNonCodingExonLength(cdsStart, cdsEnd, exonStarts, exonEnds,
-        NON_CODING_LENGTH_LIMIT);
-      exonStarts = exonPositions.exonStarts;
-      exonEnds = exonPositions.exonEnds;
-
+      gene = limitNonCodingExonLength(gene, NON_CODING_LENGTH_LIMIT);
+      console.log(gene);
 
       /* Step 4: Calculate the length of each exon. Note that an exon that has been split into
        * a coding part and a non-coding part will be counted as two separate length values.
        * Then calculate the sum of these length values, and use this sum to calculate the
        * length of each uniformly-lengthed intron for the visualization.
        */
-      const EXON_COUNT = exonStarts.length;
+      const EXON_COUNT = gene.exons.length;
       var exonLengths = [];
-      
-      exonLengths = subtractValuesOfTwoArrays(exonEnds, exonStarts);
-      const SUM_EXON_LENGTHS = d3.sum(exonLengths);
+      exonLengths = gene.getExonLengths();
 
+      const SUM_EXON_LENGTHS = d3.sum(exonLengths);
       const INTRON_LENGTH = Math.ceil((SUM_EXON_LENGTHS / 2) / (EXON_COUNT - 1));
       const SUM_INTRON_LENGTHS = INTRON_LENGTH * (EXON_COUNT - 1);
 
+      for (let i = 1; i < EXON_COUNT; i++) {
+        console.log("intron = " + (gene.exons[i].start - gene.exons[i-1].end).toString());
+      }
 
       /* Step 5: Subtract each value in exonStarts and exonEnds by the offset = exonStarts[0].
        * This way, when the exons are displayed using exonStarts and exonLengths, 
        * the first exon will start at position x = 0.
        */
-      OFFSET = exonStarts[0];
-      exonStarts = subtractArrayByOffset(exonStarts, OFFSET);
-      exonEnds = subtractArrayByOffset(exonEnds, OFFSET);
-      cdsStart = cdsStart - OFFSET;
-      cdsEnd = cdsEnd - OFFSET;
+      OFFSET = gene.exons[0].start;
+      // exonStarts = subtractArrayByOffset(exonStarts, OFFSET);
+      // exonEnds = subtractArrayByOffset(exonEnds, OFFSET);
+      // cdsStart = cdsStart - OFFSET;
+      // cdsEnd = cdsEnd - OFFSET;
 
+      var gene_offset = subtractExonPositionsByOffset(gene, OFFSET);
+      exonStarts = gene_offset.getExonStarts();
+      exonEnds = gene_offset.getExonEnds();
+      cdsStart = gene_offset.cdsStart;
+      cdsEnd = gene_offset.cdsEnd;
+      console.log(gene_offset);
+
+      /* Step 7: Calculate exonStarts and exonEnds with uniformly-lengthed introns.
+       * Note that exonEnds[i] = the starting position of intron i.
+       */
+      var exonStartsWithUniformIntronLengths = [];
+      var exonEndsWithUniformIntronLengths = [];
+
+      exonPositions = getExonPositionsWithUniformIntronLengths(gene_offset, INTRON_LENGTH);
+      exonStartsWithUniformIntronLengths = exonPositions.exonStartsWithUniformIntronLengths;
+      exonEndsWithUniformIntronLengths = exonPositions.exonEndsWithUniformIntronLengths;
+      console.log("exonStartsWithUniformIntronLengths"); console.log(exonStartsWithUniformIntronLengths);
+      console.log("exonEndsWithUniformIntronLengths"); console.log(exonEndsWithUniformIntronLengths);
+      
+      var gene_offset_uniform_intron_length = subtractExonPositionsByOffset(gene, OFFSET);
 
       /* Step 6: Calculate the domain array for d3.scaleLinear(), which consists of 
        * the starting position of each exon and intron assuming the original intron lengths. 
@@ -110,24 +124,12 @@
        * NOTE: Dr. Zuchner said BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50 
        */
       const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
-      var domainAndSplitIntronIndices = getDomain(exonStarts, exonEnds, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+      var domainAndSplitIntronIndices = getDomain(gene_offset, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
       var domain = domainAndSplitIntronIndices.domain;
       var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
       console.log(splitIntronIndices);
+      console.log("domain");
       console.log(domain);
-
-      /* Step 7: Calculate exonStarts and exonEnds with uniformly-lengthed introns.
-       * Note that exonEnds[i] = the starting position of intron i.
-       */
-      var exonStartsWithUniformIntronLengths = [];
-      var exonEndsWithUniformIntronLengths = [];
-
-      exonPositions = getExonPositionsWithUniformIntronLengths(exonStarts, exonEnds, 
-        INTRON_LENGTH, exonLengths);
-      exonStartsWithUniformIntronLengths = exonPositions.exonStartsWithUniformIntronLengths;
-      exonEndsWithUniformIntronLengths = exonPositions.exonEndsWithUniformIntronLengths;
-      console.log("exonStartsWithUniformIntronLengths"); console.log(exonStartsWithUniformIntronLengths);
-      console.log("exonEndsWithUniformIntronLengths"); console.log(exonEndsWithUniformIntronLengths);
 
       /* Step 8: Calculate the range array for d3.scaleLinear(), which consists of 
        * the starting position of each exon and intron assuming uniformly-lengthed introns. 
@@ -139,11 +141,17 @@
        */
       var range = getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
         splitIntronIndices, INTRON_LENGTH);
+      console.log("range");
+      console.log(range);
 
+      // combine domain and range functions
+      // var domainAndRange = getDomainAndRange(
+      //   gene_offset, BASE_PAIRS_OUTSIDE_EXON_LIMIT, INTRON_LENGTH
+      // );
+      
       var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
         .domain(domain)
         .range(range);
-
 
       /* Step 9: Split the first and last exons into their coding and non-coding parts,
        * for exonStarts and exonEnds. Then recalculate exonLengths to include non-coding partitions.
@@ -158,7 +166,7 @@
       exonPositions = splitExonAtCodingStartPosition(cdsStart, exonStarts, exonEnds);
       exonStarts = exonPositions.exonStarts;
       exonEnds = exonPositions.exonEnds;
-
+    
       if (exonPositions.nonCodingIndex != null) {
         exonPartitionNonCodingIndices.push(exonPositions.nonCodingIndex);
       }
@@ -172,8 +180,11 @@
       }
 
       exonLengths = subtractValuesOfTwoArrays(exonEnds, exonStarts);
-
-
+      // console.log(exonStarts);
+      // console.log(exonEnds);
+      // console.log(exonLengths);
+      // console.log(exonPartitionNonCodingIndices);
+      
       /* Step 10: Split the first and last exons into their coding and non-coding parts,
        * for exonStartsWithUniformIntronLengths and exonEndsWithUniformIntronLengths.
        *
@@ -264,6 +275,8 @@
       // Render different dashed lines for the three different sections of each intron
       // Darker and wider for the two side sections that contain variants
       // Lighter and thinner for the middle section that does not contain variants
+      console.log("intronStartsAndEndsWithUniformIntronLength");
+      console.log(intronStartsAndEndsWithUniformIntronLength);
       var lines = chart.selectAll("path")
           .data(intronStartsAndEndsWithUniformIntronLength)
           .enter().append("path")

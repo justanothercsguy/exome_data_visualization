@@ -1,10 +1,11 @@
-
+// don't forget about pointers from C
+// slice allocates a new array from memory and copies the pointers
+// to the objects (shallow copy)
 class Gene {
-
     constructor(cdsStart, cdsEnd, exons) {
       this.cdsStart = cdsStart;
       this.cdsEnd = cdsEnd;
-      this.exons = exons;
+      this.exons = exons.slice();
     }
 
     getExons() {
@@ -12,19 +13,79 @@ class Gene {
     }
 
     setExons(exons) {
-        return this.exons = exons;
+        this.exons = exons;
+    }
+
+    getOffset() {
+        return this.exons[0].start;
+    }
+
+    getExonLengths() {
+        var length = this.exons.length;
+        var exonLengths = [];
+        for (let i = 0; i < length; i++) {
+            exonLengths.push(this.exons[i].getLength());
+        }
+        return exonLengths;
+    }
+
+    // used for testing purposes on original code
+    getExonStarts() {
+        var length = this.exons.length;
+        var exonStarts = [];
+        for (let i = 0; i < length; i++) {
+            exonStarts.push(this.exons[i].start);
+        }
+        return exonStarts;
+    }
+
+    // used for testing purposes on original code
+    getExonEnds() {
+        var length = this.exons.length;
+        var exonEnds = [];
+        for (let i = 0; i < length; i++) {
+            exonEnds.push(this.exons[i].end);
+        }
+        return exonEnds;
+    }
+
+    getExonStartsMinusOffset() {
+        var length = this.exons.length;
+        var exonStarts = [];
+        for (let i = 0; i < length; i++) {
+            exonStarts.push(this.exons[i].start - this.getOffset());
+        }
+        return exonStarts;
+    }
+
+    getExonEndsMinusOffset() {
+        var length = this.exons.length;
+        var exonEnds = [];
+        var offset = this.exons[0].start;
+        for (let i = 0; i < length; i++) {
+            exonEnds.push(this.exons[i].end - this.getOffset);
+        }
+        return exonEnds;
     }
 }
 
-
+// PROBLEM: If I give the gene class a length field that is calculated
+// 1) every time the setter is called to modify the start or end position
+// 2) every time a new exon object is initialized,
+//
+// I could bypass the setter and modify exon thus: gene.exon[i].start = 100
+// This would prevent length from being updated
+// solution is to use a getLength() function that is not a built in field
+// to the Exon class, but instead a derived field
 class Exon {
-
     constructor(start, end) {
       this.start = start;
       this.end = end;
-      this.length = end - start;
     }
 
+    getLength() {
+        return this.end - this.start;
+    }
 }
 
 
@@ -36,6 +97,23 @@ function initializeExons(exonStarts, exonEnds) {
         exons.push( new Exon( exonStarts[i], exonEnds[i] ) );
     }
     return exons;
+}
+
+
+function subtractExonPositionsByOffset(gene, offset) {
+    var newGene = new Gene(gene.cdsStart, gene.cdsEnd, gene.exons);
+    var length = newGene.exons.length;
+
+    newGene.cdsStart -= offset;
+    newGene.cdsEnd -= offset;
+
+    for (let i = 0; i < length; i++) {
+        newGene.exons[i] = new Exon(
+            newGene.exons[i].start - offset, newGene.exons[i].end - offset
+        );
+    }
+    
+    return newGene;
 }
 
 
@@ -121,47 +199,50 @@ function removeExonsAfterEndPosition(gene) {
 }
 
 
-function doesExonContainCodingStartPosition(exonStart, exonEnd, codingStartPosition) {
+function doesExonContainCdsStart(exon, cdsStart) {
     // Don't split in the case where exonStart >= cdsStart and everything is coding,
     // or the case where exonEnd < cdsStart and everything is non-coding
-    return (exonStart < codingStartPosition && exonEnd >= codingStartPosition);
+    return (exon.start < cdsStart && exon.end >= cdsStart);
 }
 
 
-function doesExonContainCodingEndPosition(exonStart, exonEnd, codingEndPosition) {
+function doesExonContainCdsEnd(exon, cdsEnd) {
     // Don't split in the case where exonEnds[length - 1] <= cdsEnd and everything is coding,
     // or the case where exonStarts[length - 1] > cdsEnd and everything is non-coding 
-    return (exonStart <= codingEndPosition && exonEnd > codingEndPosition);
+    return (exon.start <= cdsEnd && exon.end > cdsEnd);
 }
 
 
 // Let i be the index of the exon that contains cdsStart within its domain
 // Let j be the index of the exon that contains cdsEnd within its domain
-// If (cdsStart - exonStarts[i]) > nonCodingLengthLimit, then we need to change exonStarts[i]
-// so that (cdsStart - exonStarts[i]) = 200. Same thing if (exonEnds[j] - cdsEnd) > 200.
-// Here, (cdsStart - exonStarts[i]) and (exonEnds[i] - cdsEnd) are the lengths of the non-coding
+// If (cdsStart - exon[i].start) > nonCodingLengthLimit, then we need to change exon[i].start
+// so that (cdsStart - exon[i].start) = 200. Same thing if (exon[j].end - cdsEnd) > 200.
+// Here, (cdsStart - exon[i].start) and (exon[j].end - cdsEnd) are the lengths of the non-coding
 // exon partitions.
-function limitNonCodingExonLength(codingStartPosition, codingEndPosition,
-    exonStarts, exonEnds, nonCodingLengthLimit) {
+function limitNonCodingExonLength(gene, nonCodingLengthLimit) {
 
-    var exonStartsReduced = exonStarts.slice();
-    var exonEndsReduced = exonEnds.slice();
-    var firstIndex = 0;
-    var lastIndex = exonStarts.length - 1;
+    var length = gene.exons.length;
+    var firstExon = gene.exons[0];
+    var lastExon = gene.exons[length - 1];
+    var cdsStart = gene.cdsStart;
+    var cdsEnd = gene.cdsEnd;
+    var newGene = new Gene( cdsStart, cdsEnd, gene.exons );
 
-    if (doesExonContainCodingStartPosition(exonStarts[firstIndex], exonEnds[firstIndex],
-            codingStartPosition) && (cdsStart - exonStarts[0] > nonCodingLengthLimit)) {
-        exonStartsReduced[firstIndex] = cdsStart - nonCodingLengthLimit;
+    if (doesExonContainCdsStart(firstExon, cdsStart) 
+        && (cdsStart - firstExon.start > nonCodingLengthLimit)) 
+    {
+        newGene.exons[0] = 
+            new Exon(cdsStart - nonCodingLengthLimit, firstExon.end);
     }
 
-    if (doesExonContainCodingEndPosition(exonStarts[lastIndex], exonEnds[lastIndex], codingEndPosition) && (exonEnds[lastIndex] - cdsEnd > nonCodingLengthLimit)) {
-        exonEndsReduced[lastIndex] = cdsEnd + nonCodingLengthLimit;
+    if (doesExonContainCdsEnd(lastExon, cdsEnd) 
+        && (lastExon.end - cdsEnd > nonCodingLengthLimit)) 
+    {
+        newGene.exons[length - 1] = 
+            new Exon(lastExon.start, cdsEnd + nonCodingLengthLimit);
     }
 
-    return {
-        exonStarts: exonStartsReduced,
-        exonEnds: exonEndsReduced
-    };
+    return newGene;
 }
 
 
@@ -170,7 +251,7 @@ function splitExonAtCodingStartPosition(codingStartPosition, exonStarts, exonEnd
     var exonEndsSplit = exonEnds.slice();
     var nonCodingIndex = null;
 
-    if (doesExonContainCodingStartPosition(exonStarts[0], exonEnds[0], codingStartPosition)) {
+    if (doesExonContainCdsStart(exonStarts[0], exonEnds[0], codingStartPosition)) {
         exonStartsSplit.splice(1, 0, codingStartPosition);
 
         // Why not (startPosition - 1)? This would mess up the length calculation
@@ -197,7 +278,7 @@ function splitExonAtCodingEndPosition(codingEndPosition, exonStarts, exonEnds) {
     var length = exonStartsSplit.length;
     var nonCodingIndex = null;
 
-    if (doesExonContainCodingEndPosition(exonStarts[length - 1], exonEnds[length - 1],
+    if (doesExonContainCdsEnd(exonStarts[length - 1], exonEnds[length - 1],
             codingEndPosition)) {
         exonEndsSplit.splice(length - 1, 0, codingEndPosition);
 
@@ -223,32 +304,34 @@ function splitExonAtCodingEndPosition(codingEndPosition, exonStarts, exonEnds) {
 }
 
 
-function getExonPositionsWithUniformIntronLengths(exonStarts, exonEnds,
-    INTRON_LENGTH, exonLengths) {
+function getExonPositionsWithUniformIntronLengths(gene, INTRON_LENGTH) {
 
-    // EXON_COUNT is the number of exons, not counting the non-coding exon partitions.
-    // If EXON_COUNT = 1, then there are no introns so return the original exonStarts and exonEnds.
-    const EXON_COUNT = exonStarts.length;
-    if (EXON_COUNT == 1) {
-        return {
-            exonStartsWithUniformIntronLengths: exonStarts,
-            exonEndsWithUniformIntronLengths: exonEnds
-        };
-    }
-
+    // If length = 1, then there is one intron but no introns so 
+    // return the original exonStarts and exonEnds.
+    var length = gene.exons.length;
     var exonStartsWithUniformIntronLengths = [];
     var exonEndsWithUniformIntronLengths = [];
+    var exonStarts = gene.getExonStarts();
+    var exonEnds = gene.getExonEnds();
+    var exonLengths = gene.getExonLengths();
 
-    for (var i = 0; i < EXON_COUNT; i++) {
-        if (i == 0) { // first exon has no introns before it so it retains the same position
-            exonStartsWithUniformIntronLengths.push(exonStarts[0]);
-            exonEndsWithUniformIntronLengths.push(exonEnds[0]);
-        } else {
-            exonStartsWithUniformIntronLengths.push(
-                exonStartsWithUniformIntronLengths[i - 1] + exonLengths[i - 1] + INTRON_LENGTH);
-            exonEndsWithUniformIntronLengths.push(
-                exonStartsWithUniformIntronLengths[i] + exonLengths[i]);
-        }
+    if (length == 1) {
+        return {
+            exonStartsWithUniformIntronLengths: exonStarts,
+            exonEndsWithUniformIntronLengths: eonEnds
+        };
+    }
+    // first exon has no introns before it so it retains the same position
+    exonStartsWithUniformIntronLengths.push(exonStarts[0]);
+    exonEndsWithUniformIntronLengths.push(exonEnds[0]);
+
+    for (var i = 1; i < length; i++) {
+        exonStartsWithUniformIntronLengths.push(
+            exonStartsWithUniformIntronLengths[i - 1] + exonLengths[i - 1] + INTRON_LENGTH
+        );
+        exonEndsWithUniformIntronLengths.push(
+            exonStartsWithUniformIntronLengths[i] + exonLengths[i]
+        );
     }
 
     return {
@@ -278,28 +361,28 @@ function roundToTwoDecimalPlaces(x) {
 //
 // TODO: Should i just make getting domain and range one function, so that I don't have to pass
 // in splitIntronIndices to function getRange()?
-function getDomain(exonStarts, exonEnds, basePairsOutsideExonLimit) {
-    const length = exonStarts.length;
+function getDomain(gene, basePairsOutsideExonLimit) {
+    var length = gene.exons.length;
     var domain = [];
     var splitIntronIndices = [];
     var threshold = 3 * basePairsOutsideExonLimit;
 
     for (var i = 0; i < length - 1; i++) {
-        domain.push(exonStarts[i]);
+        var exon = gene.exons[i];
+        var nextExon = gene.exons[i + 1];
 
-        if (exonStarts[i + 1] - exonEnds[i] > threshold) {
-            domain.push(exonEnds[i]);
-            domain.push(exonEnds[i] + basePairsOutsideExonLimit);
-            domain.push(exonStarts[i + 1] - basePairsOutsideExonLimit);
+        domain.push(exon.start);
+        domain.push(exon.end);
+
+        if (nextExon.start - exon.end > threshold) {
+            domain.push(exon.end + basePairsOutsideExonLimit);
+            domain.push(nextExon.start - basePairsOutsideExonLimit);
             splitIntronIndices.push(i);
-        } else {
-            domain.push(exonEnds[i]);
         }
     }
-
     // last exon does not have a intron after it
-    domain.push(exonStarts[length - 1]);
-    domain.push(exonEnds[length - 1]);
+    domain.push(gene.exons[length - 1].start);
+    domain.push(gene.exons[length - 1].end);
 
     return {
         domain: domain,
