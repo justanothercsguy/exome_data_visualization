@@ -1,38 +1,14 @@
 <!DOCTYPE html>
 <html lang='en-US'>
   <head>
+
+  <title>Exome Browser</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
   <script type="text/javascript" src="js/exome_processing.js"></script>
-  <style>
-    div.tooltip {	
-      position: absolute;			
-      text-align: left;			
-      width: 280px;					
-      height: 140px;					
-      padding: 4px;				
-      font: 12px sans-serif;		
-      background: lightsteelblue;	
-      border: 0px;		
-      border-radius: 8px;			
-      pointer-events: none;			
-    }
+  <link rel="stylesheet" href="css/styles.css">
 
-    .exon-chart text {
-      fill: white;
-      font: 10px sans-serif;
-      text-anchor: end;
-    }
-
-    .variant-chart circle {
-      font: 10px sans-serif;
-      background-color: steelblue;
-      text-align: right;
-      padding: 3px;
-      margin: 1px;
-    }
-  </style>
   </head>
 
   <body>
@@ -63,54 +39,27 @@
        * UPDATE: Bug does not occur when drawing rectangles, so perhaps it occurs when
        * mapping variants to scale functions. Have to test to make sure.
        */
-      /*
-      // DEFAULT - WORKS
-      // PCSK9 gene - chromsome 1
-      var cdsStart = 55505510; // 55505717 + 1;
-      var cdsEnd = 55529257; // 55529041 - 1;
 
-      var exonStarts = [55505148,55509515,55512195,55517950,55518322,55521665,55523003,
-        55523708,55524171,55525158,55527047,55529041];
-      var exonEnds = [55505717,55509707,55512319,55518084,55518464,55521862,55523187,
-        55523882,55524320,55525336,55527229,55530526];
-      */
-
-      /*
-      // TEST 1 - FAILED
-      // NM_152486.2, SAMD11 gene - chromosome 1
-      // TODO: figure out why code is not working for SAMD11 - need to go over all the code,
-      // document, and probably rewrite several parts
-      var cdsStart = 861321;
-      var cdsEnd =	879533;
-      var exonStarts = [861120,861301,865534,866418,871151,874419,874654,876523,877515,877789,877938,878632,879077,879287];
-      var exonEnds = [861180,861393,865716,866469,871276,874509,874840,876686,877631,877868,878438,878757,879188,879961];
-      */
-
-      /*
-      // TEST 2 - FAILED
-      // INM_005101.3, SG15 gene - chromosome 1
-      // TODO: figure out why scaling for zoomed in exon length and variant positioning is wrong
-      // Probably have to document and re-write scaling code for zoomed in view, and add containers
-      // and padding for yAxis and (exon + 50 bp dashed line) separately
-      // Perhaps make zoomed in exons be of the same length even if one exon is much larger than the 
-      // other in the non-zoomed in view?
-      var cdsStart = 948953;
-      var cdsEnd = 949858;
-
-      var exonStarts = [948846,949363];	
-      var exonEnds = [948956,949920];
-      */
-      
-      
       // TEST 3 - FAILED
       // NM_005985.3, SNAI1 gene - chromosome 20
       // TODO: figure out error in the zoomed in exon view scaling
       var cdsStart = 48599596;
       var cdsEnd = 48604593;
-
+      
+      // NOTE: everything below assumes exonStarts and exonEnds are arrays of the same length
       var exonStarts = [48599512,48600360,48604408];
       var exonEnds = [48599678,48600888,48605423];	
-      
+
+      // create a gene object
+      var gene = {
+        cdsStart: cdsStart,
+        cdsEnd: cdsEnd,
+        numExons: 0,
+        exons: setExons(exonStarts, exonEnds)
+      };
+      gene.numExons = gene.exons.length;
+
+      console.log(gene);
 
       /* Step 2: Remove exons that end before cdsStart or start after cdsEnd
        * This way, the first exon must contain cdsStart or begin after cdsStart
@@ -120,9 +69,13 @@
       exonStarts = exonPositions.exonStarts;
       exonEnds = exonPositions.exonEnds;
 
+      console.log(exonStarts);
+      console.log(exonEnds);
+
       exonPositions = removeExonsAfterEndPosition(cdsEnd, exonStarts, exonEnds);
       exonStarts = exonPositions.exonStarts;
       exonEnds = exonPositions.exonEnds;
+
 
 
       /* Step 3: Limit the length of the non-coding parts of an exon. 
@@ -375,11 +328,8 @@
        * https://stackoverflow.com/questions/42285441/how-to-read-in-csv-with-d3-v4
        */
       
-      variant_data_file_path = 'variant_data/'
+      var variant_data_file_path = 'variant_data/'
       var variant_data_file_name = 'exac_ENSG00000124216_SNAI1.csv';      
-      // var variant_data_file_name = 'exac_ENSG00000187608_ISG15.csv';
-      // var variant_data_file_name = 'exac_ENSG00000169174_PCSK9.csv';
-      // var variant_data_file_name = 'exac_ENSG00000187634_SAMD11.csv';
 
       d3.csv(variant_data_file_path + variant_data_file_name, row, function(data) {
         // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 

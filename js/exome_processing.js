@@ -1,6 +1,6 @@
-  // given an array, return a new array with each of the elements of the first array 
-  // subtracted by the offset value
-  function subtractArrayByOffset(array, offset) {
+// given an array, return a new array with each of the elements of the first array 
+// subtracted by the offset value
+function subtractArrayByOffset(array, offset) {
     var offsettedArray = [];
     var length = array.length;
 
@@ -49,6 +49,22 @@ function variantAnnotationToLollipopColor(annotation) {
     }
 
     return color;
+}
+
+
+function setExons(exonStarts, exonEnds) {
+    var exons = [];
+    var length = exonStarts.length;
+
+    for (let i = 0; i < length; i++) {
+        var exon = { 
+            start: exonStarts[i], 
+            end: exonEnds[i], 
+            length: (exonEnds[i] - exonStarts[i]) 
+        };
+        exons.push({exon})
+    }
+    return exons;
 }
 
 
