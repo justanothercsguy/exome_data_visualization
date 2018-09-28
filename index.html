@@ -47,36 +47,23 @@
       var cdsEnd = 48604593;
       
       // NOTE: everything below assumes exonStarts and exonEnds are arrays of the same length
-      var exonStarts = [48599512,48600360,48604408];
-      var exonEnds = [48599678,48600888,48605423];	
+
+      // NOTE: added two elements to head and tail of exonStarts and exonEnds to test functions
+      // removeExonsBeforeStartPosition() and removeExonsAfterEndPosition()
+      var exonStarts = [48599594, 48599512,48600360,48604408, 48604594];
+      var exonEnds = [48599594, 48599678,48600888,48605423, 48604594];	
 
       // create a gene object
-      var gene = {
-        cdsStart: cdsStart,
-        cdsEnd: cdsEnd,
-        numExons: 0,
-        exons: setExons(exonStarts, exonEnds)
-      };
-      gene.numExons = gene.exons.length;
-
+      let gene = new Gene( cdsStart, cdsEnd, initializeExons(exonStarts, exonEnds) );
       console.log(gene);
 
       /* Step 2: Remove exons that end before cdsStart or start after cdsEnd
        * This way, the first exon must contain cdsStart or begin after cdsStart
        * Also, the last exon must contain cdsEnd or end before cdsEnd
        */
-      var exonPositions = removeExonsBeforeStartPosition(cdsStart, exonStarts, exonEnds);
-      exonStarts = exonPositions.exonStarts;
-      exonEnds = exonPositions.exonEnds;
-
-      console.log(exonStarts);
-      console.log(exonEnds);
-
-      exonPositions = removeExonsAfterEndPosition(cdsEnd, exonStarts, exonEnds);
-      exonStarts = exonPositions.exonStarts;
-      exonEnds = exonPositions.exonEnds;
-
-
+      gene = removeExonsBeforeStartPosition(gene);
+      gene = removeExonsAfterEndPosition(gene);
+      console.log(gene);
 
       /* Step 3: Limit the length of the non-coding parts of an exon. 
        * The non-coding part for the exon containing cdsStart would be everything before cdsStart

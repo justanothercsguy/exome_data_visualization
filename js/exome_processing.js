@@ -1,3 +1,44 @@
+
+class Gene {
+
+    constructor(cdsStart, cdsEnd, exons) {
+      this.cdsStart = cdsStart;
+      this.cdsEnd = cdsEnd;
+      this.exons = exons;
+    }
+
+    getExons() {
+        return this.exons;
+    }
+
+    setExons(exons) {
+        return this.exons = exons;
+    }
+}
+
+
+class Exon {
+
+    constructor(start, end) {
+      this.start = start;
+      this.end = end;
+      this.length = end - start;
+    }
+
+}
+
+
+function initializeExons(exonStarts, exonEnds) {
+    var exons = [];
+    var length = exonStarts.length;
+
+    for (let i = 0; i < length; i++) {
+        exons.push( new Exon( exonStarts[i], exonEnds[i] ) );
+    }
+    return exons;
+}
+
+
 // given an array, return a new array with each of the elements of the first array 
 // subtracted by the offset value
 function subtractArrayByOffset(array, offset) {
@@ -52,63 +93,31 @@ function variantAnnotationToLollipopColor(annotation) {
 }
 
 
-function setExons(exonStarts, exonEnds) {
-    var exons = [];
-    var length = exonStarts.length;
+function removeExonsBeforeStartPosition(gene) {
+    var length = gene.exons.length;
+    var newGene = new Gene(gene.cdsStart, gene.cdsEnd, gene.exons);
 
-    for (let i = 0; i < length; i++) {
-        var exon = { 
-            start: exonStarts[i], 
-            end: exonEnds[i], 
-            length: (exonEnds[i] - exonStarts[i]) 
-        };
-        exons.push({exon})
-    }
-    return exons;
-}
-
-
-function removeExonsBeforeStartPosition(startPosition, exonStarts, exonEnds) {
-    var length = exonStarts.length;
-
-    // Exons that end before the startPosition will not be returned. Therefore, 
-    // if the first exon has (start < startPosition) and (end >= startPosition),
-    // then it will be split into a non-coding part and a coding part.
     for (var i = 0; i < length; i++) {
-        if (exonEnds[i] >= startPosition) {
-            return {
-                exonStarts: exonStarts.slice(i),
-                exonEnds: exonEnds.slice(i)
-            };
+        if (gene.exons[i].end >= gene.cdsStart) {
+            newGene.setExons(gene.exons.slice(i));
+            break;
         }
     }
-
-    return {
-        exonStarts: exonStarts,
-        exonEnds: exonEnds
-    };
+    return newGene;
 }
 
 
-function removeExonsAfterEndPosition(endPosition, exonStarts, exonEnds) {
-    var length = exonStarts.length;
+function removeExonsAfterEndPosition(gene) {
+    var length = gene.exons.length;
+    var newGene = new Gene(gene.cdsStart, gene.cdsEnd, gene.exons);
 
-    // Exons that start after the endPosition will not be returned. Therefore, 
-    // if the last exon has (start <= endPosition) and (end > endPosition),
-    // then it will be split into a coding part and a non-coding part.
     for (var i = length - 1; i >= 0; i--) {
-        if (exonStarts[i] <= endPosition) {
-            return {
-                exonStarts: exonStarts.slice(0, i + 1),
-                exonEnds: exonEnds.slice(0, i + 1)
-            };
+        if (gene.exons[i].start <= gene.cdsEnd) {
+            newGene.setExons(gene.exons.slice(0, i + 1));
+            break;
         }
     }
-
-    return {
-        exonStarts: exonStarts,
-        exonEnds: exonEnds
-    };
+    return newGene;
 }
 
 
