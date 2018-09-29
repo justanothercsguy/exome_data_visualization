@@ -33,6 +33,7 @@ class Gene {
     getExonStarts() {
         var length = this.exons.length;
         var exonStarts = [];
+        
         for (let i = 0; i < length; i++) {
             exonStarts.push(this.exons[i].start);
         }
@@ -43,6 +44,7 @@ class Gene {
     getExonEnds() {
         var length = this.exons.length;
         var exonEnds = [];
+
         for (let i = 0; i < length; i++) {
             exonEnds.push(this.exons[i].end);
         }
@@ -52,8 +54,10 @@ class Gene {
     getExonStartsMinusOffset() {
         var length = this.exons.length;
         var exonStarts = [];
+        var offset = this.getOffset();
+
         for (let i = 0; i < length; i++) {
-            exonStarts.push(this.exons[i].start - this.getOffset());
+            exonStarts.push(this.exons[i].start - offset);
         }
         return exonStarts;
     }
@@ -61,9 +65,10 @@ class Gene {
     getExonEndsMinusOffset() {
         var length = this.exons.length;
         var exonEnds = [];
-        var offset = this.exons[0].start;
+        var offset = this.getOffset();
+
         for (let i = 0; i < length; i++) {
-            exonEnds.push(this.exons[i].end - this.getOffset);
+            exonEnds.push(this.exons[i].end - offset);
         }
         return exonEnds;
     }
@@ -100,22 +105,58 @@ function initializeExons(exonStarts, exonEnds) {
 }
 
 
-function subtractExonPositionsByOffset(gene, offset) {
-    var newGene = new Gene(gene.cdsStart, gene.cdsEnd, gene.exons);
-    var length = newGene.exons.length;
+function getGeneWithUniformIntronLength(gene, INTRON_LENGTH) {
+    var exonLengths = gene.getExonLengths();
+    var firstExon = gene.getExons()[0];
+    var length = exonLengths.length;
 
-    newGene.cdsStart -= offset;
-    newGene.cdsEnd -= offset;
+    var newGene = new Gene(gene.cdsStart, gene.cdsEnd, []);
+    newGene.setExons([ new Exon(firstExon.start, firstExon.end) ]);
 
-    for (let i = 0; i < length; i++) {
-        newGene.exons[i] = new Exon(
-            newGene.exons[i].start - offset, newGene.exons[i].end - offset
-        );
+    for (let i = 1; i < length; i++) {
+        var newStart = newGene.exons[i - 1].start + exonLengths[i - 1] + INTRON_LENGTH;
+        var newEnd = newStart + exonLengths[i];
+        newGene.exons[i] = new Exon(newStart, newEnd);
     }
-    
+
     return newGene;
 }
 
+function getExonPositionsWithUniformIntronLengths(gene, INTRON_LENGTH) {
+
+    // If length = 1, then there is one intron but no introns so 
+    // return the original exonStarts and exonEnds.
+    var length = gene.exons.length;
+    var exonStartsWithUniformIntronLengths = [];
+    var exonEndsWithUniformIntronLengths = [];
+    var exonStarts = gene.getExonStartsMinusOffset();
+    var exonEnds = gene.getExonEndsMinusOffset();
+    var exonLengths = gene.getExonLengths();
+
+    if (length == 1) {
+        return {
+            exonStartsWithUniformIntronLengths: exonStarts,
+            exonEndsWithUniformIntronLengths: eonEnds
+        };
+    }
+    // first exon has no introns before it so it retains the same position
+    exonStartsWithUniformIntronLengths.push(exonStarts[0]);
+    exonEndsWithUniformIntronLengths.push(exonEnds[0]);
+
+    for (var i = 1; i < length; i++) {
+        exonStartsWithUniformIntronLengths.push(
+            exonStartsWithUniformIntronLengths[i - 1] + exonLengths[i - 1] + INTRON_LENGTH
+        );
+        exonEndsWithUniformIntronLengths.push(
+            exonStartsWithUniformIntronLengths[i] + exonLengths[i]
+        );
+    }
+
+    return {
+        exonStartsWithUniformIntronLengths: exonStartsWithUniformIntronLengths,
+        exonEndsWithUniformIntronLengths: exonEndsWithUniformIntronLengths
+    };
+}
 
 // given an array, return a new array with each of the elements of the first array 
 // subtracted by the offset value
@@ -226,7 +267,7 @@ function limitNonCodingExonLength(gene, nonCodingLengthLimit) {
     var lastExon = gene.exons[length - 1];
     var cdsStart = gene.cdsStart;
     var cdsEnd = gene.cdsEnd;
-    var newGene = new Gene( cdsStart, cdsEnd, gene.exons );
+    var newGene = new Gene(cdsStart, cdsEnd, gene.exons);
 
     if (doesExonContainCdsStart(firstExon, cdsStart) 
         && (cdsStart - firstExon.start > nonCodingLengthLimit)) 
@@ -304,43 +345,6 @@ function splitExonAtCodingEndPosition(codingEndPosition, exonStarts, exonEnds) {
 }
 
 
-function getExonPositionsWithUniformIntronLengths(gene, INTRON_LENGTH) {
-
-    // If length = 1, then there is one intron but no introns so 
-    // return the original exonStarts and exonEnds.
-    var length = gene.exons.length;
-    var exonStartsWithUniformIntronLengths = [];
-    var exonEndsWithUniformIntronLengths = [];
-    var exonStarts = gene.getExonStarts();
-    var exonEnds = gene.getExonEnds();
-    var exonLengths = gene.getExonLengths();
-
-    if (length == 1) {
-        return {
-            exonStartsWithUniformIntronLengths: exonStarts,
-            exonEndsWithUniformIntronLengths: eonEnds
-        };
-    }
-    // first exon has no introns before it so it retains the same position
-    exonStartsWithUniformIntronLengths.push(exonStarts[0]);
-    exonEndsWithUniformIntronLengths.push(exonEnds[0]);
-
-    for (var i = 1; i < length; i++) {
-        exonStartsWithUniformIntronLengths.push(
-            exonStartsWithUniformIntronLengths[i - 1] + exonLengths[i - 1] + INTRON_LENGTH
-        );
-        exonEndsWithUniformIntronLengths.push(
-            exonStartsWithUniformIntronLengths[i] + exonLengths[i]
-        );
-    }
-
-    return {
-        exonStartsWithUniformIntronLengths: exonStartsWithUniformIntronLengths,
-        exonEndsWithUniformIntronLengths: exonEndsWithUniformIntronLengths
-    };
-}
-
-
 function roundToTwoDecimalPlaces(x) {
     return Math.round(x * 100) / 100;
 }
@@ -350,39 +354,35 @@ function roundToTwoDecimalPlaces(x) {
 // where intron have their original lengths that have not been modified into a uniform length.
 // Here, exonStarts[i] = starting point of exon i, and exonEnds[i] = starting point of intron i
 // 
-// Introns with length > (3 * basePairsOutsideExonLimit) will be split into three uneven parts:
+// Introns with length > (3 * basePairsOutsideExonLimit) will be split into three uneven parts,
+// with most of the variants residing in parts 1 and 3
 // 1. [exonEnds[i], exonEnds[i] + basePairsOutsideExonLimit]
 // 2. [exonEnds[i] + basePairsOutsideExonLimit, exonStarts[i+1] - basePairsOutsideExonLimit]
 // 3. [exonStarts[i+1] - basePairsOutsideExonLimit, exonStarts[i+1]
-// 
-// Of the variants that are within an intron region, almost all are within 100 base pairs away 
-// from the start or end point of an exon, so set basePairsOutsideExonLimit = 100.
-// Introns with length <= (3 * basePairsOutsideExonLimit) will not be split.
 //
 // TODO: Should i just make getting domain and range one function, so that I don't have to pass
 // in splitIntronIndices to function getRange()?
 function getDomain(gene, basePairsOutsideExonLimit) {
-    var length = gene.exons.length;
     var domain = [];
     var splitIntronIndices = [];
     var threshold = 3 * basePairsOutsideExonLimit;
+    var exonStarts = gene.getExonStartsMinusOffset();
+    var exonEnds = gene.getExonEndsMinusOffset();
+    var length = exonStarts.length;
 
     for (var i = 0; i < length - 1; i++) {
-        var exon = gene.exons[i];
-        var nextExon = gene.exons[i + 1];
+        domain.push(exonStarts[i]);
+        domain.push(exonEnds[i]);
 
-        domain.push(exon.start);
-        domain.push(exon.end);
-
-        if (nextExon.start - exon.end > threshold) {
-            domain.push(exon.end + basePairsOutsideExonLimit);
-            domain.push(nextExon.start - basePairsOutsideExonLimit);
+        if (exonStarts[i + 1] - exonEnds[i] > threshold) {
+            domain.push(exonEnds[i] + basePairsOutsideExonLimit);
+            domain.push(exonStarts[i + 1] - basePairsOutsideExonLimit);
             splitIntronIndices.push(i);
         }
     }
     // last exon does not have a intron after it
-    domain.push(gene.exons[length - 1].start);
-    domain.push(gene.exons[length - 1].end);
+    domain.push(exonStarts[length - 1]);
+    domain.push(exonEnds[length - 1]);
 
     return {
         domain: domain,
@@ -402,6 +402,39 @@ function getDomain(gene, basePairsOutsideExonLimit) {
 // basePairsOutsideExonLimit and had to be split into three parts in the domain. 
 // The introns in the corresponding indices in the range array will also be split
 // into three event parts.
+
+function getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH) {
+
+    var exonStarts = gene_uniform_intron_length.getExonStartsMinusOffset();
+    var exonEnds = gene_uniform_intron_length.getExonEndsMinusOffset();
+    
+    var length = exonStarts.length;
+    var INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
+
+    var range = [];
+    var reverseSplitIntronIndices = splitIntronIndices.reverse();
+    var currentSplitIntronIndex = reverseSplitIntronIndices.pop();
+
+    for (var i = 0; i < length - 1; i++) {
+        range.push(exonStarts[i]);
+
+        if (i == currentSplitIntronIndex) {
+            range.push(exonEnds[i]);
+            range.push(exonEnds[i] + INTRON_LENGTH_SPLIT_INTO_THREE);
+            range.push(exonStarts[i + 1] - INTRON_LENGTH_SPLIT_INTO_THREE);
+            currentSplitIntronIndex = reverseSplitIntronIndices.pop();
+        } else {
+            range.push(exonEnds[i]);
+        }
+    }
+    // last exon does not have a intron after it
+    range.push(exonStarts[length - 1]);
+    range.push(exonEnds[length - 1]);
+
+    return range;
+}
+
+/*
 function getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
     splitIntronIndices, INTRON_LENGTH) {
 
@@ -430,8 +463,7 @@ function getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronL
 
     return range;
 }
-
-
+*/
 // Given a dictionary of arrays, each containing variants located in the same base pair position,
 // return the length of the longest array
 function getMaxArrayLengthInDictionary(dictionary) {
