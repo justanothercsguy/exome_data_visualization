@@ -12,19 +12,8 @@
   </head>
 
   <body>
-    <!-- container for horizontal bars representing exons -->
-    <svg class="exon-chart"></svg>
-
-    <!-- container for lollipop plot representing variants -->
-    <svg class="variant-chart"></svg>
-
-    <!-- container for zoomed in view of a single exon -->
-    <svg class="zoom-in-single-exon-chart"></svg>
-
-    <!-- container for zoomed-in view of lollipop plot for a single exon -->
-    <svg class="zoom-in-single-exon-variant-chart"></svg>
-
-    <!-- process data from Django server and sqlite3 database file below -->
+    <div class="chart-zoomed-out"></div>
+    <div class="chart-zoomed-in"></div>
     <script>
       /* Step 1: Get variables from the Exac dataset
        *
@@ -234,6 +223,10 @@
        * and shorter height rectangles representing non-coding exon partitions. To represent introns,
        * render horizontal dashed lines in the white space between the rectangles.
        */ 
+      var margin = {top: 20, right: 20, bottom: 20, left: 120};
+      var width = 900 - margin.left - margin.right;
+      var height = 300 - margin.top - margin.bottom;
+
       const chartWidth = 800;
       const chartHeight = 20;
       const barHeightCoding = chartHeight - 2;
@@ -244,13 +237,24 @@
       var scaleUniformIntronsToChart = d3.scaleLinear()
           .domain([0, TOTAL_LENGTH])
           .range([0, chartWidth]);
+      
+      var svgZoomedOut = d3.select(".chart-zoomed-out").append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+          .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+      
+      var svgZoomedIn = d3.select(".chart-zoomed-in").append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom);
 
-      var chart = d3.select(".exon-chart")
-          .attr("width", chartWidth)
-          .attr("height", chartHeight);
+      // var chart = d3.select(".exon-chart")
+      //     .attr("width", chartWidth)
+      //     .attr("height", chartHeight);
       
       // calculate starting positions of exon partitions
-      var bar = chart.selectAll("g")
+      var bar = svgZoomedOut.selectAll("g")
           .data(exonLengths)
         .enter().append("g")
           .attr("transform", function(d, i) { 
@@ -297,7 +301,7 @@
       // Lighter and thinner for the middle section that does not contain variants
       console.log("intronStartsAndEndsWithUniformIntronLength");
       console.log(intronStartsAndEndsWithUniformIntronLength);
-      var lines = chart.selectAll("path")
+      var lines = svgZoomedOut.selectAll("path")
           .data(intronStartsAndEndsWithUniformIntronLength)
           .enter().append("path")
             .style("stroke", function(d, i) {
@@ -503,13 +507,15 @@
                 .domain([ 0, singleExonAndPaddingLength ])
                 .range([ 0, chartWidth ]);
           
-            var zoomInSingleExonChart = d3.select(".zoom-in-single-exon-chart")
-                .attr("width", chartWidth)
-                .attr("height", chartHeight);
+            // var zoomInSingleExonChart = d3.select(".zoom-in-single-exon-chart")
+            //     .attr("width", chartWidth)
+            //     .attr("height", chartHeight);         
 
             // Step 18: create a one-element array containing the hovered/clicked exon
-            zoomInSingleExonChart.selectAll("g").remove();
-            var zoomBar = zoomInSingleExonChart.selectAll("g")
+            svgZoomedIn.selectAll("g").remove();
+            var zoomBar = svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .selectAll("g")
                 .data([ exonLengths[hoveredExonIndex] ])
               .enter().append("g")
                 .attr("transform", function(d) { 
@@ -550,8 +556,10 @@
               [scaleSingleExonToChart( leftMarginPadding ), barHeightNonCoding], 
               [scaleSingleExonToChart( BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding), barHeightNonCoding]]);
             
-            zoomInSingleExonChart.selectAll("path").remove();
-            var zoomLine = zoomInSingleExonChart.selectAll("path")
+            // zoomInSingleExonChart.selectAll("path").remove();
+            var zoomLine = svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .selectAll("path")
                 .data(zoomLineCoordinates)
                 .enter().append("path")
                   .style("fill", "none")
@@ -562,8 +570,10 @@
 
             // add text next to dashed line displaying the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
             // Tutorial: https://www.dashingd3js.com/svg-text-element
-            zoomInSingleExonChart.selectAll("text").remove();
-            var text = zoomInSingleExonChart.selectAll("text")
+            // zoomInSingleExonChart.selectAll("text").remove();
+            var text = svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .selectAll("text")
                 .data(zoomLineCoordinates)
                 .enter().append("text");
             
@@ -599,18 +609,20 @@
             // in the general view. This prevents user from hovering over and getting info on a 
             // few variants outside of BASE_PAIRS_OUTSIDE_EXON_LIMIT - DONT WORRY FOR NOW
             // MAYBE SOLUTION: put the tooltip in its own div so it does not get deleted - NEED TO TEST
-            var body_divs = d3.select("body").select("div").remove();
+            // var body_divs = d3.select("body").select("div").remove();
             
             var div = d3.select("body").append("div") 
                   .attr("class", "tooltip")       
                   .style("opacity", 0);
 
-            var variantChart = d3.select(".zoom-in-single-exon-variant-chart")
-                .attr("width", chartWidth)
-                .attr("height", variantChartHeight);
+            // var variantChart = d3.select(".zoom-in-single-exon-variant-chart")
+            //     .attr("width", chartWidth)
+            //     .attr("height", variantChartHeight);
 
-            variantChart.selectAll("g").remove();
-            var lollipopRect = variantChart.selectAll("g")
+            // variantChart.selectAll("g").remove();
+            var lollipopRect = svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .selectAll("g")
                 .data(data)
               .enter().append("g")
                 .attr("transform", function(d) {
@@ -630,8 +642,10 @@
                   return variantAnnotationToLollipopColor(d.annotation);
                 });
 
-            variantChart.selectAll("circle").remove();
-            var lollipopCircle = variantChart.selectAll('circle')
+            // variantChart.selectAll("circle").remove();
+            var lollipopCircle = svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .selectAll('circle')
                 .data(data)
               .enter().append('circle')
                 .attr('cx', function(d) {
@@ -667,8 +681,10 @@
             // text label for the y axis
             // Note: do not remove tick mark labels before removing and re-rendering y-axis label
             // TODO: preset vertical and horizontal margins and render scale position according to margin
-            variantChart.selectAll("text").remove();
-            variantChart.append("text")
+            // variantChart.selectAll("text").remove();
+            svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .append("text")
                 .attr("transform", "rotate(-90)")
                 .attr("y", 0)
                 .attr("x", 0 - (variantChartHeight / 2))
@@ -676,7 +692,9 @@
                 .attr("text-anchor", "middle")
                 .text("MAF");
 
-            variantChart.append("g")
+            svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .append("g")
                 .attr("class", "axis axis--y")
                 .attr("transform", "translate(" + (leftMarginPadding * 2) + "," + 
                   (variantChartVerticalPadding / 2) + ")")
