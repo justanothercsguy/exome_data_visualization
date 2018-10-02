@@ -175,13 +175,6 @@
        * SO FORGET IT UNTIL MAIN FEATURE OF MAPPING VARIANTS ACCURATELY WORK.
        */
       var exonPartitionNonCodingIndices = [];
-
-      console.log(cdsStart);
-      console.log(cdsEnd);
-      console.log(exonStarts);
-      console.log(exonEnds);
-      console.log(exonLengths);
-      console.log(exonPartitionNonCodingIndices);
       
       /* Step 10: Split the first and last exons into their coding and non-coding parts,
        * for exonStartsWithUniformIntronLengths and exonEndsWithUniformIntronLengths.
@@ -359,14 +352,14 @@
           }
         });
 
-        /* Step 15: Render lollipops for variants of the exon in the general view of all exons
+        /* Step 15: Render lollipops for variants in the zoomed-out view of all exons
          */
         const mostFrequentVariantPositionCount = getMaxArrayLengthInDictionary(variant_map);
         const lollipopRectHeight = 10;
         const lollipopRectWidth = 0.2;
         const lollipopRadius = 3;
         const variantChartVerticalPadding = 20;
-        const variantChartHeight = 150; // lollipopRectHeight + lollipopRadius + variantChartVerticalPadding;
+        const variantChartHeight = height; // lollipopRectHeight + lollipopRadius + variantChartVerticalPadding;
 
         // scale lollipop rectangle height based on allele frequency
         // Dr. Zuchner said: For the scale I recommend MAF > 0.01, MAF < 0.001, MAF < 0.0001
@@ -379,8 +372,7 @@
 
         var yScaleLollipop = d3.scaleLog()
             .domain([ yScaleMin, 1 ])
-            // .domain([ 0, d3.min(data, function(d) { return d.alleleFrequency; }) ])
-            .range([ 0, variantChartHeight - variantChartVerticalPadding ]);
+            .range([ 0, variantChartHeight ]);
 
         // handle for div that will display text when hovering over over lollipop circle
         var div = d3.select("body").append("div") 
@@ -589,10 +581,6 @@
                   .attr("class", "tooltip")       
                   .style("opacity", 0);
 
-            // var variantChart = d3.select(".zoom-in-single-exon-variant-chart")
-            //     .attr("width", chartWidth)
-            //     .attr("height", variantChartHeight);
-
             // variantChart.selectAll("g").remove();
             var lollipopRect = svgZoomedIn.append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
@@ -650,15 +638,16 @@
             // Scale the range of the data
             var y = d3.scaleLinear()
                 .domain([ 0, mostFrequentVariantPositionCount ])
-                .range([ 0, variantChartHeight - variantChartVerticalPadding ]);
+                .range([ 0, variantChartHeight ]);
 
             // text label for the y axis
             // Note: do not remove tick mark labels before removing and re-rendering y-axis label
             // TODO: preset vertical and horizontal margins and render scale position according to margin
             // variantChart.selectAll("text").remove();
-            svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .append("text")
+            var yAxisTransform = svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left / 2 + "," + margin.top + ")");
+            
+            yAxisTransform.append("text")
                 .attr("transform", "rotate(-90)")
                 .attr("y", 0)
                 .attr("x", 0 - (variantChartHeight / 2))
@@ -666,9 +655,7 @@
                 .attr("text-anchor", "middle")
                 .text("MAF");
 
-            svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .append("g")
+            yAxisTransform.append("g")
                 .attr("class", "axis axis--y")
                 .attr("transform", "translate(" + (leftMarginPadding * 2) + "," + 
                   (variantChartVerticalPadding / 2) + ")")
