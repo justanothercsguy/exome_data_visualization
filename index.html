@@ -214,8 +214,9 @@
       
       var svgZoomedOut = d3.select(".chart-zoomed-out").append("svg")
           .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom)
-        .append("g")
+          .attr("height", height + margin.top + margin.bottom);
+      
+      var chartTransform = svgZoomedOut.append("g")
           .attr("transform",
                 "translate(" + margin.left + "," + margin.top + ")");
       
@@ -224,7 +225,7 @@
           .attr("height", height + margin.top + margin.bottom);
 
       // calculate starting positions of exon partitions
-      var bar = svgZoomedOut.selectAll("g")
+      var bar = chartTransform.selectAll("g")
           .data(exonLengths)
         .enter().append("g")
           .attr("transform", function(d, i) { 
@@ -270,7 +271,7 @@
       // Render different dashed lines for the three different sections of each intron
       // Darker and wider for the two side sections that contain variants
       // Lighter and thinner for the middle section that does not contain variants
-      var lines = svgZoomedOut.selectAll("path")
+      var lines = chartTransform.selectAll("path")
           .data(intronStartsAndEndsWithUniformIntronLength)
           .enter().append("path")
             .style("stroke", function(d, i) {
@@ -380,11 +381,11 @@
               .style("opacity", 0)
               .style("font-size", 8);
 
-        var variantChart = d3.select(".variant-chart")
-            .attr("width", width)
-            .attr("height", variantChartHeight);
-
-        var lollipopRect = variantChart.selectAll("g")
+        var variantTransform = svgZoomedOut.append("g")
+            .attr("transform",
+                  "translate(" + margin.left + "," + (margin.top + barHeightCoding) + ")");   
+        
+        var lollipopRect = variantTransform.selectAll("g")
             .data(data)
           .enter().append("g")
             .attr("transform", function(d) {
@@ -401,7 +402,7 @@
               return variantAnnotationToLollipopColor(d.annotation);
             });
 
-        var lollipopCircle = variantChart.selectAll('circle')
+        var lollipopCircle = variantTransform.selectAll('circle')
             .data(data)
           .enter().append('circle')
             .attr('cx', function(d) {
@@ -451,252 +452,252 @@
          * unlock the magnified exon and show an exon in magnified view when hovered over. Undo the
          * color change of the exon that is freed from the locked magnified view.
          */
-        var clickToLockMagnifiedExon = false;
-        var clickedExonIndex = -1;
-        var hoveredExonIndex = -1;
+        // var clickToLockMagnifiedExon = false;
+        // var clickedExonIndex = -1;
+        // var hoveredExonIndex = -1;
 
-        bar.on("mouseover", function(d, i) {
-          hoveredExonIndex = i;
+        // bar.on("mouseover", function(d, i) {
+        //   hoveredExonIndex = i;
           
-          if (!clickToLockMagnifiedExon) { 
-            bar.on("click", function(d, j) {
-              clickToLockMagnifiedExon = true; 
-              clickedExonIndex = j;
-              console.log("clicked over exon at index: " + clickedExonIndex);
-              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","lightblue"); // <== D3 selector (node)
-            });
+        //   if (!clickToLockMagnifiedExon) { 
+        //     bar.on("click", function(d, j) {
+        //       clickToLockMagnifiedExon = true; 
+        //       clickedExonIndex = j;
+        //       console.log("clicked over exon at index: " + clickedExonIndex);
+        //       d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","lightblue"); // <== D3 selector (node)
+        //     });
 
-            // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
-            // separately when clicked. Each whole exon or exon partition will get a white area 
-            // to its left and right representing introns.
-            const leftMarginPadding = 30;
-            var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
-              + leftMarginPadding + BASE_PAIRS_OUTSIDE_EXON_LIMIT * 2;
+        //     // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
+        //     // separately when clicked. Each whole exon or exon partition will get a white area 
+        //     // to its left and right representing introns.
+        //     const leftMarginPadding = 0;
+        //     var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
+        //       + leftMarginPadding + BASE_PAIRS_OUTSIDE_EXON_LIMIT * 2;
 
-            var scaleSingleExonToChart = d3.scaleLinear()
-                .domain([ 0, singleExonAndPaddingLength ])
-                .range([ 0, width ]);     
+        //     var scaleSingleExonToChart = d3.scaleLinear()
+        //         .domain([ 0, singleExonAndPaddingLength ])
+        //         .range([ 0, width ]);     
 
-            // Step 18: create a one-element array containing the hovered/clicked exon
-            svgZoomedIn.selectAll("g").remove();
-            var zoomBar = svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .selectAll("g")
-                .data([ exonLengths[hoveredExonIndex] ])
-              .enter().append("g")
-                .attr("transform", function(d) { 
-                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
-                    return "translate(" + 
-                      scaleSingleExonToChart(
-                        BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding
-                      ) + "," + ((barHeightCoding - barHeightNonCoding) / 2) + ")";
-                  }
-                  return "translate(" + 
-                    scaleSingleExonToChart(
-                      BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding
-                    ) + "," + 0 + ")";
-                });
+        //     // Step 18: create a one-element array containing the hovered/clicked exon
+        //     svgZoomedIn.selectAll("g").remove();
+        //     var zoomBar = svgZoomedIn.append("g")
+        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        //         .selectAll("g")
+        //         .data([ exonLengths[hoveredExonIndex] ])
+        //       .enter().append("g")
+        //         .attr("transform", function(d) { 
+        //           if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
+        //             return "translate(" + 
+        //               scaleSingleExonToChart(
+        //                 BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding
+        //               ) + "," + ((barHeightCoding - barHeightNonCoding) / 2) + ")";
+        //           }
+        //           return "translate(" + 
+        //             scaleSingleExonToChart(
+        //               BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding
+        //             ) + "," + 0 + ")";
+        //         });
             
-            // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
-            zoomBar.append("rect")
-                .attr("fill", "#868686")
-                .attr("width", scaleSingleExonToChart)
-                .attr("height", function(d) {
-                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
-                    return barHeightNonCoding;
-                  }
-                  return barHeightCoding;
-                });       
+        //     // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
+        //     zoomBar.append("rect")
+        //         .attr("fill", "#868686")
+        //         .attr("width", scaleSingleExonToChart)
+        //         .attr("height", function(d) {
+        //           if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
+        //             return barHeightNonCoding;
+        //           }
+        //           return barHeightCoding;
+        //         });       
             
-            /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
-             * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
-             * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
-             * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
-             * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
-             * with variants which are first scaled from variableIntronsToUniformIntrons and then from
-             * singleExonToChart.
-             */
-            var zoomLineCoordinates = [];
-            zoomLineCoordinates.push([
-              [scaleSingleExonToChart( leftMarginPadding ), 0], 
-              [scaleSingleExonToChart( leftMarginPadding ), barHeightNonCoding], 
-              [scaleSingleExonToChart( BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding), barHeightNonCoding]]);
+        //     /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
+        //      * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
+        //      * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
+        //      * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
+        //      * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
+        //      * with variants which are first scaled from variableIntronsToUniformIntrons and then from
+        //      * singleExonToChart.
+        //      */
+        //     var zoomLineCoordinates = [];
+        //     zoomLineCoordinates.push([
+        //       [scaleSingleExonToChart( leftMarginPadding ), 0], 
+        //       [scaleSingleExonToChart( leftMarginPadding ), barHeightNonCoding], 
+        //       [scaleSingleExonToChart( BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding), barHeightNonCoding]]);
             
-            // zoomInSingleExonChart.selectAll("path").remove();
-            var zoomLine = svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .selectAll("path")
-                .data(zoomLineCoordinates)
-                .enter().append("path")
-                  .style("fill", "none")
-                  .style("stroke", "black")
-                  .attr("stroke-width", 2)
-                  .style("stroke-dasharray", "2,1")
-                  .attr("d", d3.line());
+        //     // zoomInSingleExonChart.selectAll("path").remove();
+        //     var zoomLine = svgZoomedIn.append("g")
+        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        //         .selectAll("path")
+        //         .data(zoomLineCoordinates)
+        //         .enter().append("path")
+        //           .style("fill", "none")
+        //           .style("stroke", "black")
+        //           .attr("stroke-width", 2)
+        //           .style("stroke-dasharray", "2,1")
+        //           .attr("d", d3.line());
 
-            // add text next to dashed line displaying the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
-            // Tutorial: https://www.dashingd3js.com/svg-text-element
-            // zoomInSingleExonChart.selectAll("text").remove();
-            var text = svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .selectAll("text")
-                .data(zoomLineCoordinates)
-                .enter().append("text");
+        //     // add text next to dashed line displaying the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
+        //     // Tutorial: https://www.dashingd3js.com/svg-text-element
+        //     // zoomInSingleExonChart.selectAll("text").remove();
+        //     var text = svgZoomedIn.append("g")
+        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        //         .selectAll("text")
+        //         .data(zoomLineCoordinates)
+        //         .enter().append("text");
             
-            var textLabels = text
-                .attr("x", scaleSingleExonToChart(leftMarginPadding) + 5)
-                .attr("y", barHeightCoding / 3)
-                .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
-                .attr("font-family", "sans-serif")
-                .attr("font-size", "8px");
+        //     var textLabels = text
+        //         .attr("x", scaleSingleExonToChart(leftMarginPadding) + 5)
+        //         .attr("y", barHeightCoding / 3)
+        //         .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
+        //         .attr("font-family", "sans-serif")
+        //         .attr("font-size", "8px");
             
-            // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
-            const CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
-            const CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
-            const CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
-              + exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;       
+        //     // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
+        //     const CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
+        //     const CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
+        //     const CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
+        //       + exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;       
             
-            data = variant_data.filter(function(d) {
-              if (d.position >= CLICKED_EXON_LOWER_THRESHOLD 
-                && d.position <= CLICKED_EXON_UPPER_THRESHOLD) {
-                return true;
-              }
-              return false;
-            });
+        //     data = variant_data.filter(function(d) {
+        //       if (d.position >= CLICKED_EXON_LOWER_THRESHOLD 
+        //         && d.position <= CLICKED_EXON_UPPER_THRESHOLD) {
+        //         return true;
+        //       }
+        //       return false;
+        //     });
 
-            var variant_map_single_exon = {}
-            for (let [key, value] of Object.entries(variant_map)) {
-              if (key >= CLICKED_EXON_LOWER_THRESHOLD && key <= CLICKED_EXON_UPPER_THRESHOLD) {
-                variant_map_single_exon[key] = value;
-              }
-            }
-            // TODO: Figure out if there is a more efficient way than deleting the previous div 
-            // and creating a new one. Current way removes tooltip when hovering over variants 
-            // in the general view. This prevents user from hovering over and getting info on a 
-            // few variants outside of BASE_PAIRS_OUTSIDE_EXON_LIMIT - DONT WORRY FOR NOW
-            // MAYBE SOLUTION: put the tooltip in its own div so it does not get deleted - NEED TO TEST
-            // var body_divs = d3.select("body").select("div").remove();
+        //     var variant_map_single_exon = {}
+        //     for (let [key, value] of Object.entries(variant_map)) {
+        //       if (key >= CLICKED_EXON_LOWER_THRESHOLD && key <= CLICKED_EXON_UPPER_THRESHOLD) {
+        //         variant_map_single_exon[key] = value;
+        //       }
+        //     }
+        //     // TODO: Figure out if there is a more efficient way than deleting the previous div 
+        //     // and creating a new one. Current way removes tooltip when hovering over variants 
+        //     // in the general view. This prevents user from hovering over and getting info on a 
+        //     // few variants outside of BASE_PAIRS_OUTSIDE_EXON_LIMIT - DONT WORRY FOR NOW
+        //     // MAYBE SOLUTION: put the tooltip in its own div so it does not get deleted - NEED TO TEST
+        //     // var body_divs = d3.select("body").select("div").remove();
             
-            var div = d3.select("body").append("div") 
-                  .attr("class", "tooltip")       
-                  .style("opacity", 0);
+        //     var div = d3.select("body").append("div") 
+        //           .attr("class", "tooltip")       
+        //           .style("opacity", 0);
 
-            // variantChart.selectAll("g").remove();
-            var lollipopRect = svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .selectAll("g")
-                .data(data)
-              .enter().append("g")
-                .attr("transform", function(d) {
-                  return "translate(" + 
-                    scaleSingleExonToChart(
-                      scaleVariableIntronsToUniformIntrons(
-                        (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding)
-                      )
-                    ) + "," + (variantChartVerticalPadding / 2) + ")";
-                })
-                .append("rect")
-                .attr("width", lollipopRectWidth)
-                .attr("height", function(d) {
-                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
-                })
-                .attr('fill', function(d) {
-                  return variantAnnotationToLollipopColor(d.annotation);
-                });
+        //     // variantChart.selectAll("g").remove();
+        //     var lollipopRect = svgZoomedIn.append("g")
+        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        //         .selectAll("g")
+        //         .data(data)
+        //       .enter().append("g")
+        //         .attr("transform", function(d) {
+        //           return "translate(" + 
+        //             scaleSingleExonToChart(
+        //               scaleVariableIntronsToUniformIntrons(
+        //                 (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT)
+        //               )
+        //             ) + "," + (variantChartVerticalPadding / 2) + ")";
+        //         })
+        //         .append("rect")
+        //         .attr("width", lollipopRectWidth)
+        //         .attr("height", function(d) {
+        //           return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
+        //         })
+        //         .attr('fill', function(d) {
+        //           return variantAnnotationToLollipopColor(d.annotation);
+        //         });
 
-            // variantChart.selectAll("circle").remove();
-            var lollipopCircle = svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .selectAll('circle')
-                .data(data)
-              .enter().append('circle')
-                .attr('cx', function(d) {
-                  return scaleSingleExonToChart(
-                    scaleVariableIntronsToUniformIntrons(
-                      (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding)
-                    )
-                  );
-                })
-                .attr('cy', function(d) {
-                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency 
-                    ) + (variantChartVerticalPadding / 2);
-                })
-                .attr('r', lollipopRadius)
-                .attr('fill', function(d) {
-                  return variantAnnotationToLollipopColor(d.annotation);
-                });
+        //     // variantChart.selectAll("circle").remove();
+        //     var lollipopCircle = svgZoomedIn.append("g")
+        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        //         .selectAll('circle')
+        //         .data(data)
+        //       .enter().append('circle')
+        //         .attr('cx', function(d) {
+        //           return scaleSingleExonToChart(
+        //             scaleVariableIntronsToUniformIntrons(
+        //               (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT)
+        //             )
+        //           );
+        //         })
+        //         .attr('cy', function(d) {
+        //           return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency 
+        //             ) + (variantChartVerticalPadding / 2);
+        //         })
+        //         .attr('r', lollipopRadius)
+        //         .attr('fill', function(d) {
+        //           return variantAnnotationToLollipopColor(d.annotation);
+        //         });
 
-            /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
-             *
-             * TODO: change length of lollipops to reflect the allele frequencies
-             * Tutorial: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
-             *
-             * TODO: add left margin padding and y-axis padding (upper and lower bound of svg container)
-             * so that the y-axis text next to tick marks will be displayed correctly
-             * Tutorial: https://bl.ocks.org/mbostock/3885304
-             */
-            // Scale the range of the data
-            var y = d3.scaleLinear()
-                .domain([ 0, mostFrequentVariantPositionCount ])
-                .range([ 0, variantChartHeight ]);
+        //     /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
+        //      *
+        //      * TODO: change length of lollipops to reflect the allele frequencies
+        //      * Tutorial: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
+        //      *
+        //      * TODO: add left margin padding and y-axis padding (upper and lower bound of svg container)
+        //      * so that the y-axis text next to tick marks will be displayed correctly
+        //      * Tutorial: https://bl.ocks.org/mbostock/3885304
+        //      */
+        //     // Scale the range of the data
+        //     var y = d3.scaleLinear()
+        //         .domain([ 0, mostFrequentVariantPositionCount ])
+        //         .range([ 0, variantChartHeight ]);
 
-            // text label for the y axis
-            // Note: do not remove tick mark labels before removing and re-rendering y-axis label
-            // TODO: preset vertical and horizontal margins and render scale position according to margin
-            // variantChart.selectAll("text").remove();
-            var yAxisTransform = svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left / 2 + "," + margin.top + ")");
+        //     // text label for the y axis
+        //     // Note: do not remove tick mark labels before removing and re-rendering y-axis label
+        //     // TODO: preset vertical and horizontal margins and render scale position according to margin
+        //     // variantChart.selectAll("text").remove();
+        //     var yAxisTransform = svgZoomedIn.append("g")
+        //         .attr("transform", "translate(" + margin.left/4 + "," + margin.top + ")");
             
-            yAxisTransform.append("text")
-                .attr("transform", "rotate(-90)")
-                .attr("y", 0)
-                .attr("x", 0 - (variantChartHeight / 2))
-                .attr("dy", "1em")
-                .attr("text-anchor", "middle")
-                .text("MAF");
+        //     yAxisTransform.append("text")
+        //         .attr("transform", "rotate(-90)")
+        //         .attr("y", 0)
+        //         .attr("x", 0 - (variantChartHeight / 2))
+        //         .attr("dy", "1em")
+        //         .attr("text-anchor", "middle")
+        //         .text("MAF");
 
-            yAxisTransform.append("g")
-                .attr("class", "axis axis--y")
-                .attr("transform", "translate(" + (leftMarginPadding * 2) + "," + 
-                  (variantChartVerticalPadding / 2) + ")")
-                .call(d3.axisLeft(yScaleLollipop));
+        //     yAxisTransform.append("g")
+        //         .attr("class", "axis axis--y")
+        //         .attr("transform", "translate(" + (leftMarginPadding * 2) + "," + 
+        //           (variantChartVerticalPadding / 2) + ")")
+        //         .call(d3.axisLeft(yScaleLollipop));
 
-            /* Step 16: When hovering over a circle, open a tooltip displaying variant data
-              * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
-              */
-            lollipopCircle.on("mouseover", function(d, i) {   
-              div.transition()    
-                  .duration(200)    
-                  .style("opacity", .9); 
+        //     /* Step 16: When hovering over a circle, open a tooltip displaying variant data
+        //       * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
+        //       */
+        //     lollipopCircle.on("mouseover", function(d, i) {   
+        //       div.transition()    
+        //           .duration(200)    
+        //           .style("opacity", .9); 
 
-              // TODO: If there is more that one variant in a position, we need to show a table
-              // of variants when clicking or hovering over that lollipop circle.
-              // For now if a position has multiple variants, the tooltip shows the first variant
-              div.html("chromosome: " + variant_map_single_exon[d.position][0].chromosome + "<br/>"
-                + "position: " + variant_map_single_exon[d.position][0].position + "<br/>"
-                + "referenceAllele: " + variant_map_single_exon[d.position][0].reference + "<br/>"
-                + "alternateAllele: " + variant_map_single_exon[d.position][0].alternate + "<br/>"
-                + "annotation: " + variant_map_single_exon[d.position][0].annotation + "<br/>"
-                + "alleleCount: " + variant_map_single_exon[d.position][0].alleleCount + "<br/>"
-                + "alleleNumber: " + variant_map_single_exon[d.position][0].alleleNumber + "<br/>"
-                + "alleleFrequency: " + variant_map_single_exon[d.position][0].alleleFrequency + "<br/>"
-                + "number of variants: " + variant_map_single_exon[d.position].length)
-                  .style("left", (d3.event.pageX) + "px")   
-                  .style("top", (d3.event.pageY - 28) + "px");  
-            })          
-            .on("mouseout", function(d) {   
-              div.transition()    
-                  .duration(500)    
-                  .style("opacity", 0);
-            });
-          }
-          else {
-            bar.on('click', function() {
-              clickToLockMagnifiedExon = false;
-              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","#868686");
-            });
-          }
-          });
+        //       // TODO: If there is more that one variant in a position, we need to show a table
+        //       // of variants when clicking or hovering over that lollipop circle.
+        //       // For now if a position has multiple variants, the tooltip shows the first variant
+        //       div.html("chromosome: " + variant_map_single_exon[d.position][0].chromosome + "<br/>"
+        //         + "position: " + variant_map_single_exon[d.position][0].position + "<br/>"
+        //         + "referenceAllele: " + variant_map_single_exon[d.position][0].reference + "<br/>"
+        //         + "alternateAllele: " + variant_map_single_exon[d.position][0].alternate + "<br/>"
+        //         + "annotation: " + variant_map_single_exon[d.position][0].annotation + "<br/>"
+        //         + "alleleCount: " + variant_map_single_exon[d.position][0].alleleCount + "<br/>"
+        //         + "alleleNumber: " + variant_map_single_exon[d.position][0].alleleNumber + "<br/>"
+        //         + "alleleFrequency: " + variant_map_single_exon[d.position][0].alleleFrequency + "<br/>"
+        //         + "number of variants: " + variant_map_single_exon[d.position].length)
+        //           .style("left", (d3.event.pageX) + "px")   
+        //           .style("top", (d3.event.pageY - 28) + "px");  
+        //     })          
+        //     .on("mouseout", function(d) {   
+        //       div.transition()    
+        //           .duration(500)    
+        //           .style("opacity", 0);
+        //     });
+        //   }
+        //   else {
+        //     bar.on('click', function() {
+        //       clickToLockMagnifiedExon = false;
+        //       d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","#868686");
+        //     });
+        //   }
+        //   });
         });
     </script>
   </body>
