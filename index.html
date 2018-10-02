@@ -34,8 +34,8 @@
 
       // NOTE: added two elements to head and tail of exonStarts and exonEnds to test functions
       // removeExonsBeforeStartPosition() and removeExonsAfterEndPosition()
-      var exonStarts = [48599595, 48599012,48600360,48604408];
-      var exonEnds = [48599595, 48599678,48600888,48605423];
+      var exonStarts = [48599595, 48599012, 48600360, 48604408];
+      var exonEnds = [48599595, 48599678, 48600888, 48605423];
       
       /*
       // DEFAULT - WORKS
@@ -60,9 +60,7 @@
        * Also, the last exon must contain cdsEnd or end before cdsEnd
        */
       gene = removeExonsBeforeStartPosition(gene);
-      console.log(gene);
       gene = removeExonsAfterEndPosition(gene);
-      console.log(gene);
 
       /* Step 3: Limit the length of the non-coding parts of an exon. 
        * The non-coding part for the exon containing cdsStart would be everything before cdsStart
@@ -117,6 +115,9 @@
       console.log("exonStartsWithUniformIntronLengths"); console.log(exonStartsWithUniformIntronLengths);
       console.log("exonEndsWithUniformIntronLengths"); console.log(exonEndsWithUniformIntronLengths);
       
+      // NOTE: have to adjust cdsStart and cdsEnd to fit the uniform intron model
+      // this makes me suspect that creating gene_uniform_intron_length is not smart
+      // because I have to adjust cdsStart and cdsEnd
       var gene_uniform_intron_length = getGeneWithUniformIntronLength(gene, INTRON_LENGTH);
       console.log("gene_uniform_intron_length");
       console.log(gene_uniform_intron_length);
@@ -167,26 +168,14 @@
        * that is greater than or equal to cdsStart is coding.
        * For the last exon, everything after cdsEnd is non-coding, while everything 
        * that is less than or equal to cdsEnd is coding.
+       * 
+       * NOTE: Better to make a function in the gene object that will return an array
+       * of exons with coding and nonCoding partitions split - but then the getLength()
+       * function cannot be reused. FOR NOW THIS IS WORRYING ABOUT TOO MANY DETAILS
+       * SO FORGET IT UNTIL MAIN FEATURE OF MAPPING VARIANTS ACCURATELY WORK.
        */
       var exonPartitionNonCodingIndices = [];
 
-      exonPositions = splitExonAtCodingStartPosition(cdsStart, exonStarts, exonEnds);
-      exonStarts = exonPositions.exonStarts;
-      exonEnds = exonPositions.exonEnds;
-    
-      if (exonPositions.nonCodingIndex != null) {
-        exonPartitionNonCodingIndices.push(exonPositions.nonCodingIndex);
-      }
-
-      exonPositions = splitExonAtCodingEndPosition(cdsEnd, exonStarts, exonEnds);
-      exonStarts = exonPositions.exonStarts;
-      exonEnds = exonPositions.exonEnds;
-
-      if (exonPositions.nonCodingIndex != null) {
-        exonPartitionNonCodingIndices.push(exonPositions.nonCodingIndex);
-      }
-
-      exonLengths = subtractValuesOfTwoArrays(exonEnds, exonStarts);
       console.log(cdsStart);
       console.log(cdsEnd);
       console.log(exonStarts);
@@ -206,18 +195,12 @@
        * This scaling does not need to be performed on cdsStart, because it is contained in the first exon
        * which has no adjusted intron lengths occuring before it. Hence exonStarts[0] and 
        * exonStartsWithUniformIntronLengths[0] are equal.
+       * 
+       * NOTE: Better to make a function in the gene object that will return an array
+       * of exons with coding and nonCoding partitions split - but then the getLength()
+       * function cannot be reused. FOR NOW THIS IS WORRYING ABOUT TOO MANY DETAILS
+       * SO FORGET IT UNTIL MAIN FEATURE OF MAPPING VARIANTS ACCURATELY WORK.
        */
-      exonPositions = splitExonAtCodingStartPosition(cdsStart, exonStartsWithUniformIntronLengths,
-        exonEndsWithUniformIntronLengths);
-      exonStartsWithUniformIntronLengths = exonPositions.exonStarts;
-      exonEndsWithUniformIntronLengths = exonPositions.exonEnds;
-
-      var cdsEndWithUniformIntronLengths = scaleVariableIntronsToUniformIntrons(cdsEnd);
-      
-      exonPositions = splitExonAtCodingEndPosition(cdsEndWithUniformIntronLengths,
-        exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths);
-      exonStartsWithUniformIntronLengths = exonPositions.exonStarts;
-      exonEndsWithUniformIntronLengths = exonPositions.exonEnds;
 
       /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
        * and shorter height rectangles representing non-coding exon partitions. To represent introns,

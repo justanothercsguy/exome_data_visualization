@@ -72,6 +72,10 @@ class Gene {
         }
         return exonEnds;
     }
+
+    getNonCodingExonIndices() {
+        
+    }
 }
 
 // PROBLEM: If I give the gene class a length field that is calculated
