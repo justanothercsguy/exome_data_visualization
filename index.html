@@ -23,7 +23,7 @@
        * exonEnds: array of the ending base pair index of each exon in the gene
        */
 
-      /*
+      
       // TEST 3 - FAILED
       // NM_005985.3, SNAI1 gene - chromosome 20
       // TODO: figure out error in the zoomed in exon view scaling
@@ -36,8 +36,8 @@
       // removeExonsBeforeStartPosition() and removeExonsAfterEndPosition()
       var exonStarts = [48599595, 48599012, 48600360, 48604408];
       var exonEnds = [48599595, 48599678, 48600888, 48605423];
-      */
       
+      /*
       // DEFAULT - WORKS
       // PCSK9 gene - chromsome 1
       var cdsStart = 55505510; // 55505717 + 1;
@@ -47,7 +47,7 @@
         55523708,55524171,55525158,55527047,55529041,55531000];
       var exonEnds = [55505100,55505717,55509707,55512319,55518084,55518464,55521862,55523187,
         55523882,55524320,55525336,55527229,55530526,55532000];
-      
+      */
       const NON_CODING_LENGTH_LIMIT = 200;
 
 
@@ -323,8 +323,8 @@
        */
       
       var variant_data_file_path = 'variant_data/'
-      // var variant_data_file_name = 'exac_ENSG00000124216_SNAI1.csv';      
-      var variant_data_file_name = 'exac_ENSG00000169174_PCSK9.csv';
+      var variant_data_file_name = 'exac_ENSG00000124216_SNAI1.csv';      
+      // var variant_data_file_name = 'exac_ENSG00000169174_PCSK9.csv';
 
       d3.csv(variant_data_file_path + variant_data_file_name, row, function(data) {
         // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 
@@ -382,15 +382,17 @@
 
         var variantTransform = svgZoomedOut.append("g")
             .attr("transform",
-                  "translate(" + margin.left + "," + (margin.top + barHeightCoding) + ")");   
+                  "translate(" + margin.left + "," + 
+                    (margin.top + barHeightCoding + 5) + ")");
         
         var lollipopRect = variantTransform.selectAll("g")
             .data(data)
           .enter().append("g")
             .attr("transform", function(d) {
               return "translate(" + 
-                scaleUniformIntronsToChart(scaleVariableIntronsToUniformIntrons(d.position - OFFSET)) 
-                  + "," + 0 + ")";
+                scaleUniformIntronsToChart(
+                  scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
+                ) + "," + 0 + ")";
             })
             .append("rect")
             .attr("width", lollipopRectWidth)
@@ -405,7 +407,9 @@
             .data(data)
           .enter().append('circle')
             .attr('cx', function(d) {
-              return scaleUniformIntronsToChart(scaleVariableIntronsToUniformIntrons(d.position - OFFSET));
+              return scaleUniformIntronsToChart(
+                scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
+              );
             })
             .attr('cy', function(d) {
               return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
@@ -451,88 +455,103 @@
          * unlock the magnified exon and show an exon in magnified view when hovered over. Undo the
          * color change of the exon that is freed from the locked magnified view.
          */
-        // var clickToLockMagnifiedExon = false;
-        // var clickedExonIndex = -1;
-        // var hoveredExonIndex = -1;
+        var clickToLockMagnifiedExon = false;
+        var clickedExonIndex = -1;
+        var hoveredExonIndex = -1;
 
-        // bar.on("mouseover", function(d, i) {
-        //   hoveredExonIndex = i;
+        bar.on("mouseover", function(d, i) {
+          hoveredExonIndex = i;
           
-        //   if (!clickToLockMagnifiedExon) { 
-        //     bar.on("click", function(d, j) {
-        //       clickToLockMagnifiedExon = true; 
-        //       clickedExonIndex = j;
-        //       console.log("clicked over exon at index: " + clickedExonIndex);
-        //       d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","lightblue"); // <== D3 selector (node)
-        //     });
+          if (!clickToLockMagnifiedExon) { 
+            bar.on("click", function(d, j) {
+              clickToLockMagnifiedExon = true; 
+              clickedExonIndex = j;
+              console.log("clicked over exon at index: " + clickedExonIndex);
+              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","lightblue"); // <== D3 selector (node)
+            });
 
-        //     // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
-        //     // separately when clicked. Each whole exon or exon partition will get a white area 
-        //     // to its left and right representing introns.
-        //     const leftMarginPadding = 0;
-        //     var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
-        //       + leftMarginPadding + BASE_PAIRS_OUTSIDE_EXON_LIMIT * 2;
+            // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
+            // separately when clicked. Each whole exon or exon partition will get a white area 
+            // to its left and right representing introns.
+            var leftMarginPadding = 0;
+            var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
+              + (2 * BASE_PAIRS_OUTSIDE_EXON_LIMIT);
 
-        //     var scaleSingleExonToChart = d3.scaleLinear()
-        //         .domain([ 0, singleExonAndPaddingLength ])
-        //         .range([ 0, width ]);     
+            if (hoveredExonIndex == 0 || hoveredExonIndex == NUM_EXONS - 1 ||
+                clickedExonIndex == 0 || clickedExonIndex == NUM_EXONS - 1) 
+            {
+              console.log("contains non coding");
+              // singleExonAndPaddingLength -= BASE_PAIRS_OUTSIDE_EXON_LIMIT; 
+              console.log(singleExonAndPaddingLength);
+            }
+            var scaleSingleExonToChart = d3.scaleLinear()
+                .domain([ 0, singleExonAndPaddingLength ])
+                .range([ 0, width ]);     
 
-        //     // Step 18: create a one-element array containing the hovered/clicked exon
-        //     svgZoomedIn.selectAll("g").remove();
-        //     var zoomBar = svgZoomedIn.append("g")
-        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-        //         .selectAll("g")
-        //         .data([ exonLengths[hoveredExonIndex] ])
-        //       .enter().append("g")
-        //         .attr("transform", function(d) { 
-        //           if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
-        //             return "translate(" + 
-        //               scaleSingleExonToChart(
-        //                 BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding
-        //               ) + "," + ((barHeightCoding - barHeightNonCoding) / 2) + ")";
-        //           }
-        //           return "translate(" + 
-        //             scaleSingleExonToChart(
-        //               BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding
-        //             ) + "," + 0 + ")";
-        //         });
+            // Step 18: create a one-element array containing the hovered/clicked exon
+            svgZoomedIn.selectAll("g").remove();
+            var translateZoomedExon = svgZoomedIn.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var zoomBar = translateZoomedExon.append("g")
+                .selectAll("g")
+                .data([ exonLengths[hoveredExonIndex] ])
+              .enter().append("g")
+                .attr("transform", function(d) { 
+                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
+                    return "translate(" + 
+                      scaleSingleExonToChart(
+                        BASE_PAIRS_OUTSIDE_EXON_LIMIT
+                      ) + "," + ((barHeightCoding - barHeightNonCoding) / 2) + ")";
+                  }
+                  return "translate(" + 
+                    scaleSingleExonToChart(
+                      BASE_PAIRS_OUTSIDE_EXON_LIMIT
+                    ) + "," + 0 + ")";
+                });
             
-        //     // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
-        //     zoomBar.append("rect")
-        //         .attr("fill", "#868686")
-        //         .attr("width", scaleSingleExonToChart)
-        //         .attr("height", function(d) {
-        //           if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
-        //             return barHeightNonCoding;
-        //           }
-        //           return barHeightCoding;
-        //         });       
+            // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
+            zoomBar.append("rect")
+                .attr("fill", "#868686")
+                .attr("width", scaleSingleExonToChart)
+                .attr("height", function(d) {
+                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
+                    return barHeightNonCoding;
+                  }
+                  return barHeightCoding;
+                });       
             
-        //     /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
-        //      * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
-        //      * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
-        //      * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
-        //      * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
-        //      * with variants which are first scaled from variableIntronsToUniformIntrons and then from
-        //      * singleExonToChart.
-        //      */
-        //     var zoomLineCoordinates = [];
-        //     zoomLineCoordinates.push([
-        //       [scaleSingleExonToChart( leftMarginPadding ), 0], 
-        //       [scaleSingleExonToChart( leftMarginPadding ), barHeightNonCoding], 
-        //       [scaleSingleExonToChart( BASE_PAIRS_OUTSIDE_EXON_LIMIT + leftMarginPadding), barHeightNonCoding]]);
-            
-        //     // zoomInSingleExonChart.selectAll("path").remove();
-        //     var zoomLine = svgZoomedIn.append("g")
-        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-        //         .selectAll("path")
-        //         .data(zoomLineCoordinates)
-        //         .enter().append("path")
-        //           .style("fill", "none")
-        //           .style("stroke", "black")
-        //           .attr("stroke-width", 2)
-        //           .style("stroke-dasharray", "2,1")
-        //           .attr("d", d3.line());
+            /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
+             * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
+             * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
+             * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
+             * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
+             * with variants which are first scaled from variableIntronsToUniformIntrons and then from
+             * singleExonToChart.
+             */
+            var zoomLineCoordinates = [];
+            zoomLineCoordinates.push(
+              [
+                [0, 0], 
+                [0, barHeightNonCoding], 
+                [scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
+              ],
+              [
+                [width, 0], 
+                [width, barHeightNonCoding], 
+                [width - scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
+              ]);
+              
+            // zoomInSingleExonChart.selectAll("path").remove();
+            var zoomLine = translateZoomedExon.append("g")
+                .selectAll("path")
+                .data(zoomLineCoordinates)
+                .enter().append("path")
+                  .style("fill", "none")
+                  .style("stroke", "black")
+                  .attr("stroke-width", 2)
+                  .style("stroke-dasharray", "2,1")
+                  .attr("d", d3.line());
 
         //     // add text next to dashed line displaying the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
         //     // Tutorial: https://www.dashingd3js.com/svg-text-element
@@ -695,8 +714,8 @@
         //       clickToLockMagnifiedExon = false;
         //       d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","#868686");
         //     });
-        //   }
-        //   });
+            }
+          });
         });
     </script>
   </body>
