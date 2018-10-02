@@ -210,16 +210,14 @@
       var width = 900 - margin.left - margin.right;
       var height = 300 - margin.top - margin.bottom;
 
-      const chartWidth = 800;
-      const chartHeight = 20;
-      const barHeightCoding = chartHeight - 2;
-      const barHeightNonCoding = barHeightCoding / 2;
+      var barHeightCoding = 20;
+      var barHeightNonCoding = barHeightCoding / 2;
       const TOTAL_LENGTH = SUM_EXON_LENGTHS + SUM_INTRON_LENGTHS;
       const INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
-    
+
       var scaleUniformIntronsToChart = d3.scaleLinear()
           .domain([0, TOTAL_LENGTH])
-          .range([0, chartWidth]);
+          .range([0, width]);
       
       var svgZoomedOut = d3.select(".chart-zoomed-out").append("svg")
           .attr("width", width + margin.left + margin.right)
@@ -232,10 +230,6 @@
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom);
 
-      // var chart = d3.select(".exon-chart")
-      //     .attr("width", chartWidth)
-      //     .attr("height", chartHeight);
-      
       // calculate starting positions of exon partitions
       var bar = svgZoomedOut.selectAll("g")
           .data(exonLengths)
@@ -265,7 +259,8 @@
       // of those sections into an array
       var intronStartsAndEndsWithUniformIntronLength = [];
       const NUM_EXONS = exonEndsWithUniformIntronLengths.length - exonPartitionNonCodingIndices.length;
-      for (var i = 1; i < NUM_EXONS; i++) {
+      // originally from i = 1 to NUM_EXONS, but I removed nonCoding partitions so i = 0 now
+      for (var i = 0; i < NUM_EXONS - 1; i++) {
         if (!exonPartitionNonCodingIndices.includes(i)) {
           var start1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i]), barHeightNonCoding];
           var end1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
@@ -282,8 +277,6 @@
       // Render different dashed lines for the three different sections of each intron
       // Darker and wider for the two side sections that contain variants
       // Lighter and thinner for the middle section that does not contain variants
-      console.log("intronStartsAndEndsWithUniformIntronLength");
-      console.log(intronStartsAndEndsWithUniformIntronLength);
       var lines = svgZoomedOut.selectAll("path")
           .data(intronStartsAndEndsWithUniformIntronLength)
           .enter().append("path")
@@ -345,7 +338,9 @@
         // number of base pairs outside of the exon
         const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
         const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1 + exonPartitionNonCodingIndices.length] + OFFSET;
-        
+        console.log(LOWER_THRESHOLD);
+        console.log(UPPER_THRESHOLD);
+
         variant_data = data;
         data = data.filter(function(d) {
           if (d.position >= LOWER_THRESHOLD && d.position <= UPPER_THRESHOLD) {
@@ -394,7 +389,7 @@
               .style("font-size", 8);
 
         var variantChart = d3.select(".variant-chart")
-            .attr("width", chartWidth)
+            .attr("width", width)
             .attr("height", variantChartHeight);
 
         var lollipopRect = variantChart.selectAll("g")
@@ -488,11 +483,7 @@
 
             var scaleSingleExonToChart = d3.scaleLinear()
                 .domain([ 0, singleExonAndPaddingLength ])
-                .range([ 0, chartWidth ]);
-          
-            // var zoomInSingleExonChart = d3.select(".zoom-in-single-exon-chart")
-            //     .attr("width", chartWidth)
-            //     .attr("height", chartHeight);         
+                .range([ 0, width ]);     
 
             // Step 18: create a one-element array containing the hovered/clicked exon
             svgZoomedIn.selectAll("g").remove();
