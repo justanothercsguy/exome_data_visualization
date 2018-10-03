@@ -78,7 +78,6 @@
 
       // create a gene object
       var gene = new Gene( cdsStart, cdsEnd, initializeExons(exonStarts, exonEnds) );
-      console.log(gene);
 
       /* Step 2: Remove exons that end before cdsStart or start after cdsEnd
        * This way, the first exon must contain cdsStart or begin after cdsStart
@@ -92,7 +91,6 @@
        * The non-coding part for the exon containing cdsEnd would be everything after cdsEnd
        */
       gene = limitNonCodingExonLength(gene, NON_CODING_LENGTH_LIMIT);
-      console.log(gene);
 
       /* Step 4: Calculate the length of each exon. Note that an exon that has been split into
        * a coding part and a non-coding part will be counted as two separate length values.
@@ -106,12 +104,6 @@
       const SUM_EXON_LENGTHS = d3.sum(exonLengths);
       const INTRON_LENGTH = Math.ceil((SUM_EXON_LENGTHS / 2) / (EXON_COUNT - 1));
       const SUM_INTRON_LENGTHS = INTRON_LENGTH * (EXON_COUNT - 1);
-      console.log("UNIFORM_INTRON_LENGTH");
-      console.log(INTRON_LENGTH);
-
-      for (let i = 1; i < EXON_COUNT; i++) {
-        console.log("intron = " + (gene.exons[i].start - gene.exons[i-1].end).toString());
-      }
 
       /* Step 5: Subtract each value in exonStarts and exonEnds by the offset = exonStarts[0].
        * This way, when the exons are displayed using exonStarts and exonLengths, 
@@ -123,11 +115,6 @@
       cdsStart = gene.cdsStart - gene.getOffset();
       cdsEnd = gene.cdsEnd - gene.getOffset();
 
-      console.log(exonStarts);
-      console.log(exonEnds);
-      console.log(cdsStart);
-      console.log(cdsEnd);
-
       /* Step 7: Calculate exonStarts and exonEnds with uniformly-lengthed introns.
        * Note that exonEnds[i] = the starting position of intron i.
        */
@@ -137,15 +124,11 @@
       exonPositions = getExonPositionsWithUniformIntronLengths(gene, INTRON_LENGTH);
       exonStartsWithUniformIntronLengths = exonPositions.exonStartsWithUniformIntronLengths;
       exonEndsWithUniformIntronLengths = exonPositions.exonEndsWithUniformIntronLengths;
-      console.log("exonStartsWithUniformIntronLengths"); console.log(exonStartsWithUniformIntronLengths);
-      console.log("exonEndsWithUniformIntronLengths"); console.log(exonEndsWithUniformIntronLengths);
-      
+
       // NOTE: have to adjust cdsStart and cdsEnd to fit the uniform intron model
       // this makes me suspect that creating gene_uniform_intron_length is not smart
       // because I have to adjust cdsStart and cdsEnd
       var gene_uniform_intron_length = getGeneWithUniformIntronLength(gene, INTRON_LENGTH);
-      console.log("gene_uniform_intron_length");
-      console.log(gene_uniform_intron_length);
 
       /* Step 6: Calculate the domain array for d3.scaleLinear(), which consists of 
        * the starting position of each exon and intron assuming the original intron lengths. 
@@ -158,10 +141,6 @@
       var domainAndSplitIntronIndices = getDomain(gene, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
       var domain = domainAndSplitIntronIndices.domain;
       var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
-      console.log("splitIntronIndices");
-      console.log(splitIntronIndices);
-      console.log("domain");
-      console.log(domain);
 
       /* Step 8: Calculate the range array for d3.scaleLinear(), which consists of 
        * the starting position of each exon and intron assuming uniformly-lengthed introns. 
@@ -174,8 +153,6 @@
       // var range = getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
       //   splitIntronIndices, INTRON_LENGTH);
       var range = getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH);
-      console.log("range");
-      console.log(range);
 
       // combine domain and range functions
       // var domainAndRange = getDomainAndRange(
