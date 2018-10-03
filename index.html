@@ -357,7 +357,6 @@
         const lollipopRectHeight = 10;
         const lollipopRectWidth = 0.2;
         const lollipopRadius = 3;
-        const variantChartVerticalPadding = 20;
 
         // scale lollipop rectangle height based on allele frequency
         // Dr. Zuchner said: For the scale I recommend MAF > 0.01, MAF < 0.001, MAF < 0.0001
@@ -377,11 +376,12 @@
               .attr("class", "tooltip")       
               .style("opacity", 0)
               .style("font-size", 8);
-
+        
+        var variantExonVerticalGap = 5;
         var variantTransform = svgZoomedOut.append("g")
             .attr("transform",
                   "translate(" + margin.left + "," + 
-                    (margin.top + barHeightCoding + 5) + ")");
+                    (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
         
         var lollipopRect = variantTransform.selectAll("g")
             .data(data)
@@ -594,7 +594,6 @@
               CLICKED_EXON_UPPER_THRESHOLD -= BASE_PAIRS_OUTSIDE_EXON_LIMIT; 
             }
             
-            // console.log(CLICKED_EXON_UPPER_THRESHOLD);
             data = variant_data.filter(function(d) {
               if (d.position >= CLICKED_EXON_LOWER_THRESHOLD 
                 && d.position <= CLICKED_EXON_UPPER_THRESHOLD) {
@@ -609,38 +608,27 @@
                 variant_map_single_exon[key] = value;
               }
             }
-
-                        
-            console.log(gene.exons[hoveredExonIndex]);
-            console.log(singleExonAndPaddingLength);
-            var variantMin = d3.min(data, function(d) { return d.position; });
-            var variantMax = d3.max(data, function(d) { return d.position; });
-            console.log("scaleVariableIntronsToUniformIntrons(variantMin)");
-            console.log(variantMin - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-            console.log(scaleVariableIntronsToUniformIntrons(variantMin - CLICKED_EXON_OFFSET
-              + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
-            console.log("scaleVariableIntronsToUniformIntrons(variantMax)");
-            console.log(variantMax - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-            console.log(scaleVariableIntronsToUniformIntrons(variantMax - CLICKED_EXON_OFFSET
-              + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
-
-            // TODO: Figure out if there is a more efficient way than deleting the previous div 
-            // and creating a new one. Current way removes tooltip when hovering over variants 
-            // in the general view. This prevents user from hovering over and getting info on a 
-            // few variants outside of BASE_PAIRS_OUTSIDE_EXON_LIMIT - DONT WORRY FOR NOW
-            // MAYBE SOLUTION: put the tooltip in its own div so it does not get deleted - NEED TO TEST
-            // var body_divs = d3.select("body").select("div").remove();
             
-            // var div = d3.select("body").append("div") 
-            //       .attr("class", "tooltip")       
-            //       .style("opacity", 0);
+            // NOTE: this is for testing how scale function maps variants to chart
+            // console.log(gene.exons[hoveredExonIndex]);
+            // console.log(singleExonAndPaddingLength);
+            // var variantMin = d3.min(data, function(d) { return d.position; });
+            // var variantMax = d3.max(data, function(d) { return d.position; });
+            // console.log("scaleVariableIntronsToUniformIntrons(variantMin)");
+            // console.log(variantMin - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+            // console.log(scaleVariableIntronsToUniformIntrons(variantMin - CLICKED_EXON_OFFSET
+            //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
+            // console.log("scaleVariableIntronsToUniformIntrons(variantMax)");
+            // console.log(variantMax - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+            // console.log(scaleVariableIntronsToUniformIntrons(variantMax - CLICKED_EXON_OFFSET
+            //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
 
-            // variantChart.selectAll("g").remove();
+            // add lollipops representing variants of the selected exon for zoomed-in view 
             var variantTransform = svgZoomedIn.append("g")
                 .attr("transform", 
-                      "translate(" + margin.left + "," + (margin.top + barHeightCoding) + ")");
+                      "translate(" + margin.left + "," + 
+                      (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
             
-            // console.log(data);
             var lollipopRect = variantTransform.append("g")
                 .selectAll("g")
                 .data(data)
@@ -651,7 +639,7 @@
                       (
                         (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT)
                       )
-                    ) + "," + (variantChartVerticalPadding / 2) + ")";
+                    ) + "," + (0 / 2) + ")";
                 })
                 .append("rect")
                 .attr("width", lollipopRectWidth)
@@ -662,7 +650,6 @@
                   return variantAnnotationToLollipopColor(d.annotation);
                 });
 
-            // variantChart.selectAll("circle").remove();
             var lollipopCircle = variantTransform.append("g")
                 .selectAll('circle')
                 .data(data)
@@ -676,51 +663,49 @@
                 })
                 .attr('cy', function(d) {
                   return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency 
-                    ) + (variantChartVerticalPadding / 2);
+                    ) + (0 / 2);
                 })
                 .attr('r', lollipopRadius)
                 .attr('fill', function(d) {
                   return variantAnnotationToLollipopColor(d.annotation);
                 });
 
-        //     /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
-        //      *
-        //      * TODO: change length of lollipops to reflect the allele frequencies
-        //      * Tutorial: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
-        //      *
-        //      * TODO: add left margin padding and y-axis padding (upper and lower bound of svg container)
-        //      * so that the y-axis text next to tick marks will be displayed correctly
-        //      * Tutorial: https://bl.ocks.org/mbostock/3885304
-        //      */
-        //     // Scale the range of the data
-        //     var y = d3.scaleLinear()
-        //         .domain([ 0, mostFrequentVariantPositionCount ])
-        //         .range([ 0, height ]);
+            /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
+             *
+             * TODO: change length of lollipops to reflect the allele frequencies
+             * Tutorial: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
+             *
+             * TODO: add left margin padding and y-axis padding (upper and lower bound of svg container)
+             * so that the y-axis text next to tick marks will be displayed correctly
+             * Tutorial: https://bl.ocks.org/mbostock/3885304
+             */
 
-        //     // text label for the y axis
-        //     // Note: do not remove tick mark labels before removing and re-rendering y-axis label
-        //     // TODO: preset vertical and horizontal margins and render scale position according to margin
-        //     // variantChart.selectAll("text").remove();
-        //     var yAxisTransform = svgZoomedIn.append("g")
-        //         .attr("transform", "translate(" + margin.left/4 + "," + margin.top + ")");
+            // text label for the y axis
+            // Note: do not remove tick mark labels before removing and re-rendering y-axis label
+            // TODO: preset vertical and horizontal margins and render scale position according to margin
+            // variantChart.selectAll("text").remove();
+            var yAxisTransForm = svgZoomedIn.append("g")
+                .attr("transform", 
+                      "translate(" + (margin.left / 4) + "," + 
+                      (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
             
-        //     yAxisTransform.append("text")
-        //         .attr("transform", "rotate(-90)")
-        //         .attr("y", 0)
-        //         .attr("x", 0 - (height / 2))
-        //         .attr("dy", "1em")
-        //         .attr("text-anchor", "middle")
-        //         .text("MAF");
+            yAxisTransForm.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .attr("text-anchor", "middle")
+                .text("MAF");
 
-        //     yAxisTransform.append("g")
-        //         .attr("class", "axis axis--y")
-        //         .attr("transform", "translate(" + (leftMarginPadding * 2) + "," + 
-        //           (variantChartVerticalPadding / 2) + ")")
-        //         .call(d3.axisLeft(yScaleLollipop));
+            yAxisTransForm.append("g")
+                .attr("class", "axis axis--y")
+                .attr("transform", "translate(" + (margin.left / 2) + "," + 
+                  (0 / 2) + ")")
+                .call(d3.axisLeft(yScaleLollipop));
 
-        //     /* Step 16: When hovering over a circle, open a tooltip displaying variant data
-        //       * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
-        //       */
+            /* Step 16: When hovering over a circle, open a tooltip displaying variant data
+              * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
+              */
             lollipopCircle.on("mouseover", function(d, i) {   
               div.transition()    
                   .duration(200)    
