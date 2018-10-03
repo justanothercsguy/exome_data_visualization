@@ -10,17 +10,3 @@ div.tooltip {
     border-radius: 8px;			
     pointer-events: none;			
 }
-
-.exon-chart text {
-    fill: white;
-    font: 10px sans-serif;
-    text-anchor: end;
-}
-
-.variant-chart circle {
-    font: 10px sans-serif;
-    background-color: steelblue;
-    text-align: right;
-    padding: 3px;
-    margin: 1px;
-}
