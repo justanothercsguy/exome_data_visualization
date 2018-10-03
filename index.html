@@ -199,7 +199,7 @@
        * and shorter height rectangles representing non-coding exon partitions. To represent introns,
        * render horizontal dashed lines in the white space between the rectangles.
        */ 
-      var margin = {top: 20, right: 20, bottom: 40, left: 120};
+      var margin = {top: 30, right: 30, bottom: 30, left: 120};
       var width = 900 - margin.left - margin.right;
       var height = 300 - margin.top - margin.bottom;
 
@@ -529,6 +529,8 @@
              * with variants which are first scaled from variableIntronsToUniformIntrons and then from
              * singleExonToChart.
              */
+            // NOTE: This does not handle case where first exon does not have 50 bp to its left
+            // or case where second exon does not have 50 bp to its right
             var zoomLineCoordinates = [];
             zoomLineCoordinates.push(
               [
@@ -542,7 +544,6 @@
                 [width - scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
               ]);
               
-            // zoomInSingleExonChart.selectAll("path").remove();
             var zoomLine = translateZoomedExon.append("g")
                 .selectAll("path")
                 .data(zoomLineCoordinates)
@@ -553,21 +554,24 @@
                   .style("stroke-dasharray", "2,1")
                   .attr("d", d3.line());
 
-        //     // add text next to dashed line displaying the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
-        //     // Tutorial: https://www.dashingd3js.com/svg-text-element
-        //     // zoomInSingleExonChart.selectAll("text").remove();
-        //     var text = svgZoomedIn.append("g")
-        //         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-        //         .selectAll("text")
-        //         .data(zoomLineCoordinates)
-        //         .enter().append("text");
+            // add text next to dashed line showing the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
+            // Tutorial: https://www.dashingd3js.com/svg-text-element
+            var text = svgZoomedIn.append("g")
+                .attr("transform", 
+                      "translate(" + margin.left + "," + (margin.top / 2) + ")")
+                .selectAll("text")
+                .data(zoomLineCoordinates)
+                .enter().append("text");
             
-        //     var textLabels = text
-        //         .attr("x", scaleSingleExonToChart(leftMarginPadding) + 5)
-        //         .attr("y", barHeightCoding / 3)
-        //         .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
-        //         .attr("font-family", "sans-serif")
-        //         .attr("font-size", "8px");
+            var textSize = 10;
+            var textLabels = text
+                .attr("x", function(d, i) { 
+                  return d[0][0]; 
+                })
+                .attr("y", textSize)
+                .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", textSize + "px");
             
         //     // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
         //     const CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
