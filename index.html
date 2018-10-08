@@ -228,6 +228,7 @@
           .attr("height", height + margin.top + margin.bottom);
 
       // calculate starting positions of exon partitions
+      var exonBarColor = "#868686";
       var bar = chartTransform.selectAll("g")
           .data(exonLengths)
         .enter().append("g")
@@ -242,7 +243,7 @@
           });
       
       bar.append("rect")
-          .attr("fill", "#868686")
+          .attr("fill", exonBarColor)
           .attr("width", scaleUniformIntronsToChart)
           .attr("height", function(d, i) {
             if (exonPartitionNonCodingIndices.includes(i)) {
@@ -486,17 +487,25 @@
         var clickToLockMagnifiedExon = false;
         var clickedExonIndex = -1;
         var hoveredExonIndex = -1;
+        var previousHoveredExonIndex = -1;
 
         bar.on("mouseover", function(d, i) {
+          previousHoveredExonIndex = hoveredExonIndex;
           hoveredExonIndex = i;
-          
+
           if (!clickToLockMagnifiedExon) { 
             bar.on("click", function(d, j) {
               clickToLockMagnifiedExon = true; 
               clickedExonIndex = j;
               console.log("clicked over exon at index: " + clickedExonIndex);
-              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","lightblue"); // <== D3 selector (node)
+              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill", "blue"); // <== D3 selector (node)
             });
+
+            // when in hovering mode, the current hovered over exon will turn light green
+            if (previousHoveredExonIndex != -1 && previousHoveredExonIndex != hoveredExonIndex) {
+              d3.select(bar._groups[0][previousHoveredExonIndex]).select("rect").attr("fill", exonBarColor);
+              d3.select(bar._groups[0][hoveredExonIndex]).select("rect").attr("fill", "lightgreen");
+            }
 
             // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
             // separately when clicked. Each whole exon or exon partition will get a white area 
@@ -543,7 +552,7 @@
             
             // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
             zoomBar.append("rect")
-                .attr("fill", "#868686")
+                .attr("fill", exonBarColor)
                 .attr("width", scaleSingleExonToChart)
                 .attr("height", function(d) {
                   if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
@@ -765,7 +774,7 @@
           else {
             bar.on('click', function() {
               clickToLockMagnifiedExon = false;
-              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill","#868686");
+              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill", exonBarColor);
             });
             }
           });
