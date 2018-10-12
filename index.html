@@ -240,7 +240,7 @@
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom);
 
-      // calculate starting positions of exon partitions
+      // calculate starting positions of exon partitions in the svg chart
       var exonBarColor = "#868686";
       var bar = chartTransform.selectAll("g")
           .data(exonLengths)
@@ -304,6 +304,42 @@
               return "2,1";
             })
             .attr("d", d3.line());
+
+      // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
+      // look thinner by adding white rectangles to the top and bottom of the nonCoding area
+      var nonCodingIndices = [0, NUM_EXONS - 1];
+      var nonCodingExonLengths = [
+        [ cdsStart - exonStarts[nonCodingIndices[0]] ],
+        [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
+        [ cdsStart - exonStarts[nonCodingIndices[0]] ],
+        [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
+      ];
+      var nonCodingXPositionStarts = [
+        exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
+        exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1],
+        exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
+        exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1]
+      ];
+
+      var nonCodingBarTop = chartTransform.selectAll(".rectNonCodingZoomedOut")
+          .data(nonCodingExonLengths)
+        .enter().append("rect")
+          .classed('rectNonCodingZoomedOut', true)
+          .attr("transform", function(d, i) { 
+            if (i < 2) {
+              return "translate(" + scaleUniformIntronsToChart(
+                nonCodingXPositionStarts[i]
+                ) + "," + 0 + ")";
+            }
+            return "translate(" + scaleUniformIntronsToChart(
+                nonCodingXPositionStarts[i]
+                ) + "," + (barHeightCoding - (barHeightNonCoding / 2)) + ")";
+          })
+          .attr("fill", "white")
+          .attr("width", scaleUniformIntronsToChart)
+          .attr("height", function(d, i) {
+            return barHeightNonCoding / 2;
+          });
 
       /* Step 13: Use unary symbol to convert strings into numbers, and implement
        * row function to tell d3.csv() how to parse each row in csv file.
@@ -427,7 +463,7 @@
             .attr("transform",
                   "translate(" + margin.left + "," + 
                     (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
-        
+          
         var lollipopRect = variantTransform.selectAll("g")
             .data(data)
           .enter().append("g")
