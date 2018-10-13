@@ -448,10 +448,7 @@
             .range([ 0, height ]);
 
         // handle for div that will display text when hovering over over lollipop circle
-        var div = d3.select("body").append("div") 
-              .attr("class", "tooltip")       
-              .style("opacity", 0)
-              .style("font-size", 8);
+        var div = addTooltip();
         
         var variantExonVerticalGap = 5;
         var variantTransform = addTransformToSVGHandle(svgZoomedOut, margin.left, 
@@ -702,11 +699,6 @@
             var CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
             var CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
               + exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;  
-
-            // console.log("hoveredExonIndex");
-            // console.log(hoveredExonIndex);
-            // console.log("clickedExonIndex");
-            // console.log(clickedExonIndex);
 
             if (hoveredExonIndex == 0 ) {
               CLICKED_EXON_LOWER_THRESHOLD += BASE_PAIRS_OUTSIDE_EXON_LIMIT
