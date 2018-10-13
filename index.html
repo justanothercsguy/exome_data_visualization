@@ -233,17 +233,10 @@
           .domain([0, TOTAL_LENGTH])
           .range([0, width]);
       
-      var svgZoomedOut = d3.select(".chart-zoomed-out").append("svg")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom);
+      var svgZoomedOut = addSvgToChart(margin, width, height, ".chart-zoomed-out");
+      var svgZoomedIn = addSvgToChart(margin, width, height, ".chart-zoomed-in");
 
-      var chartTransform = svgZoomedOut.append("g")
-          .attr("transform",
-                "translate(" + margin.left + "," + margin.top + ")");
-      
-      var svgZoomedIn = d3.select(".chart-zoomed-in").append("svg")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom);
+      var chartTransform = addTransformToSVGHandle(svgZoomedOut, margin.left, margin.top);
 
       // calculate starting positions of exon partitions in the svg chart
       chartTransform.selectAll("g").remove();
@@ -393,10 +386,8 @@
       geneText[geneTextLength - 1] = 
           geneText[geneTextLength - 1].split(".")[0]; // remove .csv string
 
-      var textTransform = svgZoomedOut.append("g")
-        .attr("transform", 
-              "translate(" + 0 + "," + (margin.top) + ")");
-    
+      var textTransform = addTransformToSVGHandle(svgZoomedOut, 0, margin.top);
+
       var textSize = 12;
       var text = textTransform.selectAll("text")
           .data(geneText)
@@ -463,11 +454,10 @@
               .style("font-size", 8);
         
         var variantExonVerticalGap = 5;
-        var variantTransform = svgZoomedOut.append("g")
-            .attr("transform",
-                  "translate(" + margin.left + "," + 
-                    (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
-          
+        var variantTransform = addTransformToSVGHandle(svgZoomedOut, margin.left, 
+          (margin.top + barHeightCoding + variantExonVerticalGap));
+        
+        variantTransform.selectAll("g").remove();
         var lollipopRect = variantTransform.selectAll("g")
             .data(data)
           .enter().append("g")
@@ -574,8 +564,7 @@
 
             // Step 18: create a one-element array containing the hovered/clicked exon
             svgZoomedIn.selectAll("g").remove();
-            var translateZoomedExon = svgZoomedIn.append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            var translateZoomedExon = addTransformToSVGHandle(svgZoomedIn, margin.left, margin.top);
             
             // NOTE: have no clue why but removing the scaleVariableIntronsToUniformIntrons
             // function fixed positioning of variants on the SNA1 gene
@@ -756,10 +745,8 @@
             //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
 
             // add lollipops representing variants of the selected exon for zoomed-in view 
-            var variantTransform = svgZoomedIn.append("g")
-                .attr("transform", 
-                      "translate(" + margin.left + "," + 
-                      (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
+            var variantTransform = addTransformToSVGHandle(svgZoomedIn, margin.left, 
+              (margin.top + barHeightCoding + variantExonVerticalGap));
             
             var lollipopRect = variantTransform.append("g")
                 .selectAll("g")
@@ -803,25 +790,15 @@
                 });
 
             /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
-             *
-             * TODO: change length of lollipops to reflect the allele frequencies
-             * Tutorial: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
-             *
-             * TODO: add left margin padding and y-axis padding (upper and lower bound of svg container)
-             * so that the y-axis text next to tick marks will be displayed correctly
-             * Tutorial: https://bl.ocks.org/mbostock/3885304
+             * Tutorial on bar height: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
+             * Tutorial on chart margins: https://bl.ocks.org/mbostock/3885304
              */
 
             // text label for the y axis
-            // Note: do not remove tick mark labels before removing and re-rendering y-axis label
-            // TODO: preset vertical and horizontal margins and render scale position according to margin
-            // variantChart.selectAll("text").remove();
-            var yAxisTransForm = svgZoomedIn.append("g")
-                .attr("transform", 
-                      "translate(" + (margin.left / 4) + "," + 
-                      (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
+            var yAxisTransform = addTransformToSVGHandle(svgZoomedIn, (margin.left / 4), 
+              (margin.top + barHeightCoding + variantExonVerticalGap));
             
-            yAxisTransForm.append("text")
+            yAxisTransform.append("text")
                 .attr("transform", "rotate(-90)")
                 .attr("y", 0)
                 .attr("x", 0 - (height / 2))
@@ -829,7 +806,7 @@
                 .attr("text-anchor", "middle")
                 .text("MAF");
 
-            yAxisTransForm.append("g")
+            yAxisTransform.append("g")
                 .attr("class", "axis axis--y")
                 .attr("transform", "translate(" + (margin.left / 2) + "," + 
                   (0 / 2) + ")")

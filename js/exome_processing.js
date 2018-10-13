@@ -368,3 +368,19 @@ function changeYAxisVariable(yAxisVariable) {
 
     console.log(content);
 }
+
+
+function addSvgToChart(margin, width, height, divName) {
+    var svgChartHandle = d3.select(divName).append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom);
+
+    return svgChartHandle;
+}
+
+function addTransformToSVGHandle(svgHandle, x, y) {
+    var transformHandle = svgHandle.append("g")
+        .attr("transform", "translate(" + x + "," + y + ")");
+
+    return transformHandle;
+}
