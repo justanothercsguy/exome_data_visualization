@@ -50,7 +50,6 @@
       var exonEnds = [48599595, 48599678, 48600888, 48605423];
       */
 
-      
       // TEST 4
       // NM_001291860.1, HSPG2 gene - chromosome 1
       var cdsStart = 22149808;
@@ -77,6 +76,7 @@
         22200504,22201026,22201222,22201495,22202240,22202535,22202898,22203145,22204746,22204984,
         22205156,22205614,22206747,22207052,22207328,22207995,22211170,22211411,22211650,22211944,
         22213827,22214167,22214559,22216634,22216978,22217187,22222459,22222803,22263790];
+
       /*
       // DEFAULT 
       // NM_174936.3, PCSK9 gene - chromsome 1
@@ -240,7 +240,7 @@
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom);
 
-      // calculate starting positions of exon partitions
+      // calculate starting positions of exon partitions in the svg chart
       var exonBarColor = "#868686";
       var bar = chartTransform.selectAll("g")
           .data(exonLengths)
@@ -304,6 +304,41 @@
               return "2,1";
             })
             .attr("d", d3.line());
+
+      // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
+      // look thinner by adding white rectangles to the top and bottom of the nonCoding area
+      var nonCodingIndices = [0, NUM_EXONS - 1];
+      var nonCodingExonLengths = [
+        [ cdsStart - exonStarts[nonCodingIndices[0]] ],
+        [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
+        [ cdsStart - exonStarts[nonCodingIndices[0]] ],
+        [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
+      ];
+      var nonCodingXPositionStarts = [
+        exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
+        exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1],
+        exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
+        exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1]
+      ];
+
+      var nonCodingBarTop = chartTransform.selectAll(".rectNonCodingZoomedOut")
+          .data(nonCodingExonLengths)
+        .enter().append("rect")
+          .classed('rectNonCodingZoomedOut', true)
+          .attr("transform", function(d, i) {
+            var yPositionStart = 0; 
+            if (i < 2) {
+              yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
+            }
+            return "translate(" + scaleUniformIntronsToChart(
+                nonCodingXPositionStarts[i]
+              ) + "," + yPositionStart + ")";
+          })
+          .attr("fill", "white")
+          .attr("width", scaleUniformIntronsToChart)
+          .attr("height", function(d, i) {
+            return barHeightNonCoding / 2;
+          });
 
       /* Step 13: Use unary symbol to convert strings into numbers, and implement
        * row function to tell d3.csv() how to parse each row in csv file.
@@ -427,7 +462,7 @@
             .attr("transform",
                   "translate(" + margin.left + "," + 
                     (margin.top + barHeightCoding + variantExonVerticalGap) + ")");
-        
+          
         var lollipopRect = variantTransform.selectAll("g")
             .data(data)
           .enter().append("g")
@@ -527,14 +562,6 @@
             var leftMarginPadding = 0;
             var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
               + (2 * BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-            
-            // NOTE: later on, account for fact that first exon doesnt have data to its left
-            // and last exon doesnt have data to its right
-            if (hoveredExonIndex == 0 || hoveredExonIndex == NUM_EXONS - 1 ||
-                clickedExonIndex == 0 || clickedExonIndex == NUM_EXONS - 1) 
-            {
-              // singleExonAndPaddingLength -= BASE_PAIRS_OUTSIDE_EXON_LIMIT; 
-            }
 
             var scaleSingleExonToChart = d3.scaleLinear()
                 .domain([ 0, singleExonAndPaddingLength ])
@@ -627,6 +654,53 @@
                 .attr("font-family", "sans-serif")
                 .attr("font-size", textSize + "px");
             
+            // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
+            // look thinner by adding white rectangles to the top and bottom of the nonCoding area
+            var nonCodingExonLengths = [];
+            var nonCodingXPositionStart = 0;
+            
+            if (nonCodingIndices.includes(hoveredExonIndex)) {
+              // case with first exon
+              if (hoveredExonIndex == nonCodingIndices[0]) {
+                nonCodingXPositionStart = scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+                
+                nonCodingExonLengths = [
+                  cdsStart - exonStarts[hoveredExonIndex],
+                  cdsStart - exonStarts[hoveredExonIndex]
+                ];          
+              }
+              // case with last exon
+              if (hoveredExonIndex == nonCodingIndices[1]) {
+                  nonCodingXPositionStart = width - scaleSingleExonToChart(
+                    exonEnds[hoveredExonIndex] - cdsEnd + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+
+                  nonCodingExonLengths = [
+                    exonEnds[hoveredExonIndex] - cdsEnd,
+                    exonEnds[hoveredExonIndex] - cdsEnd
+                  ];
+              }
+
+              translateZoomedExon.selectAll(".rectNonCodingZoomedIn").remove();
+              var nonCodingBarTop = translateZoomedExon.selectAll(".rectNonCodingZoomedIn")
+                  .data(nonCodingExonLengths)
+                .enter().append("rect")
+                  .classed('rectNonCodingZoomedIn', true)
+                  .attr("transform", function(d, i) { 
+                    var yPositionStart = 0;
+                    if (i == 1) {
+                      yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
+                    }
+                    return "translate(" + (
+                        nonCodingXPositionStart
+                      ) + "," + yPositionStart + ")";
+                  })
+                  .attr("fill", "white")
+                  .attr("width", scaleSingleExonToChart)
+                  .attr("height", function(d, i) {
+                    return barHeightNonCoding / 2;
+                  });
+            }
+
             // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
             // This logic needs to be fixed for first and last exon, as first exon does not have
             // intron space to its left, and last exon does not have intron space to its right
