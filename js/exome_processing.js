@@ -73,8 +73,9 @@ class Gene {
         return exonEnds;
     }
 
+    // this is assumed to be the first and last exon
     getNonCodingExonIndices() {
-        
+        return [0, this.exons.length - 1];
     }
 }
 
@@ -160,35 +161,6 @@ function getExonPositionsWithUniformIntronLengths(gene, INTRON_LENGTH) {
         exonStartsWithUniformIntronLengths: exonStartsWithUniformIntronLengths,
         exonEndsWithUniformIntronLengths: exonEndsWithUniformIntronLengths
     };
-}
-
-// given an array, return a new array with each of the elements of the first array 
-// subtracted by the offset value
-function subtractArrayByOffset(array, offset) {
-    var offsettedArray = [];
-    var length = array.length;
-
-    for (var i = 0; i < length; i++) {
-        offsettedArray.push(array[i] - offset);
-    }
-
-    return offsettedArray;
-}
-
-
-function subtractValuesOfTwoArrays(array1, array2) {
-    var differenceValues = [];
-    var length = array1.length;
-
-    if (array1.length > array2.length) {
-        length = array2.length;
-    }
-
-    for (var i = 0; i < length; i++) {
-        differenceValues.push(array1[i] - array2[i]);
-    }
-
-    return differenceValues;
 }
 
 
@@ -291,64 +263,6 @@ function limitNonCodingExonLength(gene, nonCodingLengthLimit) {
 }
 
 
-function splitExonAtCodingStartPosition(codingStartPosition, exonStarts, exonEnds) {
-    var exonStartsSplit = exonStarts.slice();
-    var exonEndsSplit = exonEnds.slice();
-    var nonCodingIndex = null;
-
-    if (doesExonContainCdsStart(exonStarts[0], exonEnds[0], codingStartPosition)) {
-        exonStartsSplit.splice(1, 0, codingStartPosition);
-
-        // Why not (startPosition - 1)? This would mess up the length calculation
-        // of each exon parition. For example, suppose the original exon goes from 10 to 20,
-        // and cdsStart = 15. The length of the exon is (20 - 10) = 10. 
-        // Then if we use (startPosition - 1), we would get:
-        // exonStarts[0] = 10, exonEnds[0] = 14, exonStarts[1] = 15, exonEnds[1] = 20.
-        // Length = (14 - 10) + (20 - 15) = 4 + 5 = 9. This is not the correct length.
-        exonEndsSplit.splice(0, 0, codingStartPosition);
-        nonCodingIndex = 0;
-    }
-
-    return {
-        exonStarts: exonStartsSplit,
-        exonEnds: exonEndsSplit,
-        nonCodingIndex: nonCodingIndex
-    };
-}
-
-
-function splitExonAtCodingEndPosition(codingEndPosition, exonStarts, exonEnds) {
-    var exonStartsSplit = exonStarts.slice();
-    var exonEndsSplit = exonEnds.slice();
-    var length = exonStartsSplit.length;
-    var nonCodingIndex = null;
-
-    if (doesExonContainCdsEnd(exonStarts[length - 1], exonEnds[length - 1],
-            codingEndPosition)) {
-        exonEndsSplit.splice(length - 1, 0, codingEndPosition);
-
-        // Why not (endPosition + 1)? This would mess up the length calculation
-        // of each exon partition. For example, suppose the original exon goes from
-        // 10 to 20, and cdsEnd = 15. The length of the exon is (20 - 10) = 10.
-        // Then if we use (endPosition + 1), we would get:
-        // exonStarts[0] = 10, exonEnds[0] = 15, exonStarts[1] = 16, exonEnds[1] = 20.
-        // Length = (15 - 10) + (20 - 16) = 5 + 4 = 9. This is not the correct length.
-        exonStartsSplit.push(codingEndPosition);
-
-        // account for appending endPosition = cdsEnd to exonStartsSplit and exonEndsSplit 
-        // by incrementing length
-        length = length + 1;
-        nonCodingIndex = length - 1;
-    }
-
-    return {
-        exonStarts: exonStartsSplit,
-        exonEnds: exonEndsSplit,
-        nonCodingIndex: nonCodingIndex
-    };
-}
-
-
 function roundToTwoDecimalPlaces(x) {
     return Math.round(x * 100) / 100;
 }
@@ -438,36 +352,7 @@ function getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH)
     return range;
 }
 
-/*
-function getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
-    splitIntronIndices, INTRON_LENGTH) {
 
-    const length = exonStartsWithUniformIntronLengths.length;
-    const INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
-    var range = [];
-    var reverseSplitIntronIndices = splitIntronIndices.reverse();
-    var currentSplitIntronIndex = reverseSplitIntronIndices.pop();
-
-    for (var i = 0; i < length - 1; i++) {
-        range.push(exonStartsWithUniformIntronLengths[i]);
-
-        if (i == currentSplitIntronIndex) {
-            range.push(exonEndsWithUniformIntronLengths[i]);
-            range.push(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE);
-            range.push(exonStartsWithUniformIntronLengths[i + 1] - INTRON_LENGTH_SPLIT_INTO_THREE);
-            currentSplitIntronIndex = reverseSplitIntronIndices.pop();
-        } else {
-            range.push(exonEndsWithUniformIntronLengths[i]);
-        }
-    }
-
-    // last exon does not have a intron after it
-    range.push(exonStartsWithUniformIntronLengths[length - 1]);
-    range.push(exonEndsWithUniformIntronLengths[length - 1]);
-
-    return range;
-}
-*/
 // Given a dictionary of arrays, each containing variants located in the same base pair position,
 // return the length of the longest array
 function getMaxArrayLengthInDictionary(dictionary) {
