@@ -218,13 +218,11 @@
       /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
        * and shorter height rectangles representing non-coding exon partitions. To represent introns,
        * render horizontal dashed lines in the white space between the rectangles.
-       * 
-       * NOTE: New feature for changing y axis variable based on clicking buttons at the top
-       * is going to complicate this code
        */ 
       var margin = {top: 30, right: 30, bottom: 50, left: 120};
       var width = 1200 - margin.left - margin.right;
       var height = 320 - margin.top - margin.bottom;
+      var exonBarColor = "#868686";
 
       var barHeightCoding = 20;
       var barHeightNonCoding = barHeightCoding / 2;
@@ -248,7 +246,7 @@
           .attr("height", height + margin.top + margin.bottom);
 
       // calculate starting positions of exon partitions in the svg chart
-      var exonBarColor = "#868686";
+      chartTransform.selectAll("g").remove();
       var bar = chartTransform.selectAll("g")
           .data(exonLengths)
         .enter().append("g")
@@ -411,8 +409,6 @@
           .attr("font-family", "sans-serif")
           .attr("font-size", textSize + "px");
       
-      // add buttons that will change the y axis upon clicking
-
 
       d3.csv(variant_data_file_path + variant_data_file_name, row, function(data) {
         // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 
@@ -440,8 +436,9 @@
         });
 
         /* Step 15: Render lollipops for variants in the zoomed-out view of all exons
+         * NOTE: New feature for changing y axis variable based on clicking buttons 
+         * at the top of the page is going to complicate this code
          */
-        const mostFrequentVariantPositionCount = getMaxArrayLengthInDictionary(variant_map);
         const lollipopRectHeight = 10;
         const lollipopRectWidth = 0.2;
         const lollipopRadius = 3;

@@ -353,21 +353,6 @@ function getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH)
 }
 
 
-// Given a dictionary of arrays, each containing variants located in the same base pair position,
-// return the length of the longest array
-function getMaxArrayLengthInDictionary(dictionary) {
-    var max = 0;
-
-    for (const [key, value] of Object.entries(dictionary)) {
-        if (value.length > max) {
-            max = value.length;
-        }
-    }
-
-    return max;
-}
-
-
 // change y axis variable, which will subsequently cause the whole webpage to reload
 function changeYAxisVariable(yAxisVariable) {
     if (yAxisVariable == 'MAF') {
