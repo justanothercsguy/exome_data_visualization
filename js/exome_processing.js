@@ -409,3 +409,24 @@ function getVariantInformationForTooltip(variant) {
         + "number of variants: " + variant.length
     )
 }
+
+function getIntronStartsAndEndsWithUniformIntronLength(scaleUniformIntronsToChart,
+    exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths, NUM_EXONS) 
+{
+    var intronStartsAndEndsWithUniformIntronLength = [];
+
+    // originally from i = 1 to NUM_EXONS, but I removed nonCoding partitions so i = 0 now
+    for (var i = 0; i < NUM_EXONS - 1; i++) {
+      var start1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i]), barHeightNonCoding];
+      var end1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+      var start2 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+      var end2 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+      var start3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+      var end3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1]), barHeightNonCoding];
+      intronStartsAndEndsWithUniformIntronLength.push([start1, end1]);
+      intronStartsAndEndsWithUniformIntronLength.push([start2, end2]);
+      intronStartsAndEndsWithUniformIntronLength.push([start3, end3]);
+    }
+
+    return intronStartsAndEndsWithUniformIntronLength;
+}

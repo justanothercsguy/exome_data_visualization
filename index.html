@@ -168,15 +168,7 @@
        * assuming the original intron lengths, to the range array.
        * Then initialize the function d3.scaleLinear(), using domain and range.
        */
-      // var range = getRange(exonStartsWithUniformIntronLengths, exonEndsWithUniformIntronLengths,
-      //   splitIntronIndices, INTRON_LENGTH);
       var range = getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH);
-
-      // combine domain and range functions
-      // var domainAndRange = getDomainAndRange(
-      //   gene_offset, BASE_PAIRS_OUTSIDE_EXON_LIMIT, INTRON_LENGTH
-      // );
-      
       var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
         .domain(domain)
         .range(range);
@@ -247,21 +239,13 @@
       // Given the starting positions of uniform introns when scaled to chart, 
       // split each intron into three sections and add the starting and ending positions
       // of those sections into an array
-      var intronStartsAndEndsWithUniformIntronLength = [];
       const NUM_EXONS = exonEndsWithUniformIntronLengths.length;
-      // originally from i = 1 to NUM_EXONS, but I removed nonCoding partitions so i = 0 now
-      for (var i = 0; i < NUM_EXONS - 1; i++) {
-        var start1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i]), barHeightNonCoding];
-        var end1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-        var start2 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-        var end2 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-        var start3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-        var end3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1]), barHeightNonCoding];
-        intronStartsAndEndsWithUniformIntronLength.push([start1, end1]);
-        intronStartsAndEndsWithUniformIntronLength.push([start2, end2]);
-        intronStartsAndEndsWithUniformIntronLength.push([start3, end3]);
-      }
-      
+      var intronStartsAndEndsWithUniformIntronLength = 
+        getIntronStartsAndEndsWithUniformIntronLength(
+          scaleUniformIntronsToChart, exonStartsWithUniformIntronLengths, 
+          exonEndsWithUniformIntronLengths, NUM_EXONS
+        );
+
       // Render different dashed lines for the three different sections of each intron
       // Darker and wider for the two side sections that contain variants
       // Lighter and thinner for the middle section that does not contain variants
