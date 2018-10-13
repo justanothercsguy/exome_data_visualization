@@ -366,3 +366,14 @@ function getMaxArrayLengthInDictionary(dictionary) {
 
     return max;
 }
+
+
+// change y axis variable, which will subsequently cause the whole webpage to reload
+function changeYAxisVariable(yAxisVariable) {
+    if (yAxisVariable == 'MAF') {
+        console.log('MAF');
+    }
+    if (yAxisVariable == 'alleleNumber') {
+        console.log('alleleNumber');
+    }
+}
