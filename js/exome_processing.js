@@ -393,3 +393,19 @@ function addTooltip() {
 
     return tooltip;
 }
+
+// for some reason passing this to tooltip.html() causes values to be displayed as undefined
+function getVariantInformationForTooltip(variant) {
+    // console.log(variant);
+    return (
+        "chromosome: " + variant.chromosome + "<br/>"
+        + "position: " + variant.position + "<br/>"
+        + "referenceAllele: " + variant.reference + "<br/>"
+        + "alternateAllele: " + variant.alternate + "<br/>"
+        + "annotation: " + variant.annotation + "<br/>"
+        + "alleleCount: " + variant.alleleCount + "<br/>"
+        + "alleleNumber: " + variant.alleleNumber + "<br/>"
+        + "alleleFrequency: " + variant.alleleFrequency + "<br/>"
+        + "number of variants: " + variant.length
+    )
+}

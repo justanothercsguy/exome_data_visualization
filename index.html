@@ -181,21 +181,10 @@
         .domain(domain)
         .range(range);
 
-      /* Step 9: Split the first and last exons into their coding and non-coding parts,
-       * for exonStarts and exonEnds. Then recalculate exonLengths to include non-coding partitions.
-       * 
-       * For the first exon, everything before cdsStart is non-coding, while everything 
-       * that is greater than or equal to cdsStart is coding.
-       * For the last exon, everything after cdsEnd is non-coding, while everything 
-       * that is less than or equal to cdsEnd is coding.
-       * 
-       * NOTE: Better to make a function in the gene object that will return an array
-       * of exons with coding and nonCoding partitions split - but then the getLength()
-       * function cannot be reused. FOR NOW THIS IS WORRYING ABOUT TOO MANY DETAILS
-       * SO FORGET IT UNTIL MAIN FEATURE OF MAPPING VARIANTS ACCURATELY WORK.
-       */
-      var exonPartitionNonCodingIndices = [];
-      
+      /* Step 9: Split the first and last exons into their coding and non-coding parts
+       * UPDATE: Step 9 is no longer necessary
+       * /
+
       /* Step 10: Split the first and last exons into their coding and non-coding parts,
        * for exonStartsWithUniformIntronLengths and exonEndsWithUniformIntronLengths.
        *
@@ -237,18 +226,13 @@
       var svgZoomedIn = addSvgToChart(margin, width, height, ".chart-zoomed-in");
 
       var chartTransform = addTransformToSVGHandle(svgZoomedOut, margin.left, margin.top);
-
+      
       // calculate starting positions of exon partitions in the svg chart
       chartTransform.selectAll("g").remove();
       var bar = chartTransform.selectAll("g")
           .data(exonLengths)
         .enter().append("g")
           .attr("transform", function(d, i) { 
-            if (exonPartitionNonCodingIndices.includes(i)) {
-              return "translate(" + 
-                scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i]) + "," + 
-                ((barHeightCoding - barHeightNonCoding) / 2) + ")";
-            }
             return "translate(" + scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i])
              + "," + 0 + ")";
           });
@@ -257,9 +241,6 @@
           .attr("fill", exonBarColor)
           .attr("width", scaleUniformIntronsToChart)
           .attr("height", function(d, i) {
-            if (exonPartitionNonCodingIndices.includes(i)) {
-              return barHeightNonCoding;
-            }
             return barHeightCoding;
           });
 
@@ -267,20 +248,18 @@
       // split each intron into three sections and add the starting and ending positions
       // of those sections into an array
       var intronStartsAndEndsWithUniformIntronLength = [];
-      const NUM_EXONS = exonEndsWithUniformIntronLengths.length - exonPartitionNonCodingIndices.length;
+      const NUM_EXONS = exonEndsWithUniformIntronLengths.length;
       // originally from i = 1 to NUM_EXONS, but I removed nonCoding partitions so i = 0 now
       for (var i = 0; i < NUM_EXONS - 1; i++) {
-        if (!exonPartitionNonCodingIndices.includes(i)) {
-          var start1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i]), barHeightNonCoding];
-          var end1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-          var start2 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-          var end2 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-          var start3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
-          var end3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1]), barHeightNonCoding];
-          intronStartsAndEndsWithUniformIntronLength.push([start1, end1]);
-          intronStartsAndEndsWithUniformIntronLength.push([start2, end2]);
-          intronStartsAndEndsWithUniformIntronLength.push([start3, end3]);
-        }
+        var start1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i]), barHeightNonCoding];
+        var end1 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+        var start2 = [scaleUniformIntronsToChart(exonEndsWithUniformIntronLengths[i] + INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+        var end2 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+        var start3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1] - INTRON_LENGTH_SPLIT_INTO_THREE), barHeightNonCoding];
+        var end3 = [scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i+1]), barHeightNonCoding];
+        intronStartsAndEndsWithUniformIntronLength.push([start1, end1]);
+        intronStartsAndEndsWithUniformIntronLength.push([start2, end2]);
+        intronStartsAndEndsWithUniformIntronLength.push([start3, end3]);
       }
       
       // Render different dashed lines for the three different sections of each intron
@@ -406,7 +385,7 @@
         // to get threshold values for filtering out variants that are greater than NON_CODING_LENGTH_LIMIT
         // number of base pairs outside of the exon
         const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
-        const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1 + exonPartitionNonCodingIndices.length] + OFFSET;
+        const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1] + OFFSET;
 
         variant_data = data;
         data = data.filter(function(d) {
@@ -447,8 +426,8 @@
             .domain([ yScaleMin, 1 ])
             .range([ 0, height ]);
 
-        // handle for div that will display text when hovering over over lollipop circle
-        var div = addTooltip();
+        // handle for tooltip that will display text when hovering over over lollipop circle
+        var tooltip = addTooltip();
         
         var variantExonVerticalGap = 5;
         var variantTransform = addTransformToSVGHandle(svgZoomedOut, margin.left, 
@@ -493,14 +472,14 @@
          * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
          */
         lollipopCircle.on("mouseover", function(d, i) {   
-          div.transition()    
+          tooltip.transition()    
               .duration(200)    
               .style("opacity", .9); 
 
           // TODO: If there is more that one variant in a position, we need to show a table
           // of variants when clicking or hovering over that lollipop circle.
           // For now if a position has multiple variants, the tooltip shows the first variant
-          div.html("chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
+          tooltip.html("chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
             + "position: " + variant_map[d.position][0].position + "<br/>"
             + "referenceAllele: " + variant_map[d.position][0].reference + "<br/>"
             + "alternateAllele: " + variant_map[d.position][0].alternate + "<br/>"
@@ -511,9 +490,10 @@
             + "number of variants: " + variant_map[d.position].length)
               .style("left", (d3.event.pageX) + "px")   
               .style("top", (d3.event.pageY - 50) + "px");  
-          })          
+
+        })          
         .on("mouseout", function(d) {   
-          div.transition()    
+          tooltip.transition()    
               .duration(500)    
               .style("opacity", 0);
         });
@@ -570,12 +550,6 @@
                 .data([ exonLengths[hoveredExonIndex] ])
               .enter().append("g")
                 .attr("transform", function(d) { 
-                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
-                    return "translate(" + 
-                      scaleSingleExonToChart(
-                        BASE_PAIRS_OUTSIDE_EXON_LIMIT
-                      ) + "," + ((barHeightCoding - barHeightNonCoding) / 2) + ")";
-                  }
                   return "translate(" + 
                     scaleSingleExonToChart(
                       BASE_PAIRS_OUTSIDE_EXON_LIMIT
@@ -587,9 +561,6 @@
                 .attr("fill", exonBarColor)
                 .attr("width", scaleSingleExonToChart)
                 .attr("height", function(d) {
-                  if (exonPartitionNonCodingIndices.includes(hoveredExonIndex)) {
-                    return barHeightNonCoding;
-                  }
                   return barHeightCoding;
                 });       
             
@@ -808,14 +779,14 @@
               * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
               */
             lollipopCircle.on("mouseover", function(d, i) {   
-              div.transition()    
+              tooltip.transition()    
                   .duration(200)    
                   .style("opacity", .9); 
 
               // TODO: If there is more that one variant in a position, we need to show a table
               // of variants when clicking or hovering over that lollipop circle.
               // For now if a position has multiple variants, the tooltip shows the first variant
-              div.html("chromosome: " + variant_map_single_exon[d.position][0].chromosome + "<br/>"
+              tooltip.html("chromosome: " + variant_map_single_exon[d.position][0].chromosome + "<br/>"
                 + "position: " + variant_map_single_exon[d.position][0].position + "<br/>"
                 + "referenceAllele: " + variant_map_single_exon[d.position][0].reference + "<br/>"
                 + "alternateAllele: " + variant_map_single_exon[d.position][0].alternate + "<br/>"
@@ -828,7 +799,7 @@
                   .style("top", (d3.event.pageY - 100) + "px");  
             })          
             .on("mouseout", function(d) {   
-              div.transition()    
+              tooltip.transition()    
                   .duration(500)    
                   .style("opacity", 0);
             });
