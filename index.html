@@ -13,8 +13,8 @@
 
   <body>
     <div class="y-axis-button-container">
-      <button type="button" onclick="changeYAxisVariable('MAF')">MAF</button>
-      <button type="button" onclick="changeYAxisVariable('alleleNumber')">alleleNumber</button>
+      <button type="button" class="MAF" value="MAF" onclick="changeYAxisVariable('MAF')">MAF</button>
+      <button type="button" class="alleleNumber" value="alleleNumber" onclick="changeYAxisVariable('alleleNumber')">alleleNumber</button>
     </div>
     <div class="chart-zoomed-out"></div>
     <div class="chart-zoomed-in"></div>
@@ -438,14 +438,14 @@
         /* Step 15: Render lollipops for variants in the zoomed-out view of all exons
          * NOTE: New feature for changing y axis variable based on clicking buttons 
          * at the top of the page is going to complicate this code
+         * How about this: by default the variants are not shown, and when the user
+         * clicks on the button then the variants are shown?
          */
         const lollipopRectHeight = 10;
         const lollipopRectWidth = 0.2;
         const lollipopRadius = 3;
 
-        // scale lollipop rectangle height based on allele frequency
-        // Dr. Zuchner said: For the scale I recommend MAF > 0.01, MAF < 0.001, MAF < 0.0001
-        // Zishi: I recommend an extra MAF < 0.00001
+        // Scale lollipop rectangle height based on allele frequency
         // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
         // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
         var yScaleMin = d3.min(data, function(d) { return d.alleleFrequency; });

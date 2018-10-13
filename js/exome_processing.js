@@ -361,4 +361,10 @@ function changeYAxisVariable(yAxisVariable) {
     if (yAxisVariable == 'alleleNumber') {
         console.log('alleleNumber');
     }
+    
+    var content = document.getElementsByClassName("y-axis-button-container")[0];
+    // var buttonMAF = content.getElementsByClassName("MAF");
+    // var buttonAlleleNumber = content.getElementsByClassName("alleleNumber");
+
+    console.log(content);
 }
