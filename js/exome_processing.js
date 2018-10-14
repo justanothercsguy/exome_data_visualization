@@ -378,7 +378,7 @@ function addSvgToChart(margin, width, height, divName) {
     return svgChartHandle;
 }
 
-function addTransformToSVGHandle(svgHandle, x, y) {
+function addTransformToSvgHandle(svgHandle, x, y) {
     var transformHandle = svgHandle.append("g")
         .attr("transform", "translate(" + x + "," + y + ")");
 
@@ -429,4 +429,25 @@ function getIntronStartsAndEndsWithUniformIntronLength(scaleUniformIntronsToChar
     }
 
     return intronStartsAndEndsWithUniformIntronLength;
+}
+
+function addIntronLinesToSvgHandle(chartTransform, intronStartsAndEndsWithUniformIntronLength) {
+    var lines = chartTransform.selectAll("path")
+        .data(intronStartsAndEndsWithUniformIntronLength)
+        .enter().append("path")
+        .style("stroke", function(d, i) {
+            if (i % 3 != 1) { return "black"; }
+            return "grey";
+        })
+        .attr("stroke-width", function(d, i) {
+            if (i % 3 != 1) { return 4; }
+            return 2;
+        })
+        .style("stroke-dasharray", function(d, i) {
+            if (i % 3 != 1) { return "2,2"; }
+            return "2,1";
+        })
+        .attr("d", d3.line());
+
+    return lines;
 }

@@ -217,7 +217,7 @@
       var svgZoomedOut = addSvgToChart(margin, width, height, ".chart-zoomed-out");
       var svgZoomedIn = addSvgToChart(margin, width, height, ".chart-zoomed-in");
 
-      var chartTransform = addTransformToSVGHandle(svgZoomedOut, margin.left, margin.top);
+      var chartTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
       
       // calculate starting positions of exon partitions in the svg chart
       chartTransform.selectAll("g").remove();
@@ -249,22 +249,7 @@
       // Render different dashed lines for the three different sections of each intron
       // Darker and wider for the two side sections that contain variants
       // Lighter and thinner for the middle section that does not contain variants
-      var lines = chartTransform.selectAll("path")
-          .data(intronStartsAndEndsWithUniformIntronLength)
-          .enter().append("path")
-            .style("stroke", function(d, i) {
-              if (i % 3 != 1) { return "black"; }
-              return "grey";
-            })
-            .attr("stroke-width", function(d, i) {
-              if (i % 3 != 1) { return 4; }
-              return 2;
-            })
-            .style("stroke-dasharray", function(d, i) {
-              if (i % 3 != 1) { return "2,2"; }
-              return "2,1";
-            })
-            .attr("d", d3.line());
+      var lines = addIntronLinesToSvgHandle(chartTransform, intronStartsAndEndsWithUniformIntronLength);
 
       // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
       // look thinner by adding white rectangles to the top and bottom of the nonCoding area
@@ -349,7 +334,7 @@
       geneText[geneTextLength - 1] = 
           geneText[geneTextLength - 1].split(".")[0]; // remove .csv string
 
-      var textTransform = addTransformToSVGHandle(svgZoomedOut, 0, margin.top);
+      var textTransform = addTransformToSvgHandle(svgZoomedOut, 0, margin.top);
 
       var textSize = 12;
       var text = textTransform.selectAll("text")
@@ -414,7 +399,7 @@
         var tooltip = addTooltip();
         
         var variantExonVerticalGap = 5;
-        var variantTransform = addTransformToSVGHandle(svgZoomedOut, margin.left, 
+        var variantTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, 
           (margin.top + barHeightCoding + variantExonVerticalGap));
         
         variantTransform.selectAll("g").remove();
@@ -525,7 +510,7 @@
 
             // Step 18: create a one-element array containing the hovered/clicked exon
             svgZoomedIn.selectAll("g").remove();
-            var translateZoomedExon = addTransformToSVGHandle(svgZoomedIn, margin.left, margin.top);
+            var translateZoomedExon = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
             
             // NOTE: have no clue why but removing the scaleVariableIntronsToUniformIntrons
             // function fixed positioning of variants on the SNA1 gene
@@ -692,7 +677,7 @@
             //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
 
             // add lollipops representing variants of the selected exon for zoomed-in view 
-            var variantTransform = addTransformToSVGHandle(svgZoomedIn, margin.left, 
+            var variantTransform = addTransformToSvgHandle(svgZoomedIn, margin.left, 
               (margin.top + barHeightCoding + variantExonVerticalGap));
             
             var lollipopRect = variantTransform.append("g")
@@ -742,7 +727,7 @@
              */
 
             // text label for the y axis
-            var yAxisTransform = addTransformToSVGHandle(svgZoomedIn, (margin.left / 4), 
+            var yAxisTransform = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
               (margin.top + barHeightCoding + variantExonVerticalGap));
             
             yAxisTransform.append("text")
