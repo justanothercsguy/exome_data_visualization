@@ -415,10 +415,9 @@ function changeYAxisVariable(yAxisVariable) {
 
     var chartZoomedOut = document.getElementsByClassName("chart-zoomed-out")[0];
     var chartZoomedIn = document.getElementsByClassName("chart-zoomed-in")[0];
-    // var buttonMAF = content.getElementsByClassName("MAF");
-    // var buttonAlleleNumber = content.getElementsByClassName("alleleNumber");
     console.log(chartZoomedOut);
     console.log(chartZoomedIn);
+    console.log(variant_map);
 }
 
 

@@ -6,6 +6,748 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script>
+    // key representing variant base pair position is mapped to an array of variant(s) in that position
+    var variant_map = {};
+    var variant_data = [];
+    var barHeightNonCoding = 0;
+    var INTRON_LENGTH_SPLIT_INTO_THREE = 0;
+
+    $(window).on("load", function() {
+    /* Step 1: Get variables from the Exac dataset
+     *
+     * cdsStart: start of the gene's coding sequence
+     * cdsEnd: end of the gene's coding sequence
+     * exonStarts: array of the starting base pair index of each exon in the gene
+     * exonEnds: array of the ending base pair index of each exon in the gene
+     */
+
+    /*
+    // TEST 1
+    // NM_152486.2, SAMD11 gene - chromosome 1
+    var cdsStart = 861321;
+    var cdsEnd =	879533;
+    var exonStarts = [861120,861301,865534,866418,871151,874419,874654,876523,877515,877789,877938,878632,879077,879287];
+    var exonEnds = [861180,861393,865716,866469,871276,874509,874840,876686,877631,877868,878438,878757,879188,879961];
+    */
+
+    /*
+    // TEST 2
+    // INM_005101.3, SG15 gene - chromosome 1
+    var cdsStart = 948953;
+    var cdsEnd = 949858;
+    var exonStarts = [948846,949363];	
+    var exonEnds = [948956,949920];
+    */
+
+    /*
+    // TEST 3
+    // NM_005985.3, SNAI1 gene - chromosome 20
+    var cdsStart = 48599596;
+    var cdsEnd = 48604593;
+    var exonStarts = [48599595, 48599012, 48600360, 48604408];
+    var exonEnds = [48599595, 48599678, 48600888, 48605423];
+    */
+
+    // TEST 4
+    // NM_001291860.1, HSPG2 gene - chromosome 1
+    var cdsStart = 22149808;
+    var cdsEnd = 22263710;
+
+    var exonStarts = [22148724,22150108,22150613,22150798,22151029,22151196,22154355,22154522,
+      22154747,22155327,22155875,22156485,22157474,22157707,22157955,22158144,22158987,22159760,
+      22159959,22160308,22161171,22162032,22163294,22165317,22165863,22166314,22167593,22168031,
+      22168494,22168731,22169262,22169789,22170640,22172600,22172940,22173846,22174181,22174450,
+      22175135,22175385,22176533,22176855,22178038,22178283,22178580,22179192,22179411,22180685,
+      22181103,22181340,22181796,22182015,22182279,22183507,22183777,22186058,22186327,22186669,
+      22188249,22188480,22190592,22191335,22191777,22192209,22198678,22199112,22199489,22199867,
+      22200417,22200898,22201108,22201383,22202121,22202355,22202721,22203004,22204678,22204925,
+      22205069,22205486,22206599,22206855,22207148,22207831,22211020,22211259,22211505,22211812,
+      22213707,22213912,22214430,22216473,22216919,22217077,22222414,22222667,22263647];
+
+    var exonEnds = [22149981,22150212,22150697,22150869,22151108,22151272,22154412,22154645,
+      22154919,22155572,22156097,22156584,22157583,22157817,22158055,22158289,22159099,22159877,
+      22160107,22160418,22161438,22162130,22163499,22165578,22166043,22166510,22167778,22168166,
+      22168635,22168873,22169414,22169931,22170792,22172748,22173092,22173985,22174333,22174586,
+      22175287,22175524,22176685,22176991,22178190,22178419,22178726,22179325,22179563,22180836,
+      22181258,22181476,22181939,22182168,22182405,22183688,22183878,22186169,22186495,22186728,
+      22188336,22188608,22190706,22191566,22191858,22192302,22198870,22199253,22199584,22199917,
+      22200504,22201026,22201222,22201495,22202240,22202535,22202898,22203145,22204746,22204984,
+      22205156,22205614,22206747,22207052,22207328,22207995,22211170,22211411,22211650,22211944,
+      22213827,22214167,22214559,22216634,22216978,22217187,22222459,22222803,22263790];
+
+    /*
+    // DEFAULT 
+    // NM_174936.3, PCSK9 gene - chromsome 1
+    var cdsStart = 55505510; // 55505717 + 1;
+    var cdsEnd = 55529257; // 55529041 - 1;
+    var exonStarts = [55505000,55505148,55509515,55512195,55517950,55518322,55521665,55523003,
+      55523708,55524171,55525158,55527047,55529041,55531000];
+    var exonEnds = [55505100,55505717,55509707,55512319,55518084,55518464,55521862,55523187,
+      55523882,55524320,55525336,55527229,55530526,55532000];
+    */
+
+    const NON_CODING_LENGTH_LIMIT = 200;
+    
+    // create a gene object
+    var gene = new Gene( cdsStart, cdsEnd, initializeExons(exonStarts, exonEnds) );
+
+    /* Step 2: Remove exons that end before cdsStart or start after cdsEnd
+     * This way, the first exon must contain cdsStart or begin after cdsStart
+     * Also, the last exon must contain cdsEnd or end before cdsEnd
+     */
+    gene = removeExonsBeforeStartPosition(gene);
+    gene = removeExonsAfterEndPosition(gene);
+
+    /* Step 3: Limit the length of the non-coding parts of an exon. 
+     * The non-coding part for the exon containing cdsStart would be everything before cdsStart
+     * The non-coding part for the exon containing cdsEnd would be everything after cdsEnd
+     */
+    gene = limitNonCodingExonLength(gene, NON_CODING_LENGTH_LIMIT);
+
+    /* Step 4: Calculate the length of each exon. Note that an exon that has been split into
+     * a coding part and a non-coding part will be counted as two separate length values.
+     * Then calculate the sum of these length values, and use this sum to calculate the
+     * length of each uniformly-lengthed intron for the visualization.
+     */
+    const EXON_COUNT = gene.exons.length;
+    var exonLengths = [];
+    exonLengths = gene.getExonLengths();
+
+    const SUM_EXON_LENGTHS = d3.sum(exonLengths);
+    const INTRON_LENGTH = Math.ceil((SUM_EXON_LENGTHS / 2) / (EXON_COUNT - 1));
+    const SUM_INTRON_LENGTHS = INTRON_LENGTH * (EXON_COUNT - 1);
+
+    /* Step 5: Subtract each value in exonStarts and exonEnds by the offset = exonStarts[0].
+     * This way, when the exons are displayed using exonStarts and exonLengths, 
+     * the first exon will start at position x = 0.
+     */
+    OFFSET = gene.exons[0].start;
+    exonStarts = gene.getExonStartsMinusOffset();
+    exonEnds = gene.getExonEndsMinusOffset();
+    cdsStart = gene.cdsStart - gene.getOffset();
+    cdsEnd = gene.cdsEnd - gene.getOffset();
+
+    /* Step 7: Calculate exonStarts and exonEnds with uniformly-lengthed introns.
+     * Note that exonEnds[i] = the starting position of intron i.
+     */
+    var exonStartsWithUniformIntronLengths = [];
+    var exonEndsWithUniformIntronLengths = [];
+
+    exonPositions = getExonPositionsWithUniformIntronLengths(gene, INTRON_LENGTH);
+    exonStartsWithUniformIntronLengths = exonPositions.exonStartsWithUniformIntronLengths;
+    exonEndsWithUniformIntronLengths = exonPositions.exonEndsWithUniformIntronLengths;
+
+    // NOTE: have to adjust cdsStart and cdsEnd to fit the uniform intron model
+    // this makes me suspect that creating gene_uniform_intron_length is not smart
+    // because I have to adjust cdsStart and cdsEnd
+    var gene_uniform_intron_length = getGeneWithUniformIntronLength(gene, INTRON_LENGTH);
+
+    /* Step 6: Calculate the domain array for d3.scaleLinear(), which consists of 
+     * the starting position of each exon and intron assuming the original intron lengths. 
+     * Introns with length > (3 * basePairsOutsideExonLimit) will be split into three partitions.
+     * Using d3.scaleLinear, the domain array will map to variant base pair positions 
+     * assuming uniformly-lengthed introns (range).
+     * NOTE: Dr. Zuchner said BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50 
+     */
+    const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
+    var domainAndSplitIntronIndices = getDomain(gene, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+    var domain = domainAndSplitIntronIndices.domain;
+    var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
+
+    /* Step 8: Calculate the range array for d3.scaleLinear(), which consists of 
+     * the starting position of each exon and intron assuming uniformly-lengthed introns. 
+     * Introns whose indices match those in the domain that were split into three partitions, 
+     * will likewise be split into three partitions.
+     * Using d3.scaleLinear, a domain array will map variant base pair positions 
+     * assuming the original intron lengths, to the range array.
+     * Then initialize the function d3.scaleLinear(), using domain and range.
+     */
+    var range = getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH);
+    var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
+      .domain(domain)
+      .range(range);
+
+    /* Step 9: Split the first and last exons into their coding and non-coding parts
+     * UPDATE: Step 9 is no longer necessary
+     * /
+
+    /* Step 10: Split the first and last exons into their coding and non-coding parts,
+     * for exonStartsWithUniformIntronLengths and exonEndsWithUniformIntronLengths.
+     *
+     * NOTE: Calculate new position of cdsEnd with uniform intron length using d3.scaleLinear()
+     * with domain = [exonStarts[0], exonEnds[0], exonStarts[1], exonEnds[1], ...] and 
+     * range = [exonStartsWithUniformIntronLengths[0], exonEndsWithUniformIntronLengths[0], 
+     * exonStartsWithUniformIntronLengths[1], exonEndsWithUniformIntronLengths[1], ...].
+     * Then use new cdsEnd to check if last exon in exonEndsWithUniformIntronLengths needs to be split. 
+     * 
+     * This scaling does not need to be performed on cdsStart, because it is contained in the first exon
+     * which has no adjusted intron lengths occuring before it. Hence exonStarts[0] and 
+     * exonStartsWithUniformIntronLengths[0] are equal.
+     * 
+     * NOTE: Better to make a function in the gene object that will return an array
+     * of exons with coding and nonCoding partitions split - but then the getLength()
+     * function cannot be reused. FOR NOW THIS IS WORRYING ABOUT TOO MANY DETAILS
+     * SO FORGET IT UNTIL MAIN FEATURE OF MAPPING VARIANTS ACCURATELY WORK.
+     */
+
+    /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
+     * and shorter height rectangles representing non-coding exon partitions. To represent introns,
+     * render horizontal dashed lines in the white space between the rectangles.
+     */ 
+    var margin = {top: 30, right: 30, bottom: 50, left: 120};
+    var width = 1200 - margin.left - margin.right;
+    var height = 320 - margin.top - margin.bottom;
+    var exonBarColor = "#868686";
+
+    var barHeightCoding = 20;
+    barHeightNonCoding = barHeightCoding / 2;
+    const TOTAL_LENGTH = SUM_EXON_LENGTHS + SUM_INTRON_LENGTHS;
+    INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
+
+    var scaleUniformIntronsToChart = d3.scaleLinear()
+        .domain([0, TOTAL_LENGTH])
+        .range([0, width]);
+    
+    var svgZoomedOut = addSvgToChart(margin, width, height, ".chart-zoomed-out");
+    var svgZoomedIn = addSvgToChart(margin, width, height, ".chart-zoomed-in");
+
+    var chartTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
+    
+    // calculate starting positions of exon partitions in the svg chart
+    var bar = addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
+      exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding);
+
+    // Given the starting positions of uniform introns when scaled to chart, 
+    // split each intron into three sections and add the starting and ending positions
+    // of those sections into an array
+    const NUM_EXONS = exonEndsWithUniformIntronLengths.length;
+    var intronStartsAndEndsWithUniformIntronLength = 
+      getIntronStartsAndEndsWithUniformIntronLength(
+        scaleUniformIntronsToChart, exonStartsWithUniformIntronLengths, 
+        exonEndsWithUniformIntronLengths, NUM_EXONS
+      );
+
+    // Render different dashed lines for the three different sections of each intron
+    // Darker and wider for the two side sections that contain variants
+    // Lighter and thinner for the middle section that does not contain variants
+    var lines = addIntronLinesToSvgHandle(chartTransform, intronStartsAndEndsWithUniformIntronLength);
+
+    // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
+    // look thinner by adding white rectangles to the top and bottom of the nonCoding area
+    var nonCodingIndices = [0, NUM_EXONS - 1];
+    var nonCodingExonLengths = [
+      [ cdsStart - exonStarts[nonCodingIndices[0]] ],
+      [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
+      [ cdsStart - exonStarts[nonCodingIndices[0]] ],
+      [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
+    ];
+    var nonCodingXPositionStarts = [
+      exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
+      exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1],
+      exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
+      exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1]
+    ];
+
+    var nonCodingBar = addNonCodingRectToChart(chartTransform, nonCodingExonLengths, 
+      barHeightCoding, barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart);
+
+    /* Step 13: Use unary symbol to convert strings into numbers, and implement
+     * row function to tell d3.csv() how to parse each row in csv file.
+     * https://bl.ocks.org/curran/d867264d468b323c2e76886d44e7e8f9
+     */
+    const row = function(d) {
+      const chromosomeString = d['Chrom'];
+      const positionString = d['Position'];
+      const alleleCountString = d['Allele Count'];
+      const alleleNumberString = d['Allele Number'];
+      const alleleFrequencyString = d['Allele Frequency'];
+
+      return {
+        chromosome: +chromosomeString,
+        reference: d['Reference'],
+        alternate: d['Alternate'],
+        annotation: d['Annotation'],
+        position: +positionString,
+        alleleCount: +alleleCountString,
+        alleleNumber: +alleleNumberString,
+        alleleFrequency: +alleleFrequencyString
+      };
+    };
+
+    /* Step 14: Use the function d3.csv() to read through variant dataset.
+     * d3.csv can request csv files from a specified url and parse them, 
+     * so either we get variant data from links to csv files or from a database.
+     * Dr. Zuchner would like to retrieve data from a database.
+     * https://stackoverflow.com/questions/42285441/how-to-read-in-csv-with-d3-v4
+     */
+    
+    var variant_data_file_path = 'variant_data/'
+    // var variant_data_file_name = 'exac_ENSG00000187634_SAMD11.csv';
+    // var variant_data_file_name = 'exac_ENSG00000187608_ISG15.csv';
+    // var variant_data_file_name = 'exac_ENSG00000124216_SNAI1.csv';   
+    var variant_data_file_name = 'exac_ENSG00000142798_HSPG2.csv';   
+    // var variant_data_file_name = 'exac_ENSG00000169174_PCSK9.csv';
+
+    // display name of gene
+    var geneText = variant_data_file_name.split("_");
+    var geneTextLength = geneText.length;
+    
+    geneText[geneTextLength - 1] = 
+        geneText[geneTextLength - 1].split(".")[0]; // remove .csv string
+
+    var textTransform = addTransformToSvgHandle(svgZoomedOut, 0, margin.top);
+
+    var textSize = 12;
+    var text = textTransform.selectAll("text")
+        .data(geneText)
+      .enter().append("text")
+        .attr("x", 0)
+        .attr("y", function(d, i) { 
+          return (i * textSize); 
+        })
+        .text(function(d, i) { return d; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", textSize + "px");
+    
+
+    d3.csv(variant_data_file_path + variant_data_file_name, row, function(data) {
+      // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 
+      // to get threshold values for filtering out variants that are greater than NON_CODING_LENGTH_LIMIT
+      // number of base pairs outside of the exon
+      const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
+      const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1] + OFFSET;
+
+      variant_data = data;
+      data = data.filter(function(d) {
+        if (d.position >= LOWER_THRESHOLD && d.position <= UPPER_THRESHOLD) {
+          return true;
+        }
+        return false;
+      });
+
+      data.forEach(function(variant) {
+        var position = variant.position;
+        if (!variant_map[position]) {
+          variant_map[position] = [variant];
+        }
+        else {
+          variant_map[position].push(variant);
+        }
+      });
+
+      /* Step 15: Render lollipops for variants in the zoomed-out view of all exons
+       * NOTE: New feature for changing y axis variable based on clicking buttons 
+       * at the top of the page is going to complicate this code
+       * How about this: by default the variants are not shown, and when the user
+       * clicks on the button then the variants are shown?
+       */
+      const lollipopRectHeight = 10;
+      const lollipopRectWidth = 0.2;
+      const lollipopRadius = 3;
+      
+
+      var variantExonVerticalGap = 5;
+      var variantTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, 
+        (margin.top + barHeightCoding + variantExonVerticalGap));
+     
+      // TODO: add feature to switch between y axis variables such as alleleFrequency and 
+      // alleleNumber - not sure if switch statement is the most elegant way
+      // Have to abstract functions that render lollipop rectangles and circles
+      
+      // Scale lollipop rectangle height based on allele frequency
+      // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
+      // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
+      var yScaleMin = d3.min(data, function(d) { return d.alleleFrequency; });
+      var yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
+      yScaleMin = Math.pow(10, yScaleMinExponent);
+
+      var yScaleLollipop = d3.scaleLog()
+          .domain([ yScaleMin, 1 ])
+          .range([ 0, height ]);
+
+      // handle for tooltip that will display text when hovering over over lollipop circle
+      var tooltip = addTooltip();
+      
+      variantTransform.selectAll("g").remove();
+      var lollipopRect = variantTransform.selectAll("g")
+          .data(data)
+        .enter().append("g")
+          .attr("transform", function(d) {
+            return "translate(" + 
+              scaleUniformIntronsToChart(
+                scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
+              ) + "," + 0 + ")";
+          })
+          .append("rect")
+          .attr("width", lollipopRectWidth)
+          .attr("height", function(d) {
+            return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
+          })
+          .attr('fill', function(d) {
+            return variantAnnotationToLollipopColor(d.annotation);
+          });
+
+      var lollipopCircle = variantTransform.selectAll('circle')
+          .data(data)
+        .enter().append('circle')
+          .attr('cx', function(d) {
+            return scaleUniformIntronsToChart(
+              scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
+            );
+          })
+          .attr('cy', function(d) {
+            return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
+          })
+          .attr('r', lollipopRadius)
+          .attr('fill', function(d) {
+            return variantAnnotationToLollipopColor(d.annotation);
+          });
+
+      /* Step 16: When hovering over a circle, open a tooltip displaying variant data
+       * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
+       */
+      lollipopCircle.on("mouseover", function(d, i) {   
+        tooltip.transition()    
+            .duration(200)    
+            .style("opacity", .9); 
+
+        // TODO: If there is more that one variant in a position, we need to show a table
+        // of variants when clicking or hovering over that lollipop circle.
+        // For now if a position has multiple variants, the tooltip shows the first variant
+        tooltip.html("chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
+          + "position: " + variant_map[d.position][0].position + "<br/>"
+          + "referenceAllele: " + variant_map[d.position][0].reference + "<br/>"
+          + "alternateAllele: " + variant_map[d.position][0].alternate + "<br/>"
+          + "annotation: " + variant_map[d.position][0].annotation + "<br/>"
+          + "alleleCount: " + variant_map[d.position][0].alleleCount + "<br/>"
+          + "alleleNumber: " + variant_map[d.position][0].alleleNumber + "<br/>"
+          + "alleleFrequency: " + variant_map[d.position][0].alleleFrequency + "<br/>"
+          + "number of variants: " + variant_map[d.position].length)
+            .style("left", (d3.event.pageX) + "px")   
+            .style("top", (d3.event.pageY - 50) + "px");  
+
+      })          
+      .on("mouseout", function(d) {   
+        tooltip.transition()    
+            .duration(500)    
+            .style("opacity", 0);
+      });
+
+      /* Step 12: When mouse hovers over, show the hovered over exon in magnified view below.
+       * Then if mouse clicks on an exon, lock that exon in a magnified view below and do not
+       * change exons if a different exon is hovered over. Change the color of the clicked exon.
+       * Then if mouse clicks on any exons from the top row displaying the unmagnified view, 
+       * unlock the magnified exon and show an exon in magnified view when hovered over. Undo the
+       * color change of the exon that is freed from the locked magnified view.
+       */
+      var clickToLockMagnifiedExon = false;
+      var clickedExonIndex = -1;
+      var hoveredExonIndex = -1;
+      var previousHoveredExonIndex = -1;
+
+      bar.on("mouseover", function(d, i) {
+        previousHoveredExonIndex = hoveredExonIndex;
+        hoveredExonIndex = i;
+
+        if (!clickToLockMagnifiedExon) { 
+          bar.on("click", function(d, j) {
+            clickToLockMagnifiedExon = true; 
+            clickedExonIndex = j;
+            console.log("clicked over exon at index: " + clickedExonIndex);
+            d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill", "blue"); // <== D3 selector (node)
+          });
+
+          // when in hovering mode, the current hovered over exon will turn light green
+          if (previousHoveredExonIndex != -1 && previousHoveredExonIndex != hoveredExonIndex) {
+            d3.select(bar._groups[0][previousHoveredExonIndex]).select("rect").attr("fill", exonBarColor);
+            d3.select(bar._groups[0][hoveredExonIndex]).select("rect").attr("fill", "lightgreen");
+          }
+
+          // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
+          // separately when clicked. Each whole exon or exon partition will get a white area 
+          // to its left and right representing introns.
+          var leftMarginPadding = 0;
+          var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
+            + (2 * BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+
+          var scaleSingleExonToChart = d3.scaleLinear()
+              .domain([ 0, singleExonAndPaddingLength ])
+              .range([ 0, width ]);   
+
+          // Step 18: create a one-element array containing the hovered/clicked exon
+          svgZoomedIn.selectAll("g").remove();
+          var translateZoomedExon = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
+          
+          // NOTE: have no clue why but removing the scaleVariableIntronsToUniformIntrons
+          // function fixed positioning of variants on the SNA1 gene
+          var zoomBar = translateZoomedExon.append("g")
+              .selectAll("g")
+              .data([ exonLengths[hoveredExonIndex] ])
+            .enter().append("g")
+              .attr("transform", function(d) { 
+                return "translate(" + 
+                  scaleSingleExonToChart(
+                    BASE_PAIRS_OUTSIDE_EXON_LIMIT
+                  ) + "," + 0 + ")";
+              });
+          
+          // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
+          zoomBar.append("rect")
+              .attr("fill", exonBarColor)
+              .attr("width", scaleSingleExonToChart)
+              .attr("height", function(d) {
+                return barHeightCoding;
+              });       
+          
+          /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
+           * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
+           * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
+           * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
+           * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
+           * with variants which are first scaled from variableIntronsToUniformIntrons and then from
+           * singleExonToChart.
+           */
+          // NOTE: This does not handle case where first exon does not have 50 bp to its left
+          // or case where second exon does not have 50 bp to its right
+          var zoomLineCoordinates = [];
+          zoomLineCoordinates.push(
+            [
+              [0, 0], 
+              [0, barHeightNonCoding], 
+              [scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
+            ],
+            [
+              [width, 0], 
+              [width, barHeightNonCoding], 
+              [width - scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
+            ]);
+            
+          var zoomLine = translateZoomedExon.append("g")
+              .selectAll("path")
+              .data(zoomLineCoordinates)
+              .enter().append("path")
+                .style("fill", "none")
+                .style("stroke", "black")
+                .attr("stroke-width", 2)
+                .style("stroke-dasharray", "2,1")
+                .attr("d", d3.line());
+
+          // add text next to dashed line showing the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
+          // Tutorial: https://www.dashingd3js.com/svg-text-element
+          var text = svgZoomedIn.append("g")
+              .attr("transform", 
+                    "translate(" + margin.left + "," + (margin.top / 2) + ")")
+              .selectAll("text")
+              .data(zoomLineCoordinates)
+              .enter().append("text");
+          
+          var textSize = 10;
+          var textLabels = text
+              .attr("x", function(d, i) { 
+                return d[0][0]; 
+              })
+              .attr("y", textSize)
+              .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
+              .attr("font-family", "sans-serif")
+              .attr("font-size", textSize + "px");
+          
+          // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
+          // look thinner by adding white rectangles to the top and bottom of the nonCoding area
+          var nonCodingExonLengths = [];
+          var nonCodingXPositionStart = 0;
+          
+          if (nonCodingIndices.includes(hoveredExonIndex)) {
+            // case with first exon
+            if (hoveredExonIndex == nonCodingIndices[0]) {
+              nonCodingXPositionStart = scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+              
+              nonCodingExonLengths = [
+                cdsStart - exonStarts[hoveredExonIndex],
+                cdsStart - exonStarts[hoveredExonIndex]
+              ];          
+            }
+            // case with last exon
+            if (hoveredExonIndex == nonCodingIndices[1]) {
+                nonCodingXPositionStart = width - scaleSingleExonToChart(
+                  exonEnds[hoveredExonIndex] - cdsEnd + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+
+                nonCodingExonLengths = [
+                  exonEnds[hoveredExonIndex] - cdsEnd,
+                  exonEnds[hoveredExonIndex] - cdsEnd
+                ];
+            }
+
+            translateZoomedExon.selectAll(".rectNonCodingZoomedIn").remove();
+            var nonCodingBar = translateZoomedExon.selectAll(".rectNonCodingZoomedIn")
+                .data(nonCodingExonLengths)
+              .enter().append("rect")
+                .classed('rectNonCodingZoomedIn', true)
+                .attr("transform", function(d, i) { 
+                  var yPositionStart = 0;
+                  if (i == 1) {
+                    yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
+                  }
+                  return "translate(" + (
+                      nonCodingXPositionStart
+                    ) + "," + yPositionStart + ")";
+                })
+                .attr("fill", "white")
+                .attr("width", scaleSingleExonToChart)
+                .attr("height", function(d, i) {
+                  return barHeightNonCoding / 2;
+                });
+          }
+
+          // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
+          // This logic needs to be fixed for first and last exon, as first exon does not have
+          // intron space to its left, and last exon does not have intron space to its right
+          var CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
+          var CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
+          var CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
+            + exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;  
+
+          if (hoveredExonIndex == 0 ) {
+            CLICKED_EXON_LOWER_THRESHOLD += BASE_PAIRS_OUTSIDE_EXON_LIMIT
+          }
+          if (hoveredExonIndex == (NUM_EXONS - 1)) {
+            CLICKED_EXON_UPPER_THRESHOLD -= BASE_PAIRS_OUTSIDE_EXON_LIMIT; 
+          }
+          
+          data = variant_data.filter(function(d) {
+            if (d.position >= CLICKED_EXON_LOWER_THRESHOLD 
+              && d.position <= CLICKED_EXON_UPPER_THRESHOLD) {
+              return true;
+            }
+            return false;
+          });
+
+          var variant_map_single_exon = {}
+          for (let [key, value] of Object.entries(variant_map)) {
+            if (key >= CLICKED_EXON_LOWER_THRESHOLD && key <= CLICKED_EXON_UPPER_THRESHOLD) {
+              variant_map_single_exon[key] = value;
+            }
+          }
+          
+          // NOTE: this is for testing how scale function maps variants to chart
+          // console.log(gene.exons[hoveredExonIndex]);
+          // console.log(singleExonAndPaddingLength);
+          // var variantMin = d3.min(data, function(d) { return d.position; });
+          // var variantMax = d3.max(data, function(d) { return d.position; });
+          // console.log("scaleVariableIntronsToUniformIntrons(variantMin)");
+          // console.log(variantMin - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+          // console.log(scaleVariableIntronsToUniformIntrons(variantMin - CLICKED_EXON_OFFSET
+          //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
+          // console.log("scaleVariableIntronsToUniformIntrons(variantMax)");
+          // console.log(variantMax - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+          // console.log(scaleVariableIntronsToUniformIntrons(variantMax - CLICKED_EXON_OFFSET
+          //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
+
+          // add lollipops representing variants of the selected exon for zoomed-in view 
+          var variantTransform = addTransformToSvgHandle(svgZoomedIn, margin.left, 
+            (margin.top + barHeightCoding + variantExonVerticalGap));
+          
+          var lollipopRect = variantTransform.append("g")
+              .selectAll("g")
+              .data(data)
+            .enter().append("g")
+              .attr("transform", function(d) {
+                return "translate(" + 
+                  scaleSingleExonToChart(
+                    d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
+                  ) + "," + 0 + ")";
+              })
+              .append("rect")
+              .attr("width", lollipopRectWidth)
+              .attr("height", function(d) {
+                return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
+              })
+              .attr('fill', function(d) {
+                return variantAnnotationToLollipopColor(d.annotation);
+              });
+
+          var lollipopCircle = variantTransform.append("g")
+              .selectAll('circle')
+              .data(data)
+            .enter().append('circle')
+              .attr('cx', function(d) {
+                return scaleSingleExonToChart(
+                  d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
+                );
+              })
+              .attr('cy', function(d) {
+                return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency)
+              })
+              .attr('r', lollipopRadius)
+              .attr('fill', function(d) {
+                return variantAnnotationToLollipopColor(d.annotation);
+              });
+
+          /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
+           * Tutorial on bar height: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
+           * Tutorial on chart margins: https://bl.ocks.org/mbostock/3885304
+           */
+
+          // text label for the y axis
+          // TODO: make function for this in exome_processing.js
+          var yAxisTransform = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
+            (margin.top + barHeightCoding + variantExonVerticalGap));
+          
+          yAxisTransform.append("text")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 0)
+              .attr("x", 0 - (height / 2))
+              .attr("dy", "1em")
+              .attr("text-anchor", "middle")
+              .text("MAF");
+
+          yAxisTransform.append("g")
+              .attr("class", "axis axis--y")
+              .attr("transform", "translate(" + (margin.left / 2) + "," + 
+                (0 / 2) + ")")
+              .call(d3.axisLeft(yScaleLollipop));
+
+          /* Step 16: When hovering over a circle, open a tooltip displaying variant data
+            * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
+            */
+          lollipopCircle.on("mouseover", function(d, i) {   
+            tooltip.transition()    
+                .duration(200)    
+                .style("opacity", .9); 
+
+            // TODO: If there is more that one variant in a position, we need to show a table
+            // of variants when clicking or hovering over that lollipop circle.
+            // For now if a position has multiple variants, the tooltip shows the first variant
+            tooltip.html("chromosome: " + variant_map_single_exon[d.position][0].chromosome + "<br/>"
+              + "position: " + variant_map_single_exon[d.position][0].position + "<br/>"
+              + "referenceAllele: " + variant_map_single_exon[d.position][0].reference + "<br/>"
+              + "alternateAllele: " + variant_map_single_exon[d.position][0].alternate + "<br/>"
+              + "annotation: " + variant_map_single_exon[d.position][0].annotation + "<br/>"
+              + "alleleCount: " + variant_map_single_exon[d.position][0].alleleCount + "<br/>"
+              + "alleleNumber: " + variant_map_single_exon[d.position][0].alleleNumber + "<br/>"
+              + "alleleFrequency: " + variant_map_single_exon[d.position][0].alleleFrequency + "<br/>"
+              + "number of variants: " + variant_map_single_exon[d.position].length)
+                .style("left", (d3.event.pageX) + "px")   
+                .style("top", (d3.event.pageY - 100) + "px");  
+          })          
+          .on("mouseout", function(d) {   
+            tooltip.transition()    
+                .duration(500)    
+                .style("opacity", 0);
+          });
+        }
+        else {
+          bar.on('click', function() {
+            clickToLockMagnifiedExon = false;
+            d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill", exonBarColor);
+          });
+          }
+        });
+      });
+    });
+    
+  </script>
   <script type="text/javascript" src="js/exome_processing.js"></script>
   <link rel="stylesheet" href="css/styles.css">
 
@@ -18,736 +760,5 @@
     </div>
     <div class="chart-zoomed-out"></div>
     <div class="chart-zoomed-in"></div>
-    <script>
-      /* Step 1: Get variables from the Exac dataset
-       *
-       * cdsStart: start of the gene's coding sequence
-       * cdsEnd: end of the gene's coding sequence
-       * exonStarts: array of the starting base pair index of each exon in the gene
-       * exonEnds: array of the ending base pair index of each exon in the gene
-       */
-
-      /*
-      // TEST 1
-      // NM_152486.2, SAMD11 gene - chromosome 1
-      var cdsStart = 861321;
-      var cdsEnd =	879533;
-      var exonStarts = [861120,861301,865534,866418,871151,874419,874654,876523,877515,877789,877938,878632,879077,879287];
-      var exonEnds = [861180,861393,865716,866469,871276,874509,874840,876686,877631,877868,878438,878757,879188,879961];
-      */
-
-      /*
-      // TEST 2
-      // INM_005101.3, SG15 gene - chromosome 1
-      var cdsStart = 948953;
-      var cdsEnd = 949858;
-      var exonStarts = [948846,949363];	
-      var exonEnds = [948956,949920];
-      */
-
-      /*
-      // TEST 3
-      // NM_005985.3, SNAI1 gene - chromosome 20
-      var cdsStart = 48599596;
-      var cdsEnd = 48604593;
-      var exonStarts = [48599595, 48599012, 48600360, 48604408];
-      var exonEnds = [48599595, 48599678, 48600888, 48605423];
-      */
-
-      // TEST 4
-      // NM_001291860.1, HSPG2 gene - chromosome 1
-      var cdsStart = 22149808;
-      var cdsEnd = 22263710;
-
-      var exonStarts = [22148724,22150108,22150613,22150798,22151029,22151196,22154355,22154522,
-        22154747,22155327,22155875,22156485,22157474,22157707,22157955,22158144,22158987,22159760,
-        22159959,22160308,22161171,22162032,22163294,22165317,22165863,22166314,22167593,22168031,
-        22168494,22168731,22169262,22169789,22170640,22172600,22172940,22173846,22174181,22174450,
-        22175135,22175385,22176533,22176855,22178038,22178283,22178580,22179192,22179411,22180685,
-        22181103,22181340,22181796,22182015,22182279,22183507,22183777,22186058,22186327,22186669,
-        22188249,22188480,22190592,22191335,22191777,22192209,22198678,22199112,22199489,22199867,
-        22200417,22200898,22201108,22201383,22202121,22202355,22202721,22203004,22204678,22204925,
-        22205069,22205486,22206599,22206855,22207148,22207831,22211020,22211259,22211505,22211812,
-        22213707,22213912,22214430,22216473,22216919,22217077,22222414,22222667,22263647];
-
-      var exonEnds = [22149981,22150212,22150697,22150869,22151108,22151272,22154412,22154645,
-        22154919,22155572,22156097,22156584,22157583,22157817,22158055,22158289,22159099,22159877,
-        22160107,22160418,22161438,22162130,22163499,22165578,22166043,22166510,22167778,22168166,
-        22168635,22168873,22169414,22169931,22170792,22172748,22173092,22173985,22174333,22174586,
-        22175287,22175524,22176685,22176991,22178190,22178419,22178726,22179325,22179563,22180836,
-        22181258,22181476,22181939,22182168,22182405,22183688,22183878,22186169,22186495,22186728,
-        22188336,22188608,22190706,22191566,22191858,22192302,22198870,22199253,22199584,22199917,
-        22200504,22201026,22201222,22201495,22202240,22202535,22202898,22203145,22204746,22204984,
-        22205156,22205614,22206747,22207052,22207328,22207995,22211170,22211411,22211650,22211944,
-        22213827,22214167,22214559,22216634,22216978,22217187,22222459,22222803,22263790];
-
-      /*
-      // DEFAULT 
-      // NM_174936.3, PCSK9 gene - chromsome 1
-      var cdsStart = 55505510; // 55505717 + 1;
-      var cdsEnd = 55529257; // 55529041 - 1;
-      var exonStarts = [55505000,55505148,55509515,55512195,55517950,55518322,55521665,55523003,
-        55523708,55524171,55525158,55527047,55529041,55531000];
-      var exonEnds = [55505100,55505717,55509707,55512319,55518084,55518464,55521862,55523187,
-        55523882,55524320,55525336,55527229,55530526,55532000];
-      */
-
-      const NON_CODING_LENGTH_LIMIT = 200;
-      
-      // create a gene object
-      var gene = new Gene( cdsStart, cdsEnd, initializeExons(exonStarts, exonEnds) );
-
-      /* Step 2: Remove exons that end before cdsStart or start after cdsEnd
-       * This way, the first exon must contain cdsStart or begin after cdsStart
-       * Also, the last exon must contain cdsEnd or end before cdsEnd
-       */
-      gene = removeExonsBeforeStartPosition(gene);
-      gene = removeExonsAfterEndPosition(gene);
-
-      /* Step 3: Limit the length of the non-coding parts of an exon. 
-       * The non-coding part for the exon containing cdsStart would be everything before cdsStart
-       * The non-coding part for the exon containing cdsEnd would be everything after cdsEnd
-       */
-      gene = limitNonCodingExonLength(gene, NON_CODING_LENGTH_LIMIT);
-
-      /* Step 4: Calculate the length of each exon. Note that an exon that has been split into
-       * a coding part and a non-coding part will be counted as two separate length values.
-       * Then calculate the sum of these length values, and use this sum to calculate the
-       * length of each uniformly-lengthed intron for the visualization.
-       */
-      const EXON_COUNT = gene.exons.length;
-      var exonLengths = [];
-      exonLengths = gene.getExonLengths();
-
-      const SUM_EXON_LENGTHS = d3.sum(exonLengths);
-      const INTRON_LENGTH = Math.ceil((SUM_EXON_LENGTHS / 2) / (EXON_COUNT - 1));
-      const SUM_INTRON_LENGTHS = INTRON_LENGTH * (EXON_COUNT - 1);
-
-      /* Step 5: Subtract each value in exonStarts and exonEnds by the offset = exonStarts[0].
-       * This way, when the exons are displayed using exonStarts and exonLengths, 
-       * the first exon will start at position x = 0.
-       */
-      OFFSET = gene.exons[0].start;
-      exonStarts = gene.getExonStartsMinusOffset();
-      exonEnds = gene.getExonEndsMinusOffset();
-      cdsStart = gene.cdsStart - gene.getOffset();
-      cdsEnd = gene.cdsEnd - gene.getOffset();
-
-      /* Step 7: Calculate exonStarts and exonEnds with uniformly-lengthed introns.
-       * Note that exonEnds[i] = the starting position of intron i.
-       */
-      var exonStartsWithUniformIntronLengths = [];
-      var exonEndsWithUniformIntronLengths = [];
-
-      exonPositions = getExonPositionsWithUniformIntronLengths(gene, INTRON_LENGTH);
-      exonStartsWithUniformIntronLengths = exonPositions.exonStartsWithUniformIntronLengths;
-      exonEndsWithUniformIntronLengths = exonPositions.exonEndsWithUniformIntronLengths;
-
-      // NOTE: have to adjust cdsStart and cdsEnd to fit the uniform intron model
-      // this makes me suspect that creating gene_uniform_intron_length is not smart
-      // because I have to adjust cdsStart and cdsEnd
-      var gene_uniform_intron_length = getGeneWithUniformIntronLength(gene, INTRON_LENGTH);
-
-      /* Step 6: Calculate the domain array for d3.scaleLinear(), which consists of 
-       * the starting position of each exon and intron assuming the original intron lengths. 
-       * Introns with length > (3 * basePairsOutsideExonLimit) will be split into three partitions.
-       * Using d3.scaleLinear, the domain array will map to variant base pair positions 
-       * assuming uniformly-lengthed introns (range).
-       * NOTE: Dr. Zuchner said BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50 
-       */
-      const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
-      var domainAndSplitIntronIndices = getDomain(gene, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-      var domain = domainAndSplitIntronIndices.domain;
-      var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
-
-      /* Step 8: Calculate the range array for d3.scaleLinear(), which consists of 
-       * the starting position of each exon and intron assuming uniformly-lengthed introns. 
-       * Introns whose indices match those in the domain that were split into three partitions, 
-       * will likewise be split into three partitions.
-       * Using d3.scaleLinear, a domain array will map variant base pair positions 
-       * assuming the original intron lengths, to the range array.
-       * Then initialize the function d3.scaleLinear(), using domain and range.
-       */
-      var range = getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH);
-      var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
-        .domain(domain)
-        .range(range);
-
-      /* Step 9: Split the first and last exons into their coding and non-coding parts
-       * UPDATE: Step 9 is no longer necessary
-       * /
-
-      /* Step 10: Split the first and last exons into their coding and non-coding parts,
-       * for exonStartsWithUniformIntronLengths and exonEndsWithUniformIntronLengths.
-       *
-       * NOTE: Calculate new position of cdsEnd with uniform intron length using d3.scaleLinear()
-       * with domain = [exonStarts[0], exonEnds[0], exonStarts[1], exonEnds[1], ...] and 
-       * range = [exonStartsWithUniformIntronLengths[0], exonEndsWithUniformIntronLengths[0], 
-       * exonStartsWithUniformIntronLengths[1], exonEndsWithUniformIntronLengths[1], ...].
-       * Then use new cdsEnd to check if last exon in exonEndsWithUniformIntronLengths needs to be split. 
-       * 
-       * This scaling does not need to be performed on cdsStart, because it is contained in the first exon
-       * which has no adjusted intron lengths occuring before it. Hence exonStarts[0] and 
-       * exonStartsWithUniformIntronLengths[0] are equal.
-       * 
-       * NOTE: Better to make a function in the gene object that will return an array
-       * of exons with coding and nonCoding partitions split - but then the getLength()
-       * function cannot be reused. FOR NOW THIS IS WORRYING ABOUT TOO MANY DETAILS
-       * SO FORGET IT UNTIL MAIN FEATURE OF MAPPING VARIANTS ACCURATELY WORK.
-       */
-
-      /* Step 11: Render D3 chart using SVG, with taller rectangles representing coding exon partitions
-       * and shorter height rectangles representing non-coding exon partitions. To represent introns,
-       * render horizontal dashed lines in the white space between the rectangles.
-       */ 
-      var margin = {top: 30, right: 30, bottom: 50, left: 120};
-      var width = 1200 - margin.left - margin.right;
-      var height = 320 - margin.top - margin.bottom;
-      var exonBarColor = "#868686";
-
-      var barHeightCoding = 20;
-      var barHeightNonCoding = barHeightCoding / 2;
-      const TOTAL_LENGTH = SUM_EXON_LENGTHS + SUM_INTRON_LENGTHS;
-      const INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
-
-      var scaleUniformIntronsToChart = d3.scaleLinear()
-          .domain([0, TOTAL_LENGTH])
-          .range([0, width]);
-      
-      var svgZoomedOut = addSvgToChart(margin, width, height, ".chart-zoomed-out");
-      var svgZoomedIn = addSvgToChart(margin, width, height, ".chart-zoomed-in");
-
-      var chartTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
-      
-      // calculate starting positions of exon partitions in the svg chart
-      var bar = addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
-        exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding);
-
-      // Given the starting positions of uniform introns when scaled to chart, 
-      // split each intron into three sections and add the starting and ending positions
-      // of those sections into an array
-      const NUM_EXONS = exonEndsWithUniformIntronLengths.length;
-      var intronStartsAndEndsWithUniformIntronLength = 
-        getIntronStartsAndEndsWithUniformIntronLength(
-          scaleUniformIntronsToChart, exonStartsWithUniformIntronLengths, 
-          exonEndsWithUniformIntronLengths, NUM_EXONS
-        );
-
-      // Render different dashed lines for the three different sections of each intron
-      // Darker and wider for the two side sections that contain variants
-      // Lighter and thinner for the middle section that does not contain variants
-      var lines = addIntronLinesToSvgHandle(chartTransform, intronStartsAndEndsWithUniformIntronLength);
-
-      // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
-      // look thinner by adding white rectangles to the top and bottom of the nonCoding area
-      var nonCodingIndices = [0, NUM_EXONS - 1];
-      var nonCodingExonLengths = [
-        [ cdsStart - exonStarts[nonCodingIndices[0]] ],
-        [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
-        [ cdsStart - exonStarts[nonCodingIndices[0]] ],
-        [ exonEnds[nonCodingIndices[1]] - cdsEnd ],
-      ];
-      var nonCodingXPositionStarts = [
-        exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
-        exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1],
-        exonStartsWithUniformIntronLengths[nonCodingIndices[0]],
-        exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1]
-      ];
-
-      var nonCodingBar = addNonCodingRectToChart(chartTransform, nonCodingExonLengths, 
-        barHeightCoding, barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart);
-
-      /* Step 13: Use unary symbol to convert strings into numbers, and implement
-       * row function to tell d3.csv() how to parse each row in csv file.
-       * https://bl.ocks.org/curran/d867264d468b323c2e76886d44e7e8f9
-       */
-      const row = function(d) {
-        const chromosomeString = d['Chrom'];
-        const positionString = d['Position'];
-        const alleleCountString = d['Allele Count'];
-        const alleleNumberString = d['Allele Number'];
-        const alleleFrequencyString = d['Allele Frequency'];
-
-        return {
-          chromosome: +chromosomeString,
-          reference: d['Reference'],
-          alternate: d['Alternate'],
-          annotation: d['Annotation'],
-          position: +positionString,
-          alleleCount: +alleleCountString,
-          alleleNumber: +alleleNumberString,
-          alleleFrequency: +alleleFrequencyString
-        };
-      };
-
-      // key representing variant base pair position is mapped to an array of variant(s) in that position
-      var variant_map = {};
-      var variant_data = [];
-
-      /* Step 14: Use the function d3.csv() to read through variant dataset.
-       * d3.csv can request csv files from a specified url and parse them, 
-       * so either we get variant data from links to csv files or from a database.
-       * Dr. Zuchner would like to retrieve data from a database.
-       * https://stackoverflow.com/questions/42285441/how-to-read-in-csv-with-d3-v4
-       */
-      
-      var variant_data_file_path = 'variant_data/'
-      // var variant_data_file_name = 'exac_ENSG00000187634_SAMD11.csv';
-      // var variant_data_file_name = 'exac_ENSG00000187608_ISG15.csv';
-      // var variant_data_file_name = 'exac_ENSG00000124216_SNAI1.csv';   
-      var variant_data_file_name = 'exac_ENSG00000142798_HSPG2.csv';   
-      // var variant_data_file_name = 'exac_ENSG00000169174_PCSK9.csv';
-
-      // display name of gene
-      var geneText = variant_data_file_name.split("_");
-      var geneTextLength = geneText.length;
-      
-      geneText[geneTextLength - 1] = 
-          geneText[geneTextLength - 1].split(".")[0]; // remove .csv string
-
-      var textTransform = addTransformToSvgHandle(svgZoomedOut, 0, margin.top);
-
-      var textSize = 12;
-      var text = textTransform.selectAll("text")
-          .data(geneText)
-        .enter().append("text")
-          .attr("x", 0)
-          .attr("y", function(d, i) { 
-            return (i * textSize); 
-          })
-          .text(function(d, i) { return d; })
-          .attr("font-family", "sans-serif")
-          .attr("font-size", textSize + "px");
-      
-
-      d3.csv(variant_data_file_path + variant_data_file_name, row, function(data) {
-        // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 
-        // to get threshold values for filtering out variants that are greater than NON_CODING_LENGTH_LIMIT
-        // number of base pairs outside of the exon
-        const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
-        const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1] + OFFSET;
-
-        variant_data = data;
-        data = data.filter(function(d) {
-          if (d.position >= LOWER_THRESHOLD && d.position <= UPPER_THRESHOLD) {
-            return true;
-          }
-          return false;
-        });
-
-        data.forEach(function(variant) {
-          var position = variant.position;
-          if (!variant_map[position]) {
-            variant_map[position] = [variant];
-          }
-          else {
-            variant_map[position].push(variant);
-          }
-        });
-
-        /* Step 15: Render lollipops for variants in the zoomed-out view of all exons
-         * NOTE: New feature for changing y axis variable based on clicking buttons 
-         * at the top of the page is going to complicate this code
-         * How about this: by default the variants are not shown, and when the user
-         * clicks on the button then the variants are shown?
-         */
-        const lollipopRectHeight = 10;
-        const lollipopRectWidth = 0.2;
-        const lollipopRadius = 3;
-
-        // Scale lollipop rectangle height based on allele frequency
-        // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
-        // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
-        var yScaleMin = d3.min(data, function(d) { return d.alleleFrequency; });
-        var yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
-        yScaleMin = Math.pow(10, yScaleMinExponent);
-
-        var yScaleLollipop = d3.scaleLog()
-            .domain([ yScaleMin, 1 ])
-            .range([ 0, height ]);
-
-        // handle for tooltip that will display text when hovering over over lollipop circle
-        var tooltip = addTooltip();
-        
-        var variantExonVerticalGap = 5;
-        var variantTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, 
-          (margin.top + barHeightCoding + variantExonVerticalGap));
-        
-        variantTransform.selectAll("g").remove();
-        var lollipopRect = variantTransform.selectAll("g")
-            .data(data)
-          .enter().append("g")
-            .attr("transform", function(d) {
-              return "translate(" + 
-                scaleUniformIntronsToChart(
-                  scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
-                ) + "," + 0 + ")";
-            })
-            .append("rect")
-            .attr("width", lollipopRectWidth)
-            .attr("height", function(d) {
-              return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
-            })
-            .attr('fill', function(d) {
-              return variantAnnotationToLollipopColor(d.annotation);
-            });
-
-        var lollipopCircle = variantTransform.selectAll('circle')
-            .data(data)
-          .enter().append('circle')
-            .attr('cx', function(d) {
-              return scaleUniformIntronsToChart(
-                scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
-              );
-            })
-            .attr('cy', function(d) {
-              return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
-            })
-            .attr('r', lollipopRadius)
-            .attr('fill', function(d) {
-              return variantAnnotationToLollipopColor(d.annotation);
-            });
-
-        /* Step 16: When hovering over a circle, open a tooltip displaying variant data
-         * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
-         */
-        lollipopCircle.on("mouseover", function(d, i) {   
-          tooltip.transition()    
-              .duration(200)    
-              .style("opacity", .9); 
-
-          // TODO: If there is more that one variant in a position, we need to show a table
-          // of variants when clicking or hovering over that lollipop circle.
-          // For now if a position has multiple variants, the tooltip shows the first variant
-          tooltip.html("chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
-            + "position: " + variant_map[d.position][0].position + "<br/>"
-            + "referenceAllele: " + variant_map[d.position][0].reference + "<br/>"
-            + "alternateAllele: " + variant_map[d.position][0].alternate + "<br/>"
-            + "annotation: " + variant_map[d.position][0].annotation + "<br/>"
-            + "alleleCount: " + variant_map[d.position][0].alleleCount + "<br/>"
-            + "alleleNumber: " + variant_map[d.position][0].alleleNumber + "<br/>"
-            + "alleleFrequency: " + variant_map[d.position][0].alleleFrequency + "<br/>"
-            + "number of variants: " + variant_map[d.position].length)
-              .style("left", (d3.event.pageX) + "px")   
-              .style("top", (d3.event.pageY - 50) + "px");  
-
-        })          
-        .on("mouseout", function(d) {   
-          tooltip.transition()    
-              .duration(500)    
-              .style("opacity", 0);
-        });
-
-        /* Step 12: When mouse hovers over, show the hovered over exon in magnified view below.
-         * Then if mouse clicks on an exon, lock that exon in a magnified view below and do not
-         * change exons if a different exon is hovered over. Change the color of the clicked exon.
-         * Then if mouse clicks on any exons from the top row displaying the unmagnified view, 
-         * unlock the magnified exon and show an exon in magnified view when hovered over. Undo the
-         * color change of the exon that is freed from the locked magnified view.
-         */
-        var clickToLockMagnifiedExon = false;
-        var clickedExonIndex = -1;
-        var hoveredExonIndex = -1;
-        var previousHoveredExonIndex = -1;
-
-        bar.on("mouseover", function(d, i) {
-          previousHoveredExonIndex = hoveredExonIndex;
-          hoveredExonIndex = i;
-
-          if (!clickToLockMagnifiedExon) { 
-            bar.on("click", function(d, j) {
-              clickToLockMagnifiedExon = true; 
-              clickedExonIndex = j;
-              console.log("clicked over exon at index: " + clickedExonIndex);
-              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill", "blue"); // <== D3 selector (node)
-            });
-
-            // when in hovering mode, the current hovered over exon will turn light green
-            if (previousHoveredExonIndex != -1 && previousHoveredExonIndex != hoveredExonIndex) {
-              d3.select(bar._groups[0][previousHoveredExonIndex]).select("rect").attr("fill", exonBarColor);
-              d3.select(bar._groups[0][hoveredExonIndex]).select("rect").attr("fill", "lightgreen");
-            }
-
-            // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
-            // separately when clicked. Each whole exon or exon partition will get a white area 
-            // to its left and right representing introns.
-            var leftMarginPadding = 0;
-            var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
-              + (2 * BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-
-            var scaleSingleExonToChart = d3.scaleLinear()
-                .domain([ 0, singleExonAndPaddingLength ])
-                .range([ 0, width ]);   
-
-            // Step 18: create a one-element array containing the hovered/clicked exon
-            svgZoomedIn.selectAll("g").remove();
-            var translateZoomedExon = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
-            
-            // NOTE: have no clue why but removing the scaleVariableIntronsToUniformIntrons
-            // function fixed positioning of variants on the SNA1 gene
-            var zoomBar = translateZoomedExon.append("g")
-                .selectAll("g")
-                .data([ exonLengths[hoveredExonIndex] ])
-              .enter().append("g")
-                .attr("transform", function(d) { 
-                  return "translate(" + 
-                    scaleSingleExonToChart(
-                      BASE_PAIRS_OUTSIDE_EXON_LIMIT
-                    ) + "," + 0 + ")";
-                });
-            
-            // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
-            zoomBar.append("rect")
-                .attr("fill", exonBarColor)
-                .attr("width", scaleSingleExonToChart)
-                .attr("height", function(d) {
-                  return barHeightCoding;
-                });       
-            
-            /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
-             * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
-             * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
-             * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
-             * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
-             * with variants which are first scaled from variableIntronsToUniformIntrons and then from
-             * singleExonToChart.
-             */
-            // NOTE: This does not handle case where first exon does not have 50 bp to its left
-            // or case where second exon does not have 50 bp to its right
-            var zoomLineCoordinates = [];
-            zoomLineCoordinates.push(
-              [
-                [0, 0], 
-                [0, barHeightNonCoding], 
-                [scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
-              ],
-              [
-                [width, 0], 
-                [width, barHeightNonCoding], 
-                [width - scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
-              ]);
-              
-            var zoomLine = translateZoomedExon.append("g")
-                .selectAll("path")
-                .data(zoomLineCoordinates)
-                .enter().append("path")
-                  .style("fill", "none")
-                  .style("stroke", "black")
-                  .attr("stroke-width", 2)
-                  .style("stroke-dasharray", "2,1")
-                  .attr("d", d3.line());
-
-            // add text next to dashed line showing the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
-            // Tutorial: https://www.dashingd3js.com/svg-text-element
-            var text = svgZoomedIn.append("g")
-                .attr("transform", 
-                      "translate(" + margin.left + "," + (margin.top / 2) + ")")
-                .selectAll("text")
-                .data(zoomLineCoordinates)
-                .enter().append("text");
-            
-            var textSize = 10;
-            var textLabels = text
-                .attr("x", function(d, i) { 
-                  return d[0][0]; 
-                })
-                .attr("y", textSize)
-                .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
-                .attr("font-family", "sans-serif")
-                .attr("font-size", textSize + "px");
-            
-            // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
-            // look thinner by adding white rectangles to the top and bottom of the nonCoding area
-            var nonCodingExonLengths = [];
-            var nonCodingXPositionStart = 0;
-            
-            if (nonCodingIndices.includes(hoveredExonIndex)) {
-              // case with first exon
-              if (hoveredExonIndex == nonCodingIndices[0]) {
-                nonCodingXPositionStart = scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-                
-                nonCodingExonLengths = [
-                  cdsStart - exonStarts[hoveredExonIndex],
-                  cdsStart - exonStarts[hoveredExonIndex]
-                ];          
-              }
-              // case with last exon
-              if (hoveredExonIndex == nonCodingIndices[1]) {
-                  nonCodingXPositionStart = width - scaleSingleExonToChart(
-                    exonEnds[hoveredExonIndex] - cdsEnd + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-
-                  nonCodingExonLengths = [
-                    exonEnds[hoveredExonIndex] - cdsEnd,
-                    exonEnds[hoveredExonIndex] - cdsEnd
-                  ];
-              }
-
-              translateZoomedExon.selectAll(".rectNonCodingZoomedIn").remove();
-              var nonCodingBar = translateZoomedExon.selectAll(".rectNonCodingZoomedIn")
-                  .data(nonCodingExonLengths)
-                .enter().append("rect")
-                  .classed('rectNonCodingZoomedIn', true)
-                  .attr("transform", function(d, i) { 
-                    var yPositionStart = 0;
-                    if (i == 1) {
-                      yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
-                    }
-                    return "translate(" + (
-                        nonCodingXPositionStart
-                      ) + "," + yPositionStart + ")";
-                  })
-                  .attr("fill", "white")
-                  .attr("width", scaleSingleExonToChart)
-                  .attr("height", function(d, i) {
-                    return barHeightNonCoding / 2;
-                  });
-            }
-
-            // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
-            // This logic needs to be fixed for first and last exon, as first exon does not have
-            // intron space to its left, and last exon does not have intron space to its right
-            var CLICKED_EXON_OFFSET = exonStarts[hoveredExonIndex] + OFFSET;
-            var CLICKED_EXON_LOWER_THRESHOLD = CLICKED_EXON_OFFSET - BASE_PAIRS_OUTSIDE_EXON_LIMIT;
-            var CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
-              + exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;  
-
-            if (hoveredExonIndex == 0 ) {
-              CLICKED_EXON_LOWER_THRESHOLD += BASE_PAIRS_OUTSIDE_EXON_LIMIT
-            }
-            if (hoveredExonIndex == (NUM_EXONS - 1)) {
-              CLICKED_EXON_UPPER_THRESHOLD -= BASE_PAIRS_OUTSIDE_EXON_LIMIT; 
-            }
-            
-            data = variant_data.filter(function(d) {
-              if (d.position >= CLICKED_EXON_LOWER_THRESHOLD 
-                && d.position <= CLICKED_EXON_UPPER_THRESHOLD) {
-                return true;
-              }
-              return false;
-            });
-
-            var variant_map_single_exon = {}
-            for (let [key, value] of Object.entries(variant_map)) {
-              if (key >= CLICKED_EXON_LOWER_THRESHOLD && key <= CLICKED_EXON_UPPER_THRESHOLD) {
-                variant_map_single_exon[key] = value;
-              }
-            }
-            
-            // NOTE: this is for testing how scale function maps variants to chart
-            // console.log(gene.exons[hoveredExonIndex]);
-            // console.log(singleExonAndPaddingLength);
-            // var variantMin = d3.min(data, function(d) { return d.position; });
-            // var variantMax = d3.max(data, function(d) { return d.position; });
-            // console.log("scaleVariableIntronsToUniformIntrons(variantMin)");
-            // console.log(variantMin - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-            // console.log(scaleVariableIntronsToUniformIntrons(variantMin - CLICKED_EXON_OFFSET
-            //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
-            // console.log("scaleVariableIntronsToUniformIntrons(variantMax)");
-            // console.log(variantMax - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-            // console.log(scaleVariableIntronsToUniformIntrons(variantMax - CLICKED_EXON_OFFSET
-            //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
-
-            // add lollipops representing variants of the selected exon for zoomed-in view 
-            var variantTransform = addTransformToSvgHandle(svgZoomedIn, margin.left, 
-              (margin.top + barHeightCoding + variantExonVerticalGap));
-            
-            var lollipopRect = variantTransform.append("g")
-                .selectAll("g")
-                .data(data)
-              .enter().append("g")
-                .attr("transform", function(d) {
-                  return "translate(" + 
-                    scaleSingleExonToChart(
-                      d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
-                    ) + "," + 0 + ")";
-                })
-                .append("rect")
-                .attr("width", lollipopRectWidth)
-                .attr("height", function(d) {
-                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
-                })
-                .attr('fill', function(d) {
-                  return variantAnnotationToLollipopColor(d.annotation);
-                });
-
-            var lollipopCircle = variantTransform.append("g")
-                .selectAll('circle')
-                .data(data)
-              .enter().append('circle')
-                .attr('cx', function(d) {
-                  return scaleSingleExonToChart(
-                    d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
-                  );
-                })
-                .attr('cy', function(d) {
-                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency)
-                })
-                .attr('r', lollipopRadius)
-                .attr('fill', function(d) {
-                  return variantAnnotationToLollipopColor(d.annotation);
-                });
-
-            /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
-             * Tutorial on bar height: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
-             * Tutorial on chart margins: https://bl.ocks.org/mbostock/3885304
-             */
-
-            // text label for the y axis
-            // TODO: make function for this in exome_processing.js
-            var yAxisTransform = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
-              (margin.top + barHeightCoding + variantExonVerticalGap));
-            
-            yAxisTransform.append("text")
-                .attr("transform", "rotate(-90)")
-                .attr("y", 0)
-                .attr("x", 0 - (height / 2))
-                .attr("dy", "1em")
-                .attr("text-anchor", "middle")
-                .text("MAF");
-
-            yAxisTransform.append("g")
-                .attr("class", "axis axis--y")
-                .attr("transform", "translate(" + (margin.left / 2) + "," + 
-                  (0 / 2) + ")")
-                .call(d3.axisLeft(yScaleLollipop));
-
-            /* Step 16: When hovering over a circle, open a tooltip displaying variant data
-              * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
-              */
-            lollipopCircle.on("mouseover", function(d, i) {   
-              tooltip.transition()    
-                  .duration(200)    
-                  .style("opacity", .9); 
-
-              // TODO: If there is more that one variant in a position, we need to show a table
-              // of variants when clicking or hovering over that lollipop circle.
-              // For now if a position has multiple variants, the tooltip shows the first variant
-              tooltip.html("chromosome: " + variant_map_single_exon[d.position][0].chromosome + "<br/>"
-                + "position: " + variant_map_single_exon[d.position][0].position + "<br/>"
-                + "referenceAllele: " + variant_map_single_exon[d.position][0].reference + "<br/>"
-                + "alternateAllele: " + variant_map_single_exon[d.position][0].alternate + "<br/>"
-                + "annotation: " + variant_map_single_exon[d.position][0].annotation + "<br/>"
-                + "alleleCount: " + variant_map_single_exon[d.position][0].alleleCount + "<br/>"
-                + "alleleNumber: " + variant_map_single_exon[d.position][0].alleleNumber + "<br/>"
-                + "alleleFrequency: " + variant_map_single_exon[d.position][0].alleleFrequency + "<br/>"
-                + "number of variants: " + variant_map_single_exon[d.position].length)
-                  .style("left", (d3.event.pageX) + "px")   
-                  .style("top", (d3.event.pageY - 100) + "px");  
-            })          
-            .on("mouseout", function(d) {   
-              tooltip.transition()    
-                  .duration(500)    
-                  .style("opacity", 0);
-            });
-          }
-          else {
-            bar.on('click', function() {
-              clickToLockMagnifiedExon = false;
-              d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill", exonBarColor);
-            });
-            }
-          });
-        });
-    </script>
   </body>
 </html>
