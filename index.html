@@ -220,23 +220,8 @@
       var chartTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
       
       // calculate starting positions of exon partitions in the svg chart
-      // chartTransform.selectAll("g").remove();
-      // var bar = chartTransform.selectAll("g")
-      //     .data(exonLengths)
-      //   .enter().append("g")
-      //     .attr("transform", function(d, i) { 
-      //       return "translate(" + scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i])
-      //        + "," + 0 + ")";
-      //     });
-      
-      // bar.append("rect")
-      //     .attr("fill", exonBarColor)
-      //     .attr("width", scaleUniformIntronsToChart)
-      //     .attr("height", function(d, i) {
-      //       return barHeightCoding;
-      //     });
       var bar = addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
-    exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding);
+        exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding);
 
       // Given the starting positions of uniform introns when scaled to chart, 
       // split each intron into three sections and add the starting and ending positions
@@ -269,24 +254,8 @@
         exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1]
       ];
 
-      var nonCodingBarTop = chartTransform.selectAll(".rectNonCodingZoomedOut")
-          .data(nonCodingExonLengths)
-        .enter().append("rect")
-          .classed('rectNonCodingZoomedOut', true)
-          .attr("transform", function(d, i) {
-            var yPositionStart = 0; 
-            if (i < 2) {
-              yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
-            }
-            return "translate(" + scaleUniformIntronsToChart(
-                nonCodingXPositionStarts[i]
-              ) + "," + yPositionStart + ")";
-          })
-          .attr("fill", "white")
-          .attr("width", scaleUniformIntronsToChart)
-          .attr("height", function(d, i) {
-            return barHeightNonCoding / 2;
-          });
+      var nonCodingBar = addNonCodingRectToChart(chartTransform, nonCodingExonLengths, 
+        barHeightCoding, barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart);
 
       /* Step 13: Use unary symbol to convert strings into numbers, and implement
        * row function to tell d3.csv() how to parse each row in csv file.
@@ -614,7 +583,7 @@
               }
 
               translateZoomedExon.selectAll(".rectNonCodingZoomedIn").remove();
-              var nonCodingBarTop = translateZoomedExon.selectAll(".rectNonCodingZoomedIn")
+              var nonCodingBar = translateZoomedExon.selectAll(".rectNonCodingZoomedIn")
                   .data(nonCodingExonLengths)
                 .enter().append("rect")
                   .classed('rectNonCodingZoomedIn', true)

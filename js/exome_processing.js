@@ -372,9 +372,37 @@ function addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
         .attr("height", function(d, i) {
           return barHeightCoding;
         });
-        
+
     return bar;
 }
+
+
+// add white rectangles to area that occur before cdsStart and area that occurs after cdsEnd
+function addNonCodingRectToChart(chartTransform, nonCodingExonLengths, barHeightCoding,
+    barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart) {
+
+    var nonCodingBar = chartTransform.selectAll(".rectNonCodingZoomedOut")
+        .data(nonCodingExonLengths)
+    .enter().append("rect")
+        .classed('rectNonCodingZoomedOut', true)
+        .attr("transform", function(d, i) {
+        var yPositionStart = 0; 
+        if (i < 2) {
+            yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
+        }
+        return "translate(" + scaleUniformIntronsToChart(
+            nonCodingXPositionStarts[i]
+            ) + "," + yPositionStart + ")";
+        })
+        .attr("fill", "white")
+        .attr("width", scaleUniformIntronsToChart)
+        .attr("height", function(d, i) {
+        return barHeightNonCoding / 2;
+        });
+
+    return nonCodingBar;
+}
+
 
 // change y axis variable, which will subsequently cause the whole webpage to reload
 function changeYAxisVariable(yAxisVariable) {
