@@ -353,6 +353,29 @@ function getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH)
 }
 
 
+// add rectangle represneting exons to a svg transform handle
+function addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
+    exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding) {
+
+    chartTransform.selectAll("g").remove();
+    var bar = chartTransform.selectAll("g")
+        .data(exonLengths)
+      .enter().append("g")
+        .attr("transform", function(d, i) { 
+          return "translate(" + scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i])
+           + "," + 0 + ")";
+        });
+    
+    bar.append("rect")
+        .attr("fill", exonBarColor)
+        .attr("width", scaleUniformIntronsToChart)
+        .attr("height", function(d, i) {
+          return barHeightCoding;
+        });
+        
+    return bar;
+}
+
 // change y axis variable, which will subsequently cause the whole webpage to reload
 function changeYAxisVariable(yAxisVariable) {
     if (yAxisVariable == 'MAF') {
@@ -361,12 +384,13 @@ function changeYAxisVariable(yAxisVariable) {
     if (yAxisVariable == 'alleleNumber') {
         console.log('alleleNumber');
     }
-    
-    var content = document.getElementsByClassName("y-axis-button-container")[0];
+
+    var chartZoomedOut = document.getElementsByClassName("chart-zoomed-out")[0];
+    var chartZoomedIn = document.getElementsByClassName("chart-zoomed-in")[0];
     // var buttonMAF = content.getElementsByClassName("MAF");
     // var buttonAlleleNumber = content.getElementsByClassName("alleleNumber");
-
-    console.log(content);
+    console.log(chartZoomedOut);
+    console.log(chartZoomedIn);
 }
 
 
@@ -398,15 +422,15 @@ function addTooltip() {
 function getVariantInformationForTooltip(variant) {
     // console.log(variant);
     return (
-        "chromosome: " + variant.chromosome + "<br/>"
-        + "position: " + variant.position + "<br/>"
-        + "referenceAllele: " + variant.reference + "<br/>"
-        + "alternateAllele: " + variant.alternate + "<br/>"
-        + "annotation: " + variant.annotation + "<br/>"
-        + "alleleCount: " + variant.alleleCount + "<br/>"
-        + "alleleNumber: " + variant.alleleNumber + "<br/>"
-        + "alleleFrequency: " + variant.alleleFrequency + "<br/>"
-        + "number of variants: " + variant.length
+        "chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
+          + "position: " + variant_map[d.position][0].position + "<br/>"
+          + "referenceAllele: " + variant_map[d.position][0].reference + "<br/>"
+          + "alternateAllele: " + variant_map[d.position][0].alternate + "<br/>"
+          + "annotation: " + variant_map[d.position][0].annotation + "<br/>"
+          + "alleleCount: " + variant_map[d.position][0].alleleCount + "<br/>"
+          + "alleleNumber: " + variant_map[d.position][0].alleleNumber + "<br/>"
+          + "alleleFrequency: " + variant_map[d.position][0].alleleFrequency + "<br/>"
+          + "number of variants: " + variant_map[d.position].length
     )
 }
 
@@ -450,4 +474,8 @@ function addIntronLinesToSvgHandle(chartTransform, intronStartsAndEndsWithUnifor
         .attr("d", d3.line());
 
     return lines;
+}
+
+function makeNonCodingExonAreasThinner() {
+    
 }

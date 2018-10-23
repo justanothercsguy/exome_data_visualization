@@ -220,21 +220,23 @@
       var chartTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
       
       // calculate starting positions of exon partitions in the svg chart
-      chartTransform.selectAll("g").remove();
-      var bar = chartTransform.selectAll("g")
-          .data(exonLengths)
-        .enter().append("g")
-          .attr("transform", function(d, i) { 
-            return "translate(" + scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i])
-             + "," + 0 + ")";
-          });
+      // chartTransform.selectAll("g").remove();
+      // var bar = chartTransform.selectAll("g")
+      //     .data(exonLengths)
+      //   .enter().append("g")
+      //     .attr("transform", function(d, i) { 
+      //       return "translate(" + scaleUniformIntronsToChart(exonStartsWithUniformIntronLengths[i])
+      //        + "," + 0 + ")";
+      //     });
       
-      bar.append("rect")
-          .attr("fill", exonBarColor)
-          .attr("width", scaleUniformIntronsToChart)
-          .attr("height", function(d, i) {
-            return barHeightCoding;
-          });
+      // bar.append("rect")
+      //     .attr("fill", exonBarColor)
+      //     .attr("width", scaleUniformIntronsToChart)
+      //     .attr("height", function(d, i) {
+      //       return barHeightCoding;
+      //     });
+      var bar = addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
+    exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding);
 
       // Given the starting positions of uniform introns when scaled to chart, 
       // split each intron into three sections and add the starting and ending positions
@@ -687,10 +689,8 @@
                 .attr("transform", function(d) {
                   return "translate(" + 
                     scaleSingleExonToChart(
-                      (
-                        (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT)
-                      )
-                    ) + "," + (0 / 2) + ")";
+                      d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
+                    ) + "," + 0 + ")";
                 })
                 .append("rect")
                 .attr("width", lollipopRectWidth)
@@ -707,14 +707,11 @@
               .enter().append('circle')
                 .attr('cx', function(d) {
                   return scaleSingleExonToChart(
-                    (
-                      (d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT)
-                    )
+                    d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
                   );
                 })
                 .attr('cy', function(d) {
-                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency 
-                    ) + (0 / 2);
+                  return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency)
                 })
                 .attr('r', lollipopRadius)
                 .attr('fill', function(d) {
@@ -727,6 +724,7 @@
              */
 
             // text label for the y axis
+            // TODO: make function for this in exome_processing.js
             var yAxisTransform = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
               (margin.top + barHeightCoding + variantExonVerticalGap));
             
