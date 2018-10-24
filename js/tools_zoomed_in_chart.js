@@ -158,3 +158,20 @@ function addLollipopToZoomedInChart(yAxisVariableString, variantTransform,
   
   return lollipopRect;
 }
+
+function drawYAxisScaleAndLabel(yAxisTransform, height, margin, yScaleLollipop) {
+
+  yAxisTransform.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", - 10)
+    .attr("x", 0 - (height / 2))
+    .attr("dy", "1em")
+    .attr("text-anchor", "middle")
+    .text(yAxisVariableString);
+
+  yAxisTransform.append("g")
+    .attr("class", "axis axis--y")
+    .attr("transform", "translate(" + (margin.left / 2) + "," + 
+      0 + ")")
+    .call(d3.axisLeft(yScaleLollipop));
+}

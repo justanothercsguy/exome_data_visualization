@@ -8,6 +8,7 @@
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
   <script type="text/javascript" src="js/exome_processing.js"></script>
+  <script type="text/javascript" src="js/tools_zoomed_out_chart.js"></script>
   <script type="text/javascript" src="js/tools_zoomed_in_chart.js"></script>
   <script>
     
@@ -364,7 +365,7 @@
       // handle for tooltip that will display text when hovering over over lollipop circle
       var tooltip = addTooltip();
 
-      var lollipopCircle = addLollipopToChart(yAxisVariableString, variantTransform, data, lollipop,
+      var lollipopCircle = addLollipopToZoomedOutChart(yAxisVariableString, variantTransform, data, lollipop,
         OFFSET, scaleUniformIntronsToChart, scaleVariableIntronsToUniformIntrons, yScaleLollipop);
         
       /* Step 16: When hovering over a circle, open a tooltip displaying variant data
@@ -529,29 +530,12 @@
             data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
             lollipop, yScaleLollipop, variant_map_single_exon);
 
-          /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
-           * Tutorial on bar height: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
-           * Tutorial on chart margins: https://bl.ocks.org/mbostock/3885304
+          /* Step 20: add y axis scale and variable name to the zoomed in view 
            */
-
-          // text label for the y axis
-          // TODO: make function for this in exome_processing.js
           var yAxisTransform = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
             (margin.top + barHeightCoding + variantExonVerticalGap));
           
-          yAxisTransform.append("text")
-              .attr("transform", "rotate(-90)")
-              .attr("y", 0)
-              .attr("x", 0 - (height / 2))
-              .attr("dy", "1em")
-              .attr("text-anchor", "middle")
-              .text("MAF");
-
-          yAxisTransform.append("g")
-              .attr("class", "axis axis--y")
-              .attr("transform", "translate(" + (margin.left / 2) + "," + 
-                (0 / 2) + ")")
-              .call(d3.axisLeft(yScaleLollipop));
+          drawYAxisScaleAndLabel(yAxisTransform, height, margin, yScaleLollipop);
 
           /* Step 16: When hovering over a circle, open a tooltip displaying variant data
             * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
