@@ -350,32 +350,6 @@ function getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH)
   return range;
 }
 
-// add white rectangles to area that occur before cdsStart and area that occurs after cdsEnd
-function addNonCodingRectToZoomedOutChart(chartTransform, nonCodingExonLengths, barHeightCoding,
-  barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart) {
-
-  var nonCodingBar = chartTransform.selectAll(".rectNonCodingZoomedOut")
-    .data(nonCodingExonLengths)
-    .enter().append("rect")
-    .classed('rectNonCodingZoomedOut', true)
-    .attr("transform", function (d, i) {
-      var yPositionStart = 0;
-      if (i < 2) {
-        yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
-      }
-      return "translate(" + scaleUniformIntronsToChart(
-        nonCodingXPositionStarts[i]
-      ) + "," + yPositionStart + ")";
-    })
-    .attr("fill", "white")
-    .attr("width", scaleUniformIntronsToChart)
-    .attr("height", function (d, i) {
-      return barHeightNonCoding / 2;
-    });
-
-  return nonCodingBar;
-}
-
 // return y axis scale scale function based on input variable and height of chart
 function getYAxisScaleFromVariable(variable, height, data) {
   var yScaleMin = null;
