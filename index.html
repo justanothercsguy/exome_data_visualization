@@ -522,20 +522,20 @@
             }
           }
 
-          // add lollipops representing variants of the selected exon for zoomed-in view 
+          // initialize transform for lollipops representing variants of the selected exon for zoomed-in view 
           var variantTransform = addTransformToSvgHandle(svgZoomedIn, margin.left, 
             (margin.top + barHeightCoding + variantExonVerticalGap));
-
-          var lollipopCircle = addLollipopToZoomedInChart(yAxisVariableString, variantTransform, 
-            data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
-            lollipop, yScaleLollipop, variant_map_single_exon);
-
-          /* Step 20: add y axis scale and variable name to the zoomed in view 
-           */
+          
+          // initialize transform for y axis scale and variable name to the zoomed in view 
           var yAxisTransform = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
             (margin.top + barHeightCoding + variantExonVerticalGap));
           
-          drawYAxisScaleAndLabel(yAxisTransform, height, margin, yScaleLollipop);
+          // Add lollipops representing variants of the selected exon for zoomed-in view 
+          // and add y axis scale and variable name to the zoomed in view 
+          var lollipopCircle = updateZoomedInChartToYAxisVariable(variantTransform, 
+            yAxisVariableString, variantTransform, data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, 
+            BASE_PAIRS_OUTSIDE_EXON_LIMIT, lollipop, yScaleLollipop, variant_map_single_exon, 
+            yAxisTransform, height, margin)
 
           /* Step 16: When hovering over a circle, open a tooltip displaying variant data
             * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
@@ -566,15 +566,18 @@
                 .style("opacity", 0);
           });
         }
+        // draw lollipops representing variants for the zoomed in chart
+
         else {
           bar.on('click', function() {
             clickToLockMagnifiedExon = false;
             d3.select(bar._groups[0][clickedExonIndex]).select("rect").attr("fill", exonBarColor);
           });
-          }
-        });
+        }
+        
       });
     });
+  });
     
   </script>
   <script type="text/javascript" src="js/global_functions.js"></script>
