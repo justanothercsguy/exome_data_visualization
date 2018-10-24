@@ -1,3 +1,20 @@
+// add text representing name of gene to the zoomed out chart
+function addTextToChart(textTransformZoomedOut, text, textSize) {
+
+  var text = textTransformZoomedOut.selectAll("text")
+      .data(text)
+    .enter().append("text")
+      .attr("x", 0)
+      .attr("y", function(d, i) { 
+        return (i * textSize); 
+      })
+      .text(function(d, i) { return d; })
+      .attr("font-family", "sans-serif")
+      .attr("font-size", textSize + "px");
+
+  return text;
+}
+
 // add rectangle representing exons to a svg transform handle
 function addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
   exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding) {
