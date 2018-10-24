@@ -396,10 +396,8 @@ function addTransformToSvgHandle(svgHandle, x, y) {
   return transformHandle;
 }
 
-// not sure if I need this function for abstracting the removal
-// of objects from an svg or transform handle
-function removeObjectsFromSvgHandle(handle, objectType) {
-  handle.selectAll(objectType).remove();
+function clearDataFromTransformHandle(transformHandle, dataType) {
+  transformHandle.selectAll(dataType).remove();
 }
 
 function addTooltip() {

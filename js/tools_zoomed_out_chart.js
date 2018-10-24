@@ -1,7 +1,8 @@
 // add text representing name of gene to the zoomed out chart
 function addTextToZoomedOutChart(textTransformZoomedOut, text, textSize) {
 
-  var text = textTransformZoomedOut.selectAll("text")
+  var text = textTransformZoomedOut.append("g").
+      selectAll("text")
       .data(text)
     .enter().append("text")
       .attr("x", 0)
@@ -19,7 +20,6 @@ function addTextToZoomedOutChart(textTransformZoomedOut, text, textSize) {
 function addRectToZoomedOutChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
   exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding) {
 
-  chartTransform.selectAll("g").remove();
   var bar = chartTransform.selectAll("g")
     .data(exonLengths)
     .enter().append("g")
@@ -63,7 +63,8 @@ function getIntronStartsAndEndsWithUniformIntronLength(scaleUniformIntronsToChar
 // variants are still shown in those areas, while the middle section is lighter to show
 // that variants are not shown in the middle area
 function addIntronLinesToZoomedOutChart(chartTransform, intronStartsAndEndsWithUniformIntronLength) {
-  var lines = chartTransform.selectAll("path")
+  var lines = chartTransform.append("g")
+    .selectAll("path")
     .data(intronStartsAndEndsWithUniformIntronLength)
     .enter().append("path")
     .style("stroke", function (d, i) {
@@ -87,7 +88,8 @@ function addIntronLinesToZoomedOutChart(chartTransform, intronStartsAndEndsWithU
 function addNonCodingRectToZoomedOutChart(chartTransform, nonCodingExonLengths, barHeightCoding,
   barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart) {
 
-  var nonCodingBar = chartTransform.selectAll(".rectNonCodingZoomedOut")
+  var nonCodingBar = chartTransform.append("g")
+    .selectAll(".rectNonCodingZoomedOut")
     .data(nonCodingExonLengths)
     .enter().append("rect")
     .classed('rectNonCodingZoomedOut', true)
@@ -111,8 +113,6 @@ function addNonCodingRectToZoomedOutChart(chartTransform, nonCodingExonLengths, 
 
 function addLollipopToZoomedOutChart(yAxisVariableString, variantTransform, data, lollipop, OFFSET,
   scaleUniformIntronsToChart, scaleVariableIntronsToUniformIntrons, yScaleLollipop) {
-
-  variantTransform.selectAll("g").remove();
 
   var lollipopRect = variantTransform.selectAll("g")
     .data(data)
