@@ -400,30 +400,6 @@ function addNonCodingRectToChart(chartTransform, nonCodingExonLengths, barHeight
   return nonCodingBar;
 }
 
-// add a single rectangle representing the hovered/clicked exon to the zoomed in chart view
-function addZoomedInRectToChart(translateZoomedExon, exonLengths, hoveredExonIndex,
-  scaleSingleExonToChart, BASE_PAIRS_OUTSIDE_EXON_LIMIT, exonBarColor, barHeightCoding) {
-  var zoomBar = translateZoomedExon.append("g")
-      .selectAll("g")
-      .data([ exonLengths[hoveredExonIndex] ])
-    .enter().append("g")
-      .attr("transform", function(d) { 
-        return "translate(" + 
-          scaleSingleExonToChart(
-            BASE_PAIRS_OUTSIDE_EXON_LIMIT
-          ) + "," + 0 + ")";
-      });
-
-  zoomBar.append("rect")
-    .attr("fill", exonBarColor)
-    .attr("width", scaleSingleExonToChart)
-    .attr("height", function(d) {
-      return barHeightCoding;
-    });       
-
-  return zoomBar;
-}
-
 // return y axis scale scale function based on input variable and height of chart
 function getYAxisScaleFromVariable(variable, height, data) {
   var yScaleMin = null;

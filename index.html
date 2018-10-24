@@ -16,7 +16,8 @@
     var variant_data = [];
     var barHeightNonCoding = 0;
     var INTRON_LENGTH_SPLIT_INTO_THREE = 0;
-    var yAxisVariableString = 'MAF'; // default y axis variable, can be changed by clicking button
+    var yAxisVariableString = 'alleleNumber'; // default y axis variable, can be changed by clicking button
+    const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
 
     $(window).on("load", function() {
     /* Step 1: Get variables from the Exac dataset
@@ -155,7 +156,6 @@
      * assuming uniformly-lengthed introns (range).
      * NOTE: Dr. Zuchner said BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50 
      */
-    const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
     var domainAndSplitIntronIndices = getDomain(gene, BASE_PAIRS_OUTSIDE_EXON_LIMIT);
     var domain = domainAndSplitIntronIndices.domain;
     var splitIntronIndices = domainAndSplitIntronIndices.splitIntronIndices;
@@ -446,38 +446,15 @@
           var zoomBar = addZoomedInRectToChart(translateZoomedExon, exonLengths, hoveredExonIndex,
             scaleSingleExonToChart, BASE_PAIRS_OUTSIDE_EXON_LIMIT, exonBarColor, barHeightCoding);
 
-          /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
-           * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
-           * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
-           * SOLUTION: remove all paths and redraw a new path that will be scaled to the zoomed in exon's length
-           * MAYBE A PROBLEM: The zoomed-in exon rectangle changes in length because it has to match up
-           * with variants which are first scaled from variableIntronsToUniformIntrons and then from
-           * singleExonToChart.
+          /* Step 19: create a horizontal line representing the limited number of base pairs
+           * outside of the exon to be shown.
+           * NOTE: This does not handle case where first exon does not have 50 bp to its left
+           * or case where second exon does not have 50 bp to its right.
            */
-          // NOTE: This does not handle case where first exon does not have 50 bp to its left
-          // or case where second exon does not have 50 bp to its right
-          var zoomLineCoordinates = [];
-          zoomLineCoordinates.push(
-            [
-              [0, 0], 
-              [0, barHeightNonCoding], 
-              [scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
-            ],
-            [
-              [width, 0], 
-              [width, barHeightNonCoding], 
-              [width - scaleSingleExonToChart(BASE_PAIRS_OUTSIDE_EXON_LIMIT), barHeightNonCoding]
-            ]);
-            
-          var zoomLine = translateZoomedExon.append("g")
-              .selectAll("path")
-              .data(zoomLineCoordinates)
-              .enter().append("path")
-                .style("fill", "none")
-                .style("stroke", "black")
-                .attr("stroke-width", 2)
-                .style("stroke-dasharray", "2,1")
-                .attr("d", d3.line());
+          var zoomLineCoordinates = getDashedLineCoordinates(
+            barHeightNonCoding, width, scaleSingleExonToChart);
+          
+          var zoomLine = addDashedLineToChart(translateZoomedExon, zoomLineCoordinates);
 
           // add text next to dashed line showing the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
           var text = addTextToDashedLine(svgZoomedIn, margin, zoomLineCoordinates, 
