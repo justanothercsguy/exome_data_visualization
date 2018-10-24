@@ -57,18 +57,13 @@ function addDashedLineToChart(translateZoomedExon, zoomLineCoordinates) {
 
 // add text next to dashed line that shows the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
 // Tutorial: https://www.dashingd3js.com/svg-text-element
-function addTextToDashedLine(svgZoomedIn, margin, zoomLineCoordinates, 
-  BASE_PAIRS_OUTSIDE_EXON_LIMIT) {
+function addTextToDashedLine(textTransformHandle, margin, zoomLineCoordinates, 
+  BASE_PAIRS_OUTSIDE_EXON_LIMIT, textSize) {
     
-  var text = svgZoomedIn.append("g")
-      .attr("transform", 
-            "translate(" + margin.left + "," + (margin.top / 2) + ")")
+  var text = textTransformHandle
       .selectAll("text")
       .data(zoomLineCoordinates)
-      .enter().append("text");
-  
-  var textSize = 10;
-  var textLabels = text
+    .enter().append("text")
       .attr("x", function(d, i) { 
         return d[0][0]; 
       })

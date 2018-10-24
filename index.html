@@ -231,7 +231,10 @@
     var svgZoomedIn = addSvgToChart(margin, width, height, ".chart-zoomed-in");
 
     // initialize transform for the hovered over exon in the zoomed in view
-    var exonTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);        
+    var exonTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
+
+    // initialize transform for the base pair exon limit text in the zoomed in view
+    var textTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top / 2);
 
     // initialize transform for lollipops representing variants of hovered exon for zoomed-in view 
     var variantTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, 
@@ -470,8 +473,9 @@
           var zoomLine = addDashedLineToChart(exonTransformZoomedIn, zoomLineCoordinates);
 
           // add text next to dashed line showing the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
-          var text = addTextToDashedLine(svgZoomedIn, margin, zoomLineCoordinates, 
-            BASE_PAIRS_OUTSIDE_EXON_LIMIT);
+          var textSize = 10;
+          var text = addTextToDashedLine(textTransformZoomedIn, margin, zoomLineCoordinates, 
+            BASE_PAIRS_OUTSIDE_EXON_LIMIT, textSize);
           
           // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
           // look thinner by adding white rectangles to the top and bottom of the nonCoding area
