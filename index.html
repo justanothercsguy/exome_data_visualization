@@ -8,12 +8,15 @@
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
   <script type="text/javascript" src="js/exome_processing.js"></script>
+  <script type="text/javascript" src="js/tools_zoomed_in_chart.js"></script>
   <script>
+    
     // key representing variant base pair position is mapped to an array of variant(s) in that position
     var variant_map = {};
     var variant_data = [];
     var barHeightNonCoding = 0;
     var INTRON_LENGTH_SPLIT_INTO_THREE = 0;
+    var yAxisVariableString = 'MAF'; // default y axis variable, can be changed by clicking button
 
     $(window).on("load", function() {
     /* Step 1: Get variables from the Exac dataset
@@ -124,7 +127,7 @@
      * This way, when the exons are displayed using exonStarts and exonLengths, 
      * the first exon will start at position x = 0.
      */
-    OFFSET = gene.exons[0].start;
+    var OFFSET = gene.exons[0].start;
     exonStarts = gene.getExonStartsMinusOffset();
     exonEnds = gene.getExonEndsMinusOffset();
     cdsStart = gene.cdsStart - gene.getOffset();
@@ -344,10 +347,8 @@
        * How about this: by default the variants are not shown, and when the user
        * clicks on the button then the variants are shown?
        */
-      const lollipopRectHeight = 10;
-      const lollipopRectWidth = 0.2;
-      const lollipopRadius = 3;
-      
+
+      var lollipop = {height: 10, width: 0.2, radius: 3};
 
       var variantExonVerticalGap = 5;
       var variantTransform = addTransformToSvgHandle(svgZoomedOut, margin.left, 
@@ -358,54 +359,16 @@
       // Have to abstract functions that render lollipop rectangles and circles
       
       // Scale lollipop rectangle height based on allele frequency
-      // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
-      // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
-      var yScaleMin = d3.min(data, function(d) { return d.alleleFrequency; });
-      var yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
-      yScaleMin = Math.pow(10, yScaleMinExponent);
-
-      var yScaleLollipop = d3.scaleLog()
-          .domain([ yScaleMin, 1 ])
-          .range([ 0, height ]);
+      var yScaleLollipop = getYAxisScaleFromVariable(yAxisVariableString, height, data);
 
       // handle for tooltip that will display text when hovering over over lollipop circle
       var tooltip = addTooltip();
       
       variantTransform.selectAll("g").remove();
-      var lollipopRect = variantTransform.selectAll("g")
-          .data(data)
-        .enter().append("g")
-          .attr("transform", function(d) {
-            return "translate(" + 
-              scaleUniformIntronsToChart(
-                scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
-              ) + "," + 0 + ")";
-          })
-          .append("rect")
-          .attr("width", lollipopRectWidth)
-          .attr("height", function(d) {
-            return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
-          })
-          .attr('fill', function(d) {
-            return variantAnnotationToLollipopColor(d.annotation);
-          });
 
-      var lollipopCircle = variantTransform.selectAll('circle')
-          .data(data)
-        .enter().append('circle')
-          .attr('cx', function(d) {
-            return scaleUniformIntronsToChart(
-              scaleVariableIntronsToUniformIntrons(d.position - OFFSET)
-            );
-          })
-          .attr('cy', function(d) {
-            return yScaleLollipop(variant_map[d.position][0].alleleFrequency);
-          })
-          .attr('r', lollipopRadius)
-          .attr('fill', function(d) {
-            return variantAnnotationToLollipopColor(d.annotation);
-          });
-
+      var lollipopCircle = addLollipopToChart(yAxisVariableString, variantTransform, data, lollipop,
+        OFFSET, scaleUniformIntronsToChart, scaleVariableIntronsToUniformIntrons, yScaleLollipop);
+        
       /* Step 16: When hovering over a circle, open a tooltip displaying variant data
        * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
        */
@@ -469,7 +432,6 @@
           // NOTE: For now, the scale treats non-coding partition and coding partition of an exon 
           // separately when clicked. Each whole exon or exon partition will get a white area 
           // to its left and right representing introns.
-          var leftMarginPadding = 0;
           var singleExonAndPaddingLength = exonLengths[hoveredExonIndex] 
             + (2 * BASE_PAIRS_OUTSIDE_EXON_LIMIT);
 
@@ -480,28 +442,10 @@
           // Step 18: create a one-element array containing the hovered/clicked exon
           svgZoomedIn.selectAll("g").remove();
           var translateZoomedExon = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
-          
-          // NOTE: have no clue why but removing the scaleVariableIntronsToUniformIntrons
-          // function fixed positioning of variants on the SNA1 gene
-          var zoomBar = translateZoomedExon.append("g")
-              .selectAll("g")
-              .data([ exonLengths[hoveredExonIndex] ])
-            .enter().append("g")
-              .attr("transform", function(d) { 
-                return "translate(" + 
-                  scaleSingleExonToChart(
-                    BASE_PAIRS_OUTSIDE_EXON_LIMIT
-                  ) + "," + 0 + ")";
-              });
-          
-          // render a single rectangle representing the hovered/clicked exon in a zoomed-in view
-          zoomBar.append("rect")
-              .attr("fill", exonBarColor)
-              .attr("width", scaleSingleExonToChart)
-              .attr("height", function(d) {
-                return barHeightCoding;
-              });       
-          
+         
+          var zoomBar = addZoomedInRectToChart(translateZoomedExon, exonLengths, hoveredExonIndex,
+            scaleSingleExonToChart, BASE_PAIRS_OUTSIDE_EXON_LIMIT, exonBarColor, barHeightCoding);
+
           /* Step 19: create a horizontal line representing the extent of the limit on the number of base pairs
            * outside of the exon to be shown: https://www.dashingd3js.com/svg-paths-and-d3js
            * PROBLEM: fix the positioning of the dashed line to always end at beginning of zoomed in exon
@@ -536,23 +480,8 @@
                 .attr("d", d3.line());
 
           // add text next to dashed line showing the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
-          // Tutorial: https://www.dashingd3js.com/svg-text-element
-          var text = svgZoomedIn.append("g")
-              .attr("transform", 
-                    "translate(" + margin.left + "," + (margin.top / 2) + ")")
-              .selectAll("text")
-              .data(zoomLineCoordinates)
-              .enter().append("text");
-          
-          var textSize = 10;
-          var textLabels = text
-              .attr("x", function(d, i) { 
-                return d[0][0]; 
-              })
-              .attr("y", textSize)
-              .text(BASE_PAIRS_OUTSIDE_EXON_LIMIT + " bp")
-              .attr("font-family", "sans-serif")
-              .attr("font-size", textSize + "px");
+          var text = addTextToDashedLine(svgZoomedIn, margin, zoomLineCoordinates, 
+            BASE_PAIRS_OUTSIDE_EXON_LIMIT);
           
           // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
           // look thinner by adding white rectangles to the top and bottom of the nonCoding area
@@ -660,7 +589,7 @@
                   ) + "," + 0 + ")";
               })
               .append("rect")
-              .attr("width", lollipopRectWidth)
+              .attr("width", lollipop.width)
               .attr("height", function(d) {
                 return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
               })
@@ -680,7 +609,7 @@
               .attr('cy', function(d) {
                 return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency)
               })
-              .attr('r', lollipopRadius)
+              .attr('r', lollipop.radius)
               .attr('fill', function(d) {
                 return variantAnnotationToLollipopColor(d.annotation);
               });
