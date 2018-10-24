@@ -251,7 +251,7 @@
         .range([0, width]);
 
     // calculate starting positions of exon partitions in the svg chart
-    var bar = addRectToChart(exonTransformZoomedOut, exonLengths, scaleUniformIntronsToChart,
+    var bar = addRectToZoomedOutChart(exonTransformZoomedOut, exonLengths, scaleUniformIntronsToChart,
       exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding);
 
     // Given the starting positions of uniform introns when scaled to chart, 
@@ -267,7 +267,7 @@
     // Render different dashed lines for the three different sections of each intron
     // Darker and wider for the two side sections that contain variants
     // Lighter and thinner for the middle section that does not contain variants
-    var lines = addIntronLinesToSvgHandle(exonTransformZoomedOut, intronStartsAndEndsWithUniformIntronLength);
+    var lines = addIntronLinesToZoomedOutChart(exonTransformZoomedOut, intronStartsAndEndsWithUniformIntronLength);
 
     // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
     // look thinner by adding white rectangles to the top and bottom of the nonCoding area
@@ -333,7 +333,7 @@
         geneText[geneTextLength - 1].split(".")[0]; // remove .csv string
 
     var textSize = 12;
-    var text = addTextToChart(textTransformZoomedOut, geneText, textSize);
+    var text = addTextToZoomedOutChart(textTransformZoomedOut, geneText, textSize);
 
 
     d3.csv(variant_data_file_path + variant_data_file_name, row, function(data) {
@@ -459,8 +459,9 @@
           yAxisTransformZoomedIn.selectAll("g").remove();
 
           // Step 18: create a one-element array containing the hovered/clicked exon
-          var zoomBar = addZoomedInRectToChart(exonTransformZoomedIn, exonLengths, hoveredExonIndex,
-            scaleSingleExonToChart, BASE_PAIRS_OUTSIDE_EXON_LIMIT, exonBarColor, barHeightCoding);
+          var zoomBar = addZoomedInRectToZoomedInChart(exonTransformZoomedIn, 
+            exonLengths, hoveredExonIndex, scaleSingleExonToChart, 
+            BASE_PAIRS_OUTSIDE_EXON_LIMIT, exonBarColor, barHeightCoding);
 
           /* Step 19: create a horizontal line representing the limited number of base pairs
            * outside of the exon to be shown.
@@ -470,11 +471,11 @@
           var zoomLineCoordinates = getDashedLineCoordinates(
             barHeightNonCoding, width, scaleSingleExonToChart);
           
-          var zoomLine = addDashedLineToChart(exonTransformZoomedIn, zoomLineCoordinates);
+          var zoomLine = addDashedLineToZoomedInChart(exonTransformZoomedIn, zoomLineCoordinates);
 
           // add text next to dashed line showing the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
           var textSize = 10;
-          var text = addTextToDashedLine(textTransformZoomedIn, margin, zoomLineCoordinates, 
+          var text = addTextToZoomedInChart(textTransformZoomedIn, margin, zoomLineCoordinates, 
             BASE_PAIRS_OUTSIDE_EXON_LIMIT, textSize);
           
           // Make the exon area that occurs before cdsStart and area that occurs after cdsEnd 
@@ -573,8 +574,6 @@
                 .style("opacity", 0);
           });
         }
-        // draw lollipops representing variants for the zoomed in chart
-
         else {
           bar.on('click', function() {
             clickToLockMagnifiedExon = false;

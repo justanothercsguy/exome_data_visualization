@@ -28,7 +28,7 @@ function updateZoomedInChartToYAxisVariable(variantTransform, yAxisVariableStrin
     data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
     lollipop, yScaleLollipop, variant_map_single_exon);
 
-  drawYAxisScaleAndLabel(yAxisTransform, height, margin, yScaleLollipop);
+    addAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop);
   
   return lollipopCircle;
 }

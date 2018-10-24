@@ -1,5 +1,5 @@
 // add a single rectangle representing the hovered/clicked exon to the zoomed in chart view
-function addZoomedInRectToChart(translateZoomedExon, exonLengths, hoveredExonIndex,
+function addZoomedInRectToZoomedInChart(translateZoomedExon, exonLengths, hoveredExonIndex,
   scaleSingleExonToChart, BASE_PAIRS_OUTSIDE_EXON_LIMIT, exonBarColor, barHeightCoding) {
   var zoomBar = translateZoomedExon.append("g")
       .selectAll("g")
@@ -41,7 +41,8 @@ function getDashedLineCoordinates(barHeightNonCoding, width, scaleSingleExonToCh
 
 // add dashed line to chart which represents intron area outside of exon rectangle
 // Tutorial: https://www.dashingd3js.com/svg-paths-and-d3js
-function addDashedLineToChart(translateZoomedExon, zoomLineCoordinates) {
+function addDashedLineToZoomedInChart(translateZoomedExon, zoomLineCoordinates) {
+
   var zoomLine = translateZoomedExon.append("g")
   .selectAll("path")
   .data(zoomLineCoordinates)
@@ -57,7 +58,7 @@ function addDashedLineToChart(translateZoomedExon, zoomLineCoordinates) {
 
 // add text next to dashed line that shows the value of BASE_PAIR_OUTSIDE_EXON_LIMIT
 // Tutorial: https://www.dashingd3js.com/svg-text-element
-function addTextToDashedLine(textTransformHandle, margin, zoomLineCoordinates, 
+function addTextToZoomedInChart(textTransformHandle, margin, zoomLineCoordinates, 
   BASE_PAIRS_OUTSIDE_EXON_LIMIT, textSize) {
     
   var text = textTransformHandle
@@ -154,7 +155,8 @@ function addLollipopToZoomedInChart(yAxisVariableString, variantTransform,
   return lollipopRect;
 }
 
-function drawYAxisScaleAndLabel(yAxisTransform, height, margin, yScaleLollipop) {
+function addAxisScaleAndLabelToZoomedInChart(
+  yAxisTransform, height, margin, yScaleLollipop) {
 
   yAxisTransform.append("g").append("text")
     .attr("transform", "rotate(-90)")

@@ -1,5 +1,5 @@
 // add text representing name of gene to the zoomed out chart
-function addTextToChart(textTransformZoomedOut, text, textSize) {
+function addTextToZoomedOutChart(textTransformZoomedOut, text, textSize) {
 
   var text = textTransformZoomedOut.selectAll("text")
       .data(text)
@@ -16,7 +16,7 @@ function addTextToChart(textTransformZoomedOut, text, textSize) {
 }
 
 // add rectangle representing exons to a svg transform handle
-function addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
+function addRectToZoomedOutChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
   exonStartsWithUniformIntronLengths, exonBarColor, barHeightCoding) {
 
   chartTransform.selectAll("g").remove();
@@ -62,7 +62,7 @@ function getIntronStartsAndEndsWithUniformIntronLength(scaleUniformIntronsToChar
 // the sides of the intron area up to BASE_PAIRS_EXON_LIMIT are darkened to show that 
 // variants are still shown in those areas, while the middle section is lighter to show
 // that variants are not shown in the middle area
-function addIntronLinesToSvgHandle(chartTransform, intronStartsAndEndsWithUniformIntronLength) {
+function addIntronLinesToZoomedOutChart(chartTransform, intronStartsAndEndsWithUniformIntronLength) {
   var lines = chartTransform.selectAll("path")
     .data(intronStartsAndEndsWithUniformIntronLength)
     .enter().append("path")
