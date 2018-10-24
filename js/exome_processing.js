@@ -375,7 +375,7 @@ function addRectToChart(chartTransform, exonLengths, scaleUniformIntronsToChart,
 }
 
 // add white rectangles to area that occur before cdsStart and area that occurs after cdsEnd
-function addNonCodingRectToChart(chartTransform, nonCodingExonLengths, barHeightCoding,
+function addNonCodingRectToZoomedOutChart(chartTransform, nonCodingExonLengths, barHeightCoding,
   barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart) {
 
   var nonCodingBar = chartTransform.selectAll(".rectNonCodingZoomedOut")
@@ -443,7 +443,9 @@ function getYAxisScaleFromVariable(variable, height, data) {
 // need a function to create yScaleLollipop based on y axis variable clicked on
 function addLollipopToChart(yAxisVariableString, variantTransform, data, lollipop, OFFSET,
   scaleUniformIntronsToChart, scaleVariableIntronsToUniformIntrons, yScaleLollipop) {
-
+  
+  variantTransform.selectAll("g").remove();
+  
   var lollipopRect = variantTransform.selectAll("g")
       .data(data)
     .enter().append("g")

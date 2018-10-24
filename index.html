@@ -254,7 +254,7 @@
       exonEndsWithUniformIntronLengths[nonCodingIndices[1]] - nonCodingExonLengths[1]
     ];
 
-    var nonCodingBar = addNonCodingRectToChart(chartTransform, nonCodingExonLengths, 
+    var nonCodingBar = addNonCodingRectToZoomedOutChart(chartTransform, nonCodingExonLengths, 
       barHeightCoding, barHeightNonCoding, nonCodingXPositionStarts, scaleUniformIntronsToChart);
 
     /* Step 13: Use unary symbol to convert strings into numbers, and implement
@@ -363,8 +363,6 @@
 
       // handle for tooltip that will display text when hovering over over lollipop circle
       var tooltip = addTooltip();
-      
-      variantTransform.selectAll("g").remove();
 
       var lollipopCircle = addLollipopToChart(yAxisVariableString, variantTransform, data, lollipop,
         OFFSET, scaleUniformIntronsToChart, scaleVariableIntronsToUniformIntrons, yScaleLollipop);
@@ -438,9 +436,12 @@
           var scaleSingleExonToChart = d3.scaleLinear()
               .domain([ 0, singleExonAndPaddingLength ])
               .range([ 0, width ]);   
+          
+          // clear the zoomed in chart of all graphs so that the next hovered exon's data
+          // does not overlap with the previous hovered exon's data
+          svgZoomedIn.selectAll("g").remove();
 
           // Step 18: create a one-element array containing the hovered/clicked exon
-          svgZoomedIn.selectAll("g").remove();
           var translateZoomedExon = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
          
           var zoomBar = addZoomedInRectToChart(translateZoomedExon, exonLengths, hoveredExonIndex,
@@ -486,27 +487,10 @@
                 ];
             }
 
-            translateZoomedExon.selectAll(".rectNonCodingZoomedIn").remove();
-            var nonCodingBar = translateZoomedExon.selectAll(".rectNonCodingZoomedIn")
-                .data(nonCodingExonLengths)
-              .enter().append("rect")
-                .classed('rectNonCodingZoomedIn', true)
-                .attr("transform", function(d, i) { 
-                  var yPositionStart = 0;
-                  if (i == 1) {
-                    yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
-                  }
-                  return "translate(" + (
-                      nonCodingXPositionStart
-                    ) + "," + yPositionStart + ")";
-                })
-                .attr("fill", "white")
-                .attr("width", scaleSingleExonToChart)
-                .attr("height", function(d, i) {
-                  return barHeightNonCoding / 2;
-                });
+            var nonCodingBar = addNonCodingRectToZoomedInChart(translateZoomedExon, nonCodingExonLengths,
+              barHeightCoding, barHeightNonCoding, nonCodingXPositionStart, scaleSingleExonToChart);
           }
-
+          
           // Step 17: Render lollipops for variants of the exon in the zoomed-in view of a single exon
           // This logic needs to be fixed for first and last exon, as first exon does not have
           // intron space to its left, and last exon does not have intron space to its right
@@ -515,10 +499,10 @@
           var CLICKED_EXON_UPPER_THRESHOLD = CLICKED_EXON_OFFSET 
             + exonLengths[hoveredExonIndex] + BASE_PAIRS_OUTSIDE_EXON_LIMIT;  
 
-          if (hoveredExonIndex == 0 ) {
+          if (hoveredExonIndex == nonCodingIndices[0] ) {
             CLICKED_EXON_LOWER_THRESHOLD += BASE_PAIRS_OUTSIDE_EXON_LIMIT
           }
-          if (hoveredExonIndex == (NUM_EXONS - 1)) {
+          if (hoveredExonIndex == nonCodingIndices[1] ) {
             CLICKED_EXON_UPPER_THRESHOLD -= BASE_PAIRS_OUTSIDE_EXON_LIMIT; 
           }
           
@@ -536,60 +520,14 @@
               variant_map_single_exon[key] = value;
             }
           }
-          
-          // NOTE: this is for testing how scale function maps variants to chart
-          // console.log(gene.exons[hoveredExonIndex]);
-          // console.log(singleExonAndPaddingLength);
-          // var variantMin = d3.min(data, function(d) { return d.position; });
-          // var variantMax = d3.max(data, function(d) { return d.position; });
-          // console.log("scaleVariableIntronsToUniformIntrons(variantMin)");
-          // console.log(variantMin - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-          // console.log(scaleVariableIntronsToUniformIntrons(variantMin - CLICKED_EXON_OFFSET
-          //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
-          // console.log("scaleVariableIntronsToUniformIntrons(variantMax)");
-          // console.log(variantMax - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT);
-          // console.log(scaleVariableIntronsToUniformIntrons(variantMax - CLICKED_EXON_OFFSET
-          //   + BASE_PAIRS_OUTSIDE_EXON_LIMIT));
 
           // add lollipops representing variants of the selected exon for zoomed-in view 
           var variantTransform = addTransformToSvgHandle(svgZoomedIn, margin.left, 
             (margin.top + barHeightCoding + variantExonVerticalGap));
-          
-          var lollipopRect = variantTransform.append("g")
-              .selectAll("g")
-              .data(data)
-            .enter().append("g")
-              .attr("transform", function(d) {
-                return "translate(" + 
-                  scaleSingleExonToChart(
-                    d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
-                  ) + "," + 0 + ")";
-              })
-              .append("rect")
-              .attr("width", lollipop.width)
-              .attr("height", function(d) {
-                return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency);
-              })
-              .attr('fill', function(d) {
-                return variantAnnotationToLollipopColor(d.annotation);
-              });
 
-          var lollipopCircle = variantTransform.append("g")
-              .selectAll('circle')
-              .data(data)
-            .enter().append('circle')
-              .attr('cx', function(d) {
-                return scaleSingleExonToChart(
-                  d.position - CLICKED_EXON_OFFSET + BASE_PAIRS_OUTSIDE_EXON_LIMIT
-                );
-              })
-              .attr('cy', function(d) {
-                return yScaleLollipop(variant_map_single_exon[d.position][0].alleleFrequency)
-              })
-              .attr('r', lollipop.radius)
-              .attr('fill', function(d) {
-                return variantAnnotationToLollipopColor(d.annotation);
-              });
+          var lollipopCircle = addLollipopToZoomedInChart(yAxisVariableString, variantTransform, 
+            data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
+            lollipop, yScaleLollipop, variant_map_single_exon);
 
           /* Step 20: add vertical axis representing allele frequencies of variants in the zoomed-in view
            * Tutorial on bar height: https://bl.ocks.org/d3noob/23e42c8f67210ac6c678db2cd07a747e
