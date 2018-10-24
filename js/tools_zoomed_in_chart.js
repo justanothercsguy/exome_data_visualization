@@ -161,7 +161,7 @@ function addLollipopToZoomedInChart(yAxisVariableString, variantTransform,
 
 function drawYAxisScaleAndLabel(yAxisTransform, height, margin, yScaleLollipop) {
 
-  yAxisTransform.append("text")
+  yAxisTransform.append("g").append("text")
     .attr("transform", "rotate(-90)")
     .attr("y", - 10)
     .attr("x", 0 - (height / 2))
