@@ -114,7 +114,7 @@ function addNonCodingRectToZoomedOutChart(chartTransform, nonCodingExonLengths, 
 function addLollipopToZoomedOutChart(variantTransform, variantData, lollipop, OFFSET,
   scaleUniformIntronsToChart, scaleVariableIntronsToUniformIntrons, yScaleLollipop) {
 
-  var yAxisVariableString = mainChart.yAxisVariableString;
+  var yAxisVariableString = chartController.yAxisVariableString;
   console.log(yAxisVariableString);
   
   var lollipopRect = variantTransform.selectAll("g")

@@ -106,7 +106,7 @@ function addLollipopToZoomedInChart(variantTransform,
   data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
   lollipop, yScaleLollipop, variant_map_single_exon) {
   
-  var yAxisVariableString = mainChart.yAxisVariableString;
+  var yAxisVariableString = chartController.yAxisVariableString;
 
   var lollipopRect = variantTransform.append("g")
       .selectAll("g")
@@ -165,7 +165,7 @@ function addYAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yS
     .attr("x", 0 - (height / 2))
     .attr("dy", "1em")
     .attr("text-anchor", "middle")
-    .text(mainChart.yAxisVariableString);
+    .text(chartController.yAxisVariableString);
 
   yAxisTransform.append("g")
     .attr("class", "axis axis--y")

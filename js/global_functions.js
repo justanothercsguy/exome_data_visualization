@@ -1,12 +1,12 @@
 // change y axis variable, which will subsequently cause the whole webpage to reload
 function changeYAxisVariable(newYAxisVariable) {
 
-  mainChart.setYAxisVariableString(newYAxisVariable);
+  chartController.setYAxisVariableString(newYAxisVariable);
   if (newYAxisVariable == 'MAF') {
-      console.log('MAF');
+    console.log('MAF');
   }
   if (newYAxisVariable == 'alleleNumber') {
-      console.log('alleleNumber');
+    console.log('alleleNumber');
   }
 
   // clear previous variant visualization
@@ -14,7 +14,7 @@ function changeYAxisVariable(newYAxisVariable) {
 
   // Scale lollipop rectangle height based on allele frequency
   yScaleLollipop = getYAxisScaleFromVariable(
-    newYAxisVariable, height, variant_data);
+    newYAxisVariable, chartController.dimension.height, variant_data);
   
   // draw lollipops representing variants into the zoomed out chart
   lollipopCircle = addLollipopToZoomedOutChart(variantTransformZoomedOut, 
@@ -68,33 +68,6 @@ class TransformWrapper {
   }
 }
 
-// TODO: for each transform wrapper object, clear the transform of existing data visuals
-// and re-initialize it by calling the correct transform function using the dictionary
-// of inputs in the transform wrapper object
-// TODO: change each function that draws data onto a svg transform handle,
-// so that instead of a long list of inputs it takes in a transform wrapper 
-// with variables for the specific function
-// TODO: What happens when I need to update the contents of the transform handle?
-// Do I need to create a new wrapper or update an existing one?
-// function updateZoomedInChartToYAxisVariable(
-//   variantTransformZoomedInWrapper, yAxisTransformZoomedInWrapper) {
-
-//   var variantTransform = variantTransformZoomedInWrapper.getSvgTransformHandle();
-//   var variantTransformArgs = variantTransformZoomedInWrapper.getArgs();
-
-//   // update data viz in the variant transform in the zoomed in chart
-//   variantTransform.selectAll("g").remove();
-
-//   var lollipopCircle = addLollipopToZoomedInChart(yAxisVariableString, variantTransform, 
-//     data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
-//     lollipop, yScaleLollipop, variant_map_single_exon);
-
-//   // update data viz in the y axis transform in the zoomed in chart
-//   addAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop);
-  
-//   return lollipopCircle;
-  
-// }
 
 // Since I made yAxisVariable a global variable in index.html, I don't need
 // to pass it into this function
