@@ -540,11 +540,32 @@
 
           // Add lollipops representing variants of the selected exon for zoomed-in view 
           // and add y axis scale and variable name to the zoomed in view 
-          var lollipopCircle = updateZoomedInChartToYAxisVariable(variantTransformZoomedIn, 
-            yAxisVariableString, variantTransformZoomedIn, data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, 
+          var variantTransformZoomedInWrapper = new TransformWrapper(variantTransformZoomedIn, 
+            { yAxisVariableString: yAxisVariableString, 
+              variantTransformZoomedIn: variantTransformZoomedIn, 
+              data: data, 
+              scaleSingleExonToChart: scaleSingleExonToChart, 
+              CLICKED_EXON_OFFSET: CLICKED_EXON_OFFSET, 
+              BASE_PAIRS_OUTSIDE_EXON_LIMIT: BASE_PAIRS_OUTSIDE_EXON_LIMIT,
+              lollipop: lollipop,
+              yScaleLollipop: yScaleLollipop, 
+              variant_map_single_exon: variant_map_single_exon }
+          );
+
+          var yAxisTransformZoomedInWrapper = new TransformWrapper(yAxisTransformZoomedIn,
+            { yAxisTransformZoomedIn: yAxisTransformZoomedIn, 
+              height: height, 
+              margin: margin, 
+              yScaleLollipop: yScaleLollipop }
+          );
+
+          // var lollipopCircle = updateZoomedInChartToYAxisVariable(
+          //   variantTransformZoomedInWrapper, yAxisTransformZoomedInWrapper);
+
+          var lollipopCircle = updateZoomedInChartToYAxisVariable(yAxisVariableString, 
+            variantTransformZoomedIn, data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, 
             BASE_PAIRS_OUTSIDE_EXON_LIMIT, lollipop, yScaleLollipop, variant_map_single_exon, 
             yAxisTransformZoomedIn, height, margin)
-
           /* Step 16: When hovering over a circle, open a tooltip displaying variant data
             * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
             */

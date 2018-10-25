@@ -19,15 +19,47 @@ function changeYAxisVariable(yAxisVariable) {
 // create transform wrapper object with two inputs
 // the transform handle, and the list containing inputs that the transform needs
 // to render data correctly
+class TransformWrapper {
+  constructor(svgTransformHandle, args) {
+    this.svgTransformHandle = svgTransformHandle;
+    this.args = args;
+  }
 
+  getSvgTransformHandle() {
+    return this.svgTransformHandle;
+  }
+
+  getArgs() {
+    return this.args;
+  }
+}
 
 // for each transform wrapper object, clear the transform of existing data visuals
 // and re-initialize it by calling the correct transform function using the list
 // of inputs in the transform wrapper object
-function updateZoomedInChartToYAxisVariable(variantTransform, yAxisVariableString, 
-  variantTransform, data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, 
-  BASE_PAIRS_OUTSIDE_EXON_LIMIT, lollipop, yScaleLollipop, variant_map_single_exon, 
-  yAxisTransform, height, margin) {
+// function updateZoomedInChartToYAxisVariable(
+//   variantTransformZoomedInWrapper, yAxisTransformZoomedInWrapper) {
+
+//   var variantTransform = variantTransformZoomedInWrapper.getSvgTransformHandle();
+//   var variantTransformArgs = variantTransformZoomedInWrapper.getArgs();
+
+//   // update data viz in the variant transform in the zoomed in chart
+//   variantTransform.selectAll("g").remove();
+
+//   var lollipopCircle = addLollipopToZoomedInChart(yAxisVariableString, variantTransform, 
+//     data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
+//     lollipop, yScaleLollipop, variant_map_single_exon);
+
+//   // update data viz in the y axis transform in the zoomed in chart
+//   addAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop);
+  
+//   return lollipopCircle;
+  
+// }
+
+function updateZoomedInChartToYAxisVariable(yAxisVariableString, variantTransform, 
+  data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
+  lollipop, yScaleLollipop, variant_map_single_exon, yAxisTransform, height, margin) {
   
   // clear the transform of all g objects
   variantTransform.selectAll("g").remove();
@@ -36,7 +68,8 @@ function updateZoomedInChartToYAxisVariable(variantTransform, yAxisVariableStrin
     data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
     lollipop, yScaleLollipop, variant_map_single_exon);
 
-    addAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop);
+  
+  addAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop);
   
   return lollipopCircle;
 }
