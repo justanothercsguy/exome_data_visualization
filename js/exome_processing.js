@@ -351,17 +351,18 @@ function getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH)
 }
 
 // return y axis scale scale function based on input variable and height of chart
-function getYAxisScaleFromVariable(variable, height, data) {
+function getYAxisScaleFromVariable(variable, height, variantData) {
   var yScaleMin = null;
   var yScaleMax = null;
   var yScaleMinExponent = null;
   var yScaleLollipop = null;
 
   if (variable == 'MAF') {
+    console.log("MAF");
     // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
     // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
     // Default y axis variable is allele frequency
-    yScaleMin = d3.min(data, function(d) { return d.alleleFrequency; });
+    yScaleMin = d3.min(variantData, function(d) { return d.alleleFrequency; });
     yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
     yScaleMin = Math.pow(10, yScaleMinExponent);
 
@@ -370,8 +371,9 @@ function getYAxisScaleFromVariable(variable, height, data) {
       .range([ 0, height ]);
   }
   else if (variable == 'alleleNumber') {
-    yScaleMin = d3.min(data, function(d) { return d.alleleNumber; });
-    yScaleMax = d3.max(data, function(d) { return d.alleleNumber; });
+    console.log("alleleNumber");
+    yScaleMin = d3.min(variantData, function(d) { return d.alleleNumber; });
+    yScaleMax = d3.max(variantData, function(d) { return d.alleleNumber; });
  
     yScaleLollipop = d3.scaleLinear()
       .domain([ yScaleMin, yScaleMax ])

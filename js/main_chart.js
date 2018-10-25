@@ -5,8 +5,8 @@ class MainChart {
     this.yAxisVariableString = 'alleleNumber';
   }
 
-  getYAxisVariableString() {
-    return this.yAxisVariableString;
+  setYAxisVariableString(yAxisVariableString) {
+    this.yAxisVariableString = yAxisVariableString;
   }
   
 }

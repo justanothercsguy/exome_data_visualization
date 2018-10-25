@@ -1,7 +1,7 @@
 // change y axis variable, which will subsequently cause the whole webpage to reload
 function changeYAxisVariable(newYAxisVariable) {
 
-  mainChart.yAxisVariable = newYAxisVariable;
+  mainChart.setYAxisVariableString(newYAxisVariable);
   if (newYAxisVariable == 'MAF') {
       console.log('MAF');
   }
@@ -10,12 +10,19 @@ function changeYAxisVariable(newYAxisVariable) {
   }
   console.log(mainChart.yAxisVariable);
 
-  var chartZoomedOut = document.getElementsByClassName("chart-zoomed-out")[0];
-  var chartZoomedIn = document.getElementsByClassName("chart-zoomed-in")[0];
-  console.log(chartZoomedOut);
-  console.log(chartZoomedIn);
-  console.log(variant_map);
-  console.log(variant_data);
+  // console.log(variant_map);
+  // console.log(variant_data);
+
+  variantTransformZoomedOut.selectAll("g").remove();
+
+  console.log(lollipopCircle);
+
+  yScaleLollipop = getYAxisScaleFromVariable(
+    newYAxisVariable, height, variant_data);
+
+  lollipopCircle = addLollipopToZoomedOutChart(variantTransformZoomedOut, 
+    variant_data, lollipop, OFFSET, scaleUniformIntronsToChart, 
+    scaleVariableIntronsToUniformIntrons, yScaleLollipop);
 }
 
 // create transform wrapper object with two inputs

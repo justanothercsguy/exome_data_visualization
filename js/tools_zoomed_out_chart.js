@@ -111,13 +111,14 @@ function addNonCodingRectToZoomedOutChart(chartTransform, nonCodingExonLengths, 
   return nonCodingBar;
 }
 
-function addLollipopToZoomedOutChart(variantTransform, data, lollipop, OFFSET,
+function addLollipopToZoomedOutChart(variantTransform, variantData, lollipop, OFFSET,
   scaleUniformIntronsToChart, scaleVariableIntronsToUniformIntrons, yScaleLollipop) {
 
   var yAxisVariableString = mainChart.yAxisVariableString;
-
+  console.log(yAxisVariableString);
+  
   var lollipopRect = variantTransform.selectAll("g")
-    .data(data)
+    .data(variantData)
     .enter().append("g")
     .attr("transform", function (d) {
       return "translate(" +
@@ -140,8 +141,8 @@ function addLollipopToZoomedOutChart(variantTransform, data, lollipop, OFFSET,
     });
 
   var lollipopCircle = variantTransform.selectAll('circle')
-    .data(data)
-    .enter().append('circle')
+    .data(variantData)
+    .enter().append("g").append('circle')
     .attr('cx', function (d) {
       return scaleUniformIntronsToChart(
         scaleVariableIntronsToUniformIntrons(d.position - OFFSET)

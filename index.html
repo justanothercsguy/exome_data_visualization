@@ -27,6 +27,17 @@
     // global chart variable, will store data for zoomed in and zoomed out charts
     var mainChart = null;
 
+    // make these variables global to see if changing y axis using functions will work now
+    var height = null;
+    var variantTransformZoomedOut = null;
+    var lollipop = null;
+    var OFFSET = null;
+    var scaleUniformIntronsToChart = null;
+    var scaleVariableIntronsToUniformIntrons = null; 
+    var yScaleLollipop = null;
+    var lollipopCircle = null;
+
+
     $(window).on("load", function() {
     
     mainChart = new MainChart();
@@ -101,7 +112,7 @@
      * This way, when the exons are displayed using exonStarts and exonLengths, 
      * the first exon will start at position x = 0.
      */
-    var OFFSET = gene.exons[0].start;
+    OFFSET = gene.exons[0].start;
     exonStarts = gene.getExonStartsMinusOffset();
     exonEnds = gene.getExonEndsMinusOffset();
     cdsStart = gene.cdsStart - gene.getOffset();
@@ -142,7 +153,7 @@
      * Then initialize the function d3.scaleLinear(), using domain and range.
      */
     var range = getRange(gene_uniform_intron_length, splitIntronIndices, INTRON_LENGTH);
-    var scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
+    scaleVariableIntronsToUniformIntrons = d3.scaleLinear()
       .domain(domain)
       .range(range);
 
@@ -152,9 +163,9 @@
      */ 
     var margin = {top: 30, right: 30, bottom: 50, left: 120};
     var width = 1200 - margin.left - margin.right;
-    var height = 320 - margin.top - margin.bottom;
+    height = 320 - margin.top - margin.bottom;
     var exonBarColor = "#868686";
-    var lollipop = {height: 10, width: 0.2, radius: 3};
+    lollipop = {height: 10, width: 0.2, radius: 3};
     var variantExonVerticalGap = 5;
 
     var barHeightCoding = 20;
@@ -175,7 +186,7 @@
     var exonTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
 
     // initialize transform for lollipops representing variants of the zoomed out chart
-    var variantTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, margin.left, 
+    variantTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, margin.left, 
       (margin.top + barHeightCoding + variantExonVerticalGap));
 
 
@@ -198,7 +209,7 @@
 
 
     // initialize scale function for the mapping of exons to chart
-    var scaleUniformIntronsToChart = d3.scaleLinear()
+    scaleUniformIntronsToChart = d3.scaleLinear()
         .domain([0, TOTAL_LENGTH])
         .range([0, width]);
 
@@ -317,10 +328,11 @@
        */
       
       // Scale lollipop rectangle height based on allele frequency
-      var yScaleLollipop = getYAxisScaleFromVariable(mainChart.yAxisVariableString, height, data);
+      yScaleLollipop = getYAxisScaleFromVariable(
+        mainChart.yAxisVariableString, height, variant_data);
 
-      var lollipopCircle = addLollipopToZoomedOutChart(
-        variantTransformZoomedOut, data, lollipop, OFFSET, scaleUniformIntronsToChart, 
+      lollipopCircle = addLollipopToZoomedOutChart(variantTransformZoomedOut, 
+        variant_data, lollipop, OFFSET, scaleUniformIntronsToChart, 
         scaleVariableIntronsToUniformIntrons, yScaleLollipop);
       
       /* Step 16: When hovering over a circle, open a tooltip displaying variant data
