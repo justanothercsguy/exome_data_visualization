@@ -102,9 +102,11 @@ function addNonCodingRectToZoomedInChart(translateZoomedExon, nonCodingExonLengt
   return nonCodingBar;
 }
 
-function addLollipopToZoomedInChart(yAxisVariableString, variantTransform, 
+function addLollipopToZoomedInChart(variantTransform, 
   data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, BASE_PAIRS_OUTSIDE_EXON_LIMIT, 
   lollipop, yScaleLollipop, variant_map_single_exon) {
+  
+  var yAxisVariableString = mainChart.yAxisVariableString;
 
   var lollipopRect = variantTransform.append("g")
       .selectAll("g")
@@ -155,7 +157,7 @@ function addLollipopToZoomedInChart(yAxisVariableString, variantTransform,
   return lollipopRect;
 }
 
-function addAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop) {
+function addYAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop) {
 
   yAxisTransform.append("g").append("text")
     .attr("transform", "rotate(-90)")
@@ -163,7 +165,7 @@ function addAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, ySc
     .attr("x", 0 - (height / 2))
     .attr("dy", "1em")
     .attr("text-anchor", "middle")
-    .text(yAxisVariableString);
+    .text(mainChart.yAxisVariableString);
 
   yAxisTransform.append("g")
     .attr("class", "axis axis--y")

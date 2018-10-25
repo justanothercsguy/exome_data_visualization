@@ -10,17 +10,27 @@
   <script type="text/javascript" src="js/exome_processing.js"></script>
   <script type="text/javascript" src="js/tools_zoomed_out_chart.js"></script>
   <script type="text/javascript" src="js/tools_zoomed_in_chart.js"></script>
+  <script type="text/javascript" src="js/main_chart.js"></script>
   <script>
     
     // key representing variant base pair position is mapped to an array of variant(s) in that position
     var variant_map = {};
+
+    // array of variants, contains variants that occur on the same base pair position
     var variant_data = [];
+
     var barHeightNonCoding = 0;
     var INTRON_LENGTH_SPLIT_INTO_THREE = 0;
-    var yAxisVariableString = 'alleleNumber'; // default y axis variable, can be changed by clicking button
-    const BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
+    // var yAxisVariableString = 'alleleNumber'; // default y axis variable, can be changed by clicking button
+    var BASE_PAIRS_OUTSIDE_EXON_LIMIT = 50; 
+
+    // global chart variable, will store data for zoomed in and zoomed out charts
+    var mainChart = null;
 
     $(window).on("load", function() {
+    
+    mainChart = new MainChart();
+    console.log(mainChart);
     /* Step 1: Get variables from the Exac dataset
      *
      * cdsStart: start of the gene's coding sequence
@@ -373,12 +383,12 @@
       // Have to abstract functions that render lollipop rectangles and circles
       
       // Scale lollipop rectangle height based on allele frequency
-      var yScaleLollipop = getYAxisScaleFromVariable(yAxisVariableString, height, data);
+      var yScaleLollipop = getYAxisScaleFromVariable(mainChart.yAxisVariableString, height, data);
 
       // handle for tooltip that will display text when hovering over over lollipop circle
       var tooltip = addTooltip();
 
-      var lollipopCircle = addLollipopToZoomedOutChart(yAxisVariableString, 
+      var lollipopCircle = addLollipopToZoomedOutChart(
         variantTransformZoomedOut, data, lollipop, OFFSET, scaleUniformIntronsToChart, 
         scaleVariableIntronsToUniformIntrons, yScaleLollipop);
         
@@ -541,7 +551,7 @@
           // Add lollipops representing variants of the selected exon for zoomed-in view 
           // and add y axis scale and variable name to the zoomed in view 
           var variantTransformZoomedInWrapper = new TransformWrapper(variantTransformZoomedIn, 
-            { yAxisVariableString: yAxisVariableString, 
+            { yAxisVariableString: mainChart.yAxisVariableString, 
               variantTransformZoomedIn: variantTransformZoomedIn, 
               data: data, 
               scaleSingleExonToChart: scaleSingleExonToChart, 
@@ -562,7 +572,7 @@
           // var lollipopCircle = updateZoomedInChartToYAxisVariable(
           //   variantTransformZoomedInWrapper, yAxisTransformZoomedInWrapper);
 
-          var lollipopCircle = updateZoomedInChartToYAxisVariable(yAxisVariableString, 
+          var lollipopCircle = updateZoomedInChartToYAxisVariable(
             variantTransformZoomedIn, data, scaleSingleExonToChart, CLICKED_EXON_OFFSET, 
             BASE_PAIRS_OUTSIDE_EXON_LIMIT, lollipop, yScaleLollipop, variant_map_single_exon, 
             yAxisTransformZoomedIn, height, margin)
