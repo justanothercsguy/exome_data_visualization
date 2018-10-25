@@ -8,21 +8,46 @@ function changeYAxisVariable(newYAxisVariable) {
   if (newYAxisVariable == 'alleleNumber') {
       console.log('alleleNumber');
   }
-  console.log(mainChart.yAxisVariable);
 
-  // console.log(variant_map);
-  // console.log(variant_data);
-
+  // clear previous variant visualization
   variantTransformZoomedOut.selectAll("g").remove();
 
-  console.log(lollipopCircle);
-
+  // Scale lollipop rectangle height based on allele frequency
   yScaleLollipop = getYAxisScaleFromVariable(
     newYAxisVariable, height, variant_data);
-
+  
+  // draw lollipops representing variants into the zoomed out chart
   lollipopCircle = addLollipopToZoomedOutChart(variantTransformZoomedOut, 
     variant_data, lollipop, OFFSET, scaleUniformIntronsToChart, 
     scaleVariableIntronsToUniformIntrons, yScaleLollipop);
+  
+  // When hovering over a circle, open a tooltip displaying variant data
+  lollipopCircle.on("mouseover", function(d, i) {   
+    tooltip.transition()    
+        .duration(200)    
+        .style("opacity", .9); 
+
+    // TODO: If there is more that one variant in a position, we need to show a table
+    // of variants when clicking or hovering over that lollipop circle.
+    // For now if a position has multiple variants, the tooltip shows the first variant
+    tooltip.html("chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
+      + "position: " + variant_map[d.position][0].position + "<br/>"
+      + "referenceAllele: " + variant_map[d.position][0].reference + "<br/>"
+      + "alternateAllele: " + variant_map[d.position][0].alternate + "<br/>"
+      + "annotation: " + variant_map[d.position][0].annotation + "<br/>"
+      + "alleleCount: " + variant_map[d.position][0].alleleCount + "<br/>"
+      + "alleleNumber: " + variant_map[d.position][0].alleleNumber + "<br/>"
+      + "alleleFrequency: " + variant_map[d.position][0].alleleFrequency + "<br/>"
+      + "number of variants: " + variant_map[d.position].length)
+        .style("left", (d3.event.pageX) + "px")   
+        .style("top", (d3.event.pageY - 50) + "px");  
+
+  })          
+  .on("mouseout", function(d) {   
+    tooltip.transition()    
+        .duration(500)    
+        .style("opacity", 0);
+  });
 }
 
 // create transform wrapper object with two inputs

@@ -36,7 +36,7 @@
     var scaleVariableIntronsToUniformIntrons = null; 
     var yScaleLollipop = null;
     var lollipopCircle = null;
-
+    var tooltip = null;
 
     $(window).on("load", function() {
     
@@ -174,7 +174,7 @@
     INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
 
     // handle for tooltip that will display text when hovering over over lollipop circle
-    var tooltip = addTooltip();
+    tooltip = addTooltip();
     
     // initialize svg object for zoomed out chart
     var svgZoomedOut = addSvgToChart(margin, width, height, ".chart-zoomed-out");
@@ -326,44 +326,8 @@
        * NOTE: New feature for changing y axis variable based on clicking buttons 
        * at the top of the page is going to complicate this code
        */
+      changeYAxisVariable(mainChart.yAxisVariableString); 
       
-      // Scale lollipop rectangle height based on allele frequency
-      yScaleLollipop = getYAxisScaleFromVariable(
-        mainChart.yAxisVariableString, height, variant_data);
-
-      lollipopCircle = addLollipopToZoomedOutChart(variantTransformZoomedOut, 
-        variant_data, lollipop, OFFSET, scaleUniformIntronsToChart, 
-        scaleVariableIntronsToUniformIntrons, yScaleLollipop);
-      
-      /* Step 16: When hovering over a circle, open a tooltip displaying variant data
-       * Tutorial: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
-       */
-      lollipopCircle.on("mouseover", function(d, i) {   
-        tooltip.transition()    
-            .duration(200)    
-            .style("opacity", .9); 
-
-        // TODO: If there is more that one variant in a position, we need to show a table
-        // of variants when clicking or hovering over that lollipop circle.
-        // For now if a position has multiple variants, the tooltip shows the first variant
-        tooltip.html("chromosome: " + variant_map[d.position][0].chromosome + "<br/>"
-          + "position: " + variant_map[d.position][0].position + "<br/>"
-          + "referenceAllele: " + variant_map[d.position][0].reference + "<br/>"
-          + "alternateAllele: " + variant_map[d.position][0].alternate + "<br/>"
-          + "annotation: " + variant_map[d.position][0].annotation + "<br/>"
-          + "alleleCount: " + variant_map[d.position][0].alleleCount + "<br/>"
-          + "alleleNumber: " + variant_map[d.position][0].alleleNumber + "<br/>"
-          + "alleleFrequency: " + variant_map[d.position][0].alleleFrequency + "<br/>"
-          + "number of variants: " + variant_map[d.position].length)
-            .style("left", (d3.event.pageX) + "px")   
-            .style("top", (d3.event.pageY - 50) + "px");  
-
-      })          
-      .on("mouseout", function(d) {   
-        tooltip.transition()    
-            .duration(500)    
-            .style("opacity", 0);
-      });
     });
   });
     
