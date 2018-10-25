@@ -50,9 +50,47 @@
       var exonBarColor = "#868686";
       lollipop = {width: 0.2, radius: 3};
       var variantExonVerticalGap = 5;
-
+      var barHeightCoding = 20;
+      barHeightNonCoding = barHeightCoding / 2;
+      
       chartController = new ChartController(yAxisVariableString, margin, dimension, exonBarColor);
       console.log(chartController);
+
+
+      // handle for tooltip that will display text when hovering over over lollipop circle
+      tooltip = addTooltip();
+      
+      // initialize svg object for zoomed out chart
+      var svgZoomedOut = addSvgToChart(chartController.margin, chartController.dimension, ".chart-zoomed-out");
+      
+      // initialize transform for text displaying name of the gene
+      var textTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, 0, margin.top);
+
+      // initialize transform for rectangles representing exons of the zoomed out chart
+      var exonTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
+
+      // initialize transform for lollipops representing variants of the zoomed out chart
+      variantTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, margin.left, 
+        (margin.top + barHeightCoding + variantExonVerticalGap));
+
+
+      // initialize svg object for zoomed in chart
+      var svgZoomedIn = addSvgToChart(chartController.margin, chartController.dimension, ".chart-zoomed-in");
+
+      // initialize transform for the hovered over exon in the zoomed in view
+      var exonTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
+
+      // initialize transform for the base pair exon limit text in the zoomed in view
+      var textTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top / 2);
+
+      // initialize transform for lollipops representing variants of hovered exon for zoomed-in view 
+      var variantTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, 
+      (margin.top + barHeightCoding + variantExonVerticalGap));
+    
+      // initialize transform for y axis scale and variable name to the zoomed in view 
+      var yAxisTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
+        (margin.top + barHeightCoding + variantExonVerticalGap));
+
       /* Step 1: Get variables from the Exac dataset
       *
       * cdsStart: start of the gene's coding sequence
@@ -172,44 +210,8 @@
       * and shorter height rectangles representing non-coding exon partitions. To represent introns,
       * render horizontal dashed lines in the white space between the rectangles.
       */
-      var barHeightCoding = 20;
-      barHeightNonCoding = barHeightCoding / 2;
       const TOTAL_LENGTH = SUM_EXON_LENGTHS + SUM_INTRON_LENGTHS;
       INTRON_LENGTH_SPLIT_INTO_THREE = roundToTwoDecimalPlaces(INTRON_LENGTH / 3);
-
-      // handle for tooltip that will display text when hovering over over lollipop circle
-      tooltip = addTooltip();
-      
-      // initialize svg object for zoomed out chart
-      var svgZoomedOut = addSvgToChart(chartController.margin, chartController.dimension, ".chart-zoomed-out");
-      
-      // initialize transform for text displaying name of the gene
-      var textTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, 0, margin.top);
-
-      // initialize transform for rectangles representing exons of the zoomed out chart
-      var exonTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, margin.left, margin.top);
-
-      // initialize transform for lollipops representing variants of the zoomed out chart
-      variantTransformZoomedOut = addTransformToSvgHandle(svgZoomedOut, margin.left, 
-        (margin.top + barHeightCoding + variantExonVerticalGap));
-
-
-      // initialize svg object for zoomed in chart
-      var svgZoomedIn = addSvgToChart(chartController.margin, chartController.dimension, ".chart-zoomed-in");
-
-      // initialize transform for the hovered over exon in the zoomed in view
-      var exonTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top);
-
-      // initialize transform for the base pair exon limit text in the zoomed in view
-      var textTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, margin.top / 2);
-
-      // initialize transform for lollipops representing variants of hovered exon for zoomed-in view 
-      var variantTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, margin.left, 
-      (margin.top + barHeightCoding + variantExonVerticalGap));
-    
-      // initialize transform for y axis scale and variable name to the zoomed in view 
-      var yAxisTransformZoomedIn = addTransformToSvgHandle(svgZoomedIn, (margin.left / 4), 
-        (margin.top + barHeightCoding + variantExonVerticalGap));
 
 
       // initialize scale function for the mapping of exons to chart
