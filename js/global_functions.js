@@ -15,7 +15,7 @@ function changeYAxisVariable(newYAxisVariable) {
   console.log(chartZoomedOut);
   console.log(chartZoomedIn);
   console.log(variant_map);
-
+  console.log(variant_data);
 }
 
 // create transform wrapper object with two inputs
@@ -81,4 +81,64 @@ function updateZoomedInChartToYAxisVariable(variantTransform,
   addYAxisScaleAndLabelToZoomedInChart(yAxisTransform, height, margin, yScaleLollipop);
   
   return lollipopCircle;
+}
+
+
+function intializeVariantArray(variant_data_file_path, 
+  variant_data_file_name, exonStarts, exonEnds, OFFSET, EXON_COUNT) {
+  
+  /* Step 13: Use unary symbol to convert strings into numbers, and implement
+  * row function to tell d3.csv() how to parse each row in csv file.
+  * https://bl.ocks.org/curran/d867264d468b323c2e76886d44e7e8f9
+  */
+  const row = function(d) {
+    const chromosomeString = d['Chrom'];
+    const positionString = d['Position'];
+    const alleleCountString = d['Allele Count'];
+    const alleleNumberString = d['Allele Number'];
+    const alleleFrequencyString = d['Allele Frequency'];
+
+    return {
+      chromosome: +chromosomeString,
+      reference: d['Reference'],
+      alternate: d['Alternate'],
+      annotation: d['Annotation'],
+      position: +positionString,
+      alleleCount: +alleleCountString,
+      alleleNumber: +alleleNumberString,
+      alleleFrequency: +alleleFrequencyString
+    };
+  };
+
+  d3.csv(variant_data_file_path + variant_data_file_name, row, function(data) {
+    // Since variant positions have not been subtracted by OFFSET, add OFFSET to exonStarts and exonEnds 
+    // to get threshold values for filtering out variants that are greater than NON_CODING_LENGTH_LIMIT
+    // number of base pairs outside of the exon
+    const LOWER_THRESHOLD = exonStarts[0] + OFFSET;
+    const UPPER_THRESHOLD = exonEnds[EXON_COUNT - 1] + OFFSET;
+
+    data = data.filter(function(d) {
+      if (d.position >= LOWER_THRESHOLD && d.position <= UPPER_THRESHOLD) {
+        return true;
+      }
+      return false;
+    });
+    variant_data = data;
+  });
+  
+  console.log(variant_data);
+}
+
+
+function intializeVariantMap(variantArray) {
+
+  variantArray.forEach(function(variant) {
+    var position = variant.position;
+    if (!variant_map[position]) {
+      variant_map[position] = [variant];
+    }
+    else {
+      variant_map[position].push(variant);
+    }
+  });
 }
