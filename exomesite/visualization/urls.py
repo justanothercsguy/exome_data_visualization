@@ -6,6 +6,6 @@ urlpatterns = [
     # ex: /visualization/
     path('', views.index, name='index'),
 
-    # ex: /visualization/1
-    path('<int:id>/', views.query, name='query'),
+    # ex: /visualization/PCSK9
+    path('<str:gene_name2>/', views.result, name='result'),
 ]

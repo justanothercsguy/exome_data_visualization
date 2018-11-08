@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+        
+        <!-- 
+            This script below can be turned into a separate JS file later
+        -->
+        <script type="text/javascript">
+            // use array.reduce(getSum) to get sum of array
+            function getSum(total, num) {
+                return total + num;
+}
+            // get strings from views.py
+            var exonStartsString = "{{gene.exonstarts}}";
+            var exonEndsString = "{{gene.exonends}}";
+            var cdsStartString = "{{gene.cdsstart}}";
+            var cdsEndString = "{{gene.cdsend}}";
+            
+            $(window).on("load", function() {
+                console.log(exonStartsString);
+                console.log(exonEndsString);
+                
+                // exonStarts and exonEnds have a trailing comma that must be removed
+                var exonStarts = exonStartsString.split(",");
+                var exonEnds = exonEndsString.split(",");
+                exonStarts.pop()
+                exonEnds.pop()
+                
+                var exonCount = exonStarts.length;
+                console.log("exonCount");
+                console.log(exonCount);
+                
+                // TODO: get only parts of exons that code proteins, range from cdsStart to cdsEnd
+                // Case 1: exon that ends before cdsStart is non-coding
+                // Case 2: exon that starts after cdsEnd is non-coding
+                // Case 3: exon that starts before cdsStart but ends after cdsStart
+                // should be trimmed of part starting before cdsStart
+                // Case 4: exon that starts before cdsEnd but ends after cdsEnd
+                // should be trimmed of part ending after cdsEnd
+                var cdsStart = parseInt(cdsStartString);
+                var cdsEnd = parseInt(cdsEndString);
+                var exonStartsCoding = [];
+                var exonEndsCoding = [];
+                console.log("cdsStart");
+                console.log(cdsStart);
+                console.log("cdsEnd");
+                console.log(cdsEnd);
+                for (var i=0; i < exonCount; i++) {
+                    if (exonStarts[i] <= cdsStart && exonEnds >= cdsEnd) {
+                        exonStartsCoding.push(cdsStart);
+                        exonEndsCoding.push(exonEnds[i]);
+                    }
+                }
+
+                // adjust startExon data so that first element starts at index 0, 
+                // but lengths of exons and gaps are preserved
+                var exonStartsAdjusted = [];
+                var exonEndsAdjusted = [];
+                var exonLengths = [];
+                for (var i=0; i < exonCount; i++) {
+                    exonStartsAdjusted.push(exonStarts[i] - exonStarts[0]);
+                    exonEndsAdjusted.push(exonEnds[i] - exonStarts[0]);
+                    exonLengths.push(exonEnds[i] - exonStarts[i]);
+                }
+                console.log("exonStartsAdjusted");
+                console.log(exonStartsAdjusted);
+                console.log("exonEndsAdjusted");
+                console.log(exonEndsAdjusted);
+                console.log("Exon Lengths");
+                console.log(exonLengths);
+                
+                // Get total length of gene which will be used to scale exons in chart
+                // Used when we need to display proportionate exons and introns/gaps
+                /*
+                var totalLength = exonEnds[exonEnds.length-1] - exonStarts[0];
+                console.log("totalLength");
+                console.log(totalLength);
+
+                // calculate gaps between exons to check for accuracy
+                gapLengths = [];
+                for (var i=1; i < exonEndsAdjusted.length; i++) {
+                    gapLengths.push(exonStartsAdjusted[i] - exonEndsAdjusted[i-1]);
+                }
+                console.log("gapLengths");
+                console.log(gapLengths);
+                */
+                
+                // Use this to display proportionate exons while minimizing gaps
+                var sumExonLengths = exonLengths.reduce(getSum);
+                // var sumGapLengths = sumExonLengths / 8;
+                // var gapLength = sumGapLengths / (exonLengths.length - 1);
+                var gapLength = sumExonLengths / 100;
+                var sumGapLengths = gapLength * (exonCount - 1);
+                var totalLength = sumGapLengths + sumExonLengths;
+                console.log("sumExonLengths");
+                console.log(sumExonLengths);
+                console.log("sumGapLengths");
+                console.log(sumGapLengths);
+                console.log("totalLength");
+                console.log(totalLength);
+                
+                // calculate starting x position for each exon, with uniform gapLength
+                var exonStartsWithUniformGaps = [exonStartsAdjusted[0]];
+                for (var i=1; i < exonCount; i++) {
+                    exonStartsWithUniformGaps.push(
+                        exonStartsWithUniformGaps[i-1] + exonLengths[i-1] + gapLength);
+                }
+
+                // calculate scaling between gene length and chart div width
+                var chartWidth = 800;
+                var barHeight = 20;
+
+                var x = d3.scaleLinear()
+                    .domain([0, totalLength])
+                    .range([0, chartWidth]);
+                
+                var chart = d3.select(".chart")
+                    .attr("width", chartWidth)
+                    .attr("height", barHeight * exonCount);
+                
+                // translate x coordinate will be the gaps between exons
+                // since there is one less gap than the number of elements in exonStarts,
+                // add a 0 for the first gap
+                var bar = chart.selectAll("g")
+                    .data(exonLengths)
+                .enter().append("g")
+                    .attr("transform", function(d, i) { 
+                        // return "translate(" + barHeight + "," + 0 + ")"
+                        // return "translate(" + (exonStartsAdjusted[i] * chartWidth / totalLength) + "," + 0 + ")"
+                        return "translate(" + (exonStartsWithUniformGaps[i] * chartWidth / totalLength) + "," + 0 + ")"
+                    });
+
+                bar.append("rect")
+                    .attr("width", x)
+                    .attr("height", barHeight - 1);
+                
+                /*
+                bar.append("text")
+                    .attr("x", function(d) { return x(d) - 3; })
+                    .attr("y", barHeight / 2)
+                    .attr("dy", ".35em")
+                    .text(function(d) { return d; });
+                */
+            });
+        </script>
+
+        <style>
+            .chart rect {
+                fill:hsl(200, 100%, 70%);
+            }
+
+            .chart text {
+                fill: white;
+                font: 10px sans-serif;
+                text-anchor: end;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>{{ gene }}</h1>
+        <ul>
+            <li>txstart: {{ gene.txstart }}</li>
+            <li>txend: {{ gene.txend }}</li>
+            <li>cdsstart: {{ gene.cdsstart }}</li>
+            <li>cdsend: {{ gene.cdsend }}</li>
+            <li>exonstarts: {{ gene.exonstarts }}</li>
+            <li>exonends: {{ gene.exonends }}</li>
+        </ul>
+
+        <!-- This stores the D3 JS graph -->
+        <svg class="chart"></svg>
+    </body>
+</html>
