@@ -21,7 +21,13 @@ class Gene(models.Model):
     def __str__(self):
         return self.name2 + ' (' + self.name + ')'
 
-class Variants(models.Model):
+# I wanted an abstract interface class called Variant that has several 
+# implementations in the form of tables such as 'visualization_variant_PCSK9'
+# or 'visualization_variant_SAMD11' but I can't seem to find any way to route
+# Django tables based on a generic Variant class. Therefore, I combined 
+# six variant tables together into a single table for testing purposes.
+class Variant(models.Model):
+    name = models.CharField(max_length=200)
     chrom = models.CharField(max_length=200)
     position = models.IntegerField()
     rsid = models.CharField(max_length=200)
@@ -43,9 +49,9 @@ class Variants(models.Model):
     allelecounteastasian = models.IntegerField()
     allelenumbereastasian = models.IntegerField()
     homozygotecounteastasian = models.IntegerField()
-    allelecounteuropean_non_finnish_field = models.IntegerField()
-    allelenumbereuropean_non_finnish_field = models.IntegerField()
-    homozygotecounteuropean_non_finnish_field = models.IntegerField()
+    allelecounteuropeannonfinnish = models.IntegerField()
+    allelenumbereuropeannonfinnish = models.IntegerField()
+    homozygotecounteuropeannonfinnish = models.IntegerField()
     allelecountfinnish = models.IntegerField()
     allelenumberfinnish = models.IntegerField()
     homozygotecountfinnish = models.IntegerField()
@@ -59,6 +65,8 @@ class Variants(models.Model):
     allelenumbersouthasian = models.IntegerField()
     homozygotecountsouthasian = models.IntegerField()
 
-    def __str__(self):
-        return ("chrom; " + self.chrom + ", position: " + self.position +
+    def __str__(self): 
+        return (
+            self.name + ", chrom: " + self.chrom + 
+            ", position: " + self.position +
             ", reference/alternate: " + self.reference + '/' + self.alternate)
