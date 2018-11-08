@@ -68,5 +68,5 @@ class Variant(models.Model):
     def __str__(self): 
         return (
             self.name + ", chrom: " + self.chrom + 
-            ", position: " + self.position +
+            ", position: " + str(self.position) +
             ", reference/alternate: " + self.reference + '/' + self.alternate)
