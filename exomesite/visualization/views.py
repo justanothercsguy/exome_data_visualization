@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 from .models import Gene
 
@@ -21,9 +21,12 @@ def index(request):
     return render(request, 'visualization/index.html', context)
 
 def result(request, gene_name2):
-    try:
-        # if there are variants of the same gene, get the one with the most exons
-        gene = Gene.objects.filter(name2=gene_name2).order_by('-exoncount')[0]
-    except Gene.DoesNotExist:
-        raise Http404("Could not find gene " + str(gene_name2))
+    # NOTE: I am not sure which way of error handling is better
+    # try:
+    #     # if there are variants of the same gene, get the one with the most exons
+    #     gene = Gene.objects.filter(name2=gene_name2).order_by('-exoncount')[0]
+    # except Gene.DoesNotExist:
+    #     raise Http404("Could not find gene " + str(gene_name2))
+
+    gene = get_object_or_404(Gene, name2=gene_name2)
     return render(request, 'visualization/result.html', {'gene': gene})
