@@ -18,6 +18,7 @@
             var exonEndsString = "{{gene.exonends}}";
             var cdsStartString = "{{gene.cdsstart}}";
             var cdsEndString = "{{gene.cdsend}}";
+            var exonCount = "{{gene.exoncount}}";
             
             $(window).on("load", function() {
                 console.log(exonStartsString);
@@ -168,6 +169,7 @@
             <li>cdsend: {{ gene.cdsend }}</li>
             <li>exonstarts: {{ gene.exonstarts }}</li>
             <li>exonends: {{ gene.exonends }}</li>
+            <li>exoncount: {{ gene.exoncount }}</li>
         </ul>
 
         <!-- This stores the D3 JS graph -->
