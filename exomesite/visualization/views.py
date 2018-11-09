@@ -7,7 +7,7 @@ from django.urls import reverse
 from .models import Gene, Variant
 
 
-# return the first 10 uniquely named genes from the database
+# return up to the first 10 uniquely named genes from the database
 def get_ten_genes():
     query_gene_list = Gene.objects.order_by('-name2')[:10]
     gene_name_set = set()
@@ -22,11 +22,13 @@ def get_ten_genes():
 
     return new_gene_list
 
+
 # send data to homepage of the visualization app
 def index(request):
     return render(request, 'visualization/index.html', {
         'sample_gene_list': get_ten_genes
     })
+
 
 # send the data from querying a gene to the corresponding html page, 
 # or redirect to homepage with an error message saying the gene was not found
@@ -58,9 +60,18 @@ def result(request, gene_name2):
         'variant_list_json': serialize('json', variant_list, cls=DjangoJSONEncoder)
     })
 
+
 # get the name of the gene that the user inputted in the searchbox 
 # and redirect to the result view with that input
+# catch exceptional case where there is no input in the searchbox
 def search(request):
     gene_name = request.POST.get("query_gene", "")
+    if not gene_name:
+        error_message = "Please enter a gene name"
+        return render(request, 'visualization/index.html', {
+            'sample_gene_list': get_ten_genes(),
+            'error_message': error_message
+        })
+
     return HttpResponseRedirect(reverse('visualization:result', args=(gene_name,)))
     
