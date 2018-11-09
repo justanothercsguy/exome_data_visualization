@@ -7,7 +7,8 @@ from django.urls import reverse
 from .models import Gene, Variant
 
 
-def index(request):
+# return the first 10 uniquely named genes from the database
+def get_ten_genes():
     query_gene_list = Gene.objects.order_by('-name2')[:10]
     gene_name_set = set()
     new_gene_list = []
@@ -19,31 +20,31 @@ def index(request):
             new_gene_list.append(gene)
             gene_name_set.add(gene.name2)
 
-    context = {'sample_gene_list': new_gene_list}
-    return render(request, 'visualization/index.html', context)
+    return new_gene_list
 
-# def index(request):
-#     # NOTE: too complicated to handle variations of the same gene right now,
-#     # so select the variation with the most exons
-#     gene_pcsk9 = Gene.objects.filter(name2='PCSK9').order_by('-exoncount')[0]
-#     context = {'gene_pcsk9': gene_pcsk9}
-#     return render(request, 'visualization/index.html', context)
+# send data to homepage of the visualization app
+def index(request):
+    return render(request, 'visualization/index.html', {
+        'sample_gene_list': get_ten_genes
+    })
 
-
+# send the data from querying a gene to the corresponding html page, 
+# or redirect to homepage with an error message saying the gene was not found
 def result(request, gene_name2):
     gene = []
     variant_list = []
 
-    # TODO: In the case that the gene does not exist in the database,
-    # redirect user to visualization:index with a div that explains error
     try:
         # if there are variants of the same gene, get the one with the most exons
         gene = Gene.objects.filter(name2=gene_name2).order_by('-exoncount')[0]
     except:
-        raise Http404("Could not find gene " + str(gene_name2))
-        # return HttpResponseRedirect(reverse('visualization:index'))
+        error_message = "Could not find gene " + str(gene_name2)
+        return render(request, 'visualization/index.html', {
+            'sample_gene_list': get_ten_genes(),
+            'error_message': error_message
+        })
 
-    # TODO: how to handle exception tricky case where the gene exists 
+    # TODO: figure out how to handle exception case where the gene exists 
     # in visualization_gene table but the variants for that gene do not exist 
     # in the visualization_variants table
     try:
@@ -57,6 +58,8 @@ def result(request, gene_name2):
         'variant_list_json': serialize('json', variant_list, cls=DjangoJSONEncoder)
     })
 
+# get the name of the gene that the user inputted in the searchbox 
+# and redirect to the result view with that input
 def search(request):
     gene_name = request.POST.get("query_gene", "")
     return HttpResponseRedirect(reverse('visualization:result', args=(gene_name,)))

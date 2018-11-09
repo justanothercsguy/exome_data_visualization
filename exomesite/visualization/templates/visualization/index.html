@@ -9,6 +9,10 @@
                 <input type="submit" value="search">
             </form>
 
+            {% if error_message %}
+                <p>Error message: {{ error_message }}</p>
+            {% endif %}
+
             {% if sample_gene_list %}
                 <p>Sample List of Genes</p>
                 <ul>
@@ -17,7 +21,6 @@
                 {% endfor %}
                 </ul>
             {% else %}
-                <!-- if we reach here then gene PCSK9 was not found -->
                <p> There are currently no genes available in the database.</p> 
             {% endif %}
         </div>
