@@ -1,7 +1,7 @@
 {% if sample_gene_list %}
     <ul>
     {% for gene in sample_gene_list %}
-        <li><a href="{% url 'result' gene.name2 %}">{{ gene.name2 }}</a></li>
+        <li><a href="{% url 'visualization:result' gene.name2 %}">{{ gene.name2 }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
