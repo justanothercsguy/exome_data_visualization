@@ -8,7 +8,7 @@ urlpatterns = [
     path('', views.index, name='index'),
 
     # ex: /visualization/search
-    # The path for search must be put before the path for detail,
+    # The path for search must be put before the path for result,
     # otherwise '<str:gene_name2>/' mistakes 'search' as the name of a gene
     path('search/', views.search, name='search_gene'),
     

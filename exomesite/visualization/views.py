@@ -7,27 +7,27 @@ from django.urls import reverse
 from .models import Gene, Variant
 
 
-# def index(request):
-#     query_gene_list = Gene.objects.order_by('-name2')[:10]
-#     gene_name_set = set()
-#     new_gene_list = []
-
-#     # check for gene objects that have the same value in the 'name2' field 
-#     # exclude those in the new_gene_list
-#     for gene in query_gene_list:
-#         if gene.name2 not in gene_name_set:
-#             new_gene_list.append(gene)
-#             gene_name_set.add(gene.name2)
-
-#     context = {'sample_gene_list': new_gene_list}
-#     return render(request, 'visualization/index.html', context)
-
 def index(request):
-    # NOTE: too complicated to handle variations of the same gene right now,
-    # so select the variation with the most exons
-    gene_pcsk9 = Gene.objects.filter(name2='PCSK9').order_by('-exoncount')[0]
-    context = {'gene_pcsk9': gene_pcsk9}
+    query_gene_list = Gene.objects.order_by('-name2')[:10]
+    gene_name_set = set()
+    new_gene_list = []
+
+    # check for gene objects that have the same value in the 'name2' field 
+    # exclude those in the new_gene_list
+    for gene in query_gene_list:
+        if gene.name2 not in gene_name_set:
+            new_gene_list.append(gene)
+            gene_name_set.add(gene.name2)
+
+    context = {'sample_gene_list': new_gene_list}
     return render(request, 'visualization/index.html', context)
+
+# def index(request):
+#     # NOTE: too complicated to handle variations of the same gene right now,
+#     # so select the variation with the most exons
+#     gene_pcsk9 = Gene.objects.filter(name2='PCSK9').order_by('-exoncount')[0]
+#     context = {'gene_pcsk9': gene_pcsk9}
+#     return render(request, 'visualization/index.html', context)
 
 
 def result(request, gene_name2):

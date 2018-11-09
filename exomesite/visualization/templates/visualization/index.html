@@ -8,13 +8,17 @@
                 <input id="searchbox-input" name= "query_gene" type="text" placeholder="Search for a gene...">
                 <input type="submit" value="search">
             </form>
-            {% if gene_pcsk9 %}
-                <p class="text-muted">
-                    Examples - Gene: <a href="{% url 'visualization:result' gene_pcsk9.name2 %}">{{ gene_pcsk9 }}</a>
-                </p>
+
+            {% if sample_gene_list %}
+                <p>Sample List of Genes</p>
+                <ul>
+                {% for gene in sample_gene_list %}
+                    <li><a href="{% url 'visualization:result' gene.name2 %}">{{ gene.name2 }}</a></li>
+                {% endfor %}
+                </ul>
             {% else %}
                 <!-- if we reach here then gene PCSK9 was not found -->
-               <p> Gene PCSK9 was not found. Try a different gene name. </p> 
+               <p> There are currently no genes available in the database.</p> 
             {% endif %}
         </div>
 </html>
