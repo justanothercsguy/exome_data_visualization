@@ -21,6 +21,7 @@ class Gene(models.Model):
     def __str__(self):
         return self.name2 + ' (' + self.name + ')'
 
+
 # I wanted an abstract interface class called Variant that has several 
 # implementations in the form of tables such as 'visualization_variant_PCSK9'
 # or 'visualization_variant_SAMD11' but I can't seem to find any way to route

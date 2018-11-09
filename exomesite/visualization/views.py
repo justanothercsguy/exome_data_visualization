@@ -1,8 +1,11 @@
+from django.core.serializers import serialize
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse
 from django.http import Http404
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 
-from .models import Gene
+
+from .models import Gene, Variant
 
 
 def index(request):
@@ -21,12 +24,22 @@ def index(request):
     return render(request, 'visualization/index.html', context)
 
 def result(request, gene_name2):
-    # NOTE: I am not sure which way of error handling is better
-    # try:
-    #     # if there are variants of the same gene, get the one with the most exons
-    #     gene = Gene.objects.filter(name2=gene_name2).order_by('-exoncount')[0]
-    # except Gene.DoesNotExist:
-    #     raise Http404("Could not find gene " + str(gene_name2))
+    gene = []
+    variant_list = []
 
-    gene = get_object_or_404(Gene, name2=gene_name2)
-    return render(request, 'visualization/result.html', {'gene': gene})
+    try:
+        # if there are variants of the same gene, get the one with the most exons
+        gene = Gene.objects.filter(name2=gene_name2).order_by('-exoncount')[0]
+    except Gene.DoesNotExist:
+        raise Http404("Could not find gene " + str(gene_name2))
+
+    try:
+        variant_list = Variant.objects.filter(name=gene_name2)
+    except Variant.DoesNotExist:
+        raise Http404("Could not find variants for gene " + str(gene_name2))
+
+    # json serialize the QuerySet of Variant objects
+    return render(request, 'visualization/result.html', {
+        'gene': gene,
+        'variant_list_json': serialize('json', variant_list, cls=DjangoJSONEncoder)
+    })
