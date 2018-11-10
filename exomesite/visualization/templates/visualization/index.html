@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <html lang="en-US">
+    <head>
+        <title>Exome Data Visualization</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        {% load static %}
+        <link rel="stylesheet" type="text/css" href="{% static 'visualization/css/style.css' %}" />
+    </head>
     <body>
         <!-- This section is a searchbox for genes -->
         <div id="searchbox">
@@ -12,7 +20,7 @@
             {% if error_message %}
                 <p>Error: {{ error_message }}</p>
             {% endif %}
-
+        </div>
             {% if sample_gene_list %}
                 <p>Sample List of Genes</p>
                 <ul>
@@ -23,5 +31,5 @@
             {% else %}
                <p> There are currently no genes available in the database.</p> 
             {% endif %}
-        </div>
+    </body>
 </html>

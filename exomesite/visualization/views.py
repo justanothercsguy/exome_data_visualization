@@ -63,9 +63,10 @@ def result(request, gene_name2):
 
 # get the name of the gene that the user inputted in the searchbox 
 # and redirect to the result view with that input
-# catch exceptional case where there is no input in the searchbox
 def search(request):
     gene_name = request.POST.get("query_gene", "")
+
+    # Catch exceptional case where there is no input in the searchbox
     if not gene_name:
         error_message = "Please enter a gene name"
         return render(request, 'visualization/index.html', {
