@@ -2,6 +2,9 @@
 
 <html lang="en-US">
     <head>
+        <title>Exome Browser</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
         <script src="https://code.jquery.com/jquery-3.3.1.min.js"
             integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -80,22 +83,6 @@
                 console.log("Exon Lengths");
                 console.log(exonLengths);
                 
-                // Get total length of gene which will be used to scale exons in chart
-                // Used when we need to display proportionate exons and introns/gaps
-                /*
-                var totalLength = exonEnds[exonEnds.length-1] - exonStarts[0];
-                console.log("totalLength");
-                console.log(totalLength);
-
-                // calculate gaps between exons to check for accuracy
-                gapLengths = [];
-                for (var i=1; i < exonEndsAdjusted.length; i++) {
-                    gapLengths.push(exonStartsAdjusted[i] - exonEndsAdjusted[i-1]);
-                }
-                console.log("gapLengths");
-                console.log(gapLengths);
-                */
-                
                 // Use this to display proportionate exons while minimizing gaps
                 var sumExonLengths = exonLengths.reduce(getSum);
                 // var sumGapLengths = sumExonLengths / 8;
@@ -125,9 +112,13 @@
                     .domain([0, totalLength])
                     .range([0, chartWidth]);
                 
-                var chart = d3.select(".chart")
+                var margin = {top: 30, right: 30, bottom: 50, left: 120};
+                var chartWidth = 1200 - margin.left - margin.right;
+                var chartHeight = 320 - margin.top - margin.bottom
+                
+                var chart = d3.select(".chart-zoomed-out").append("svg")
                     .attr("width", chartWidth)
-                    .attr("height", barHeight * exonCount);
+                    .attr("height", chartHeight);
                 
                 // translate x coordinate will be the gaps between exons
                 // since there is one less gap than the number of elements in exonStarts,
@@ -136,22 +127,15 @@
                     .data(exonLengths)
                 .enter().append("g")
                     .attr("transform", function(d, i) { 
-                        // return "translate(" + barHeight + "," + 0 + ")"
-                        // return "translate(" + (exonStartsAdjusted[i] * chartWidth / totalLength) + "," + 0 + ")"
-                        return "translate(" + (exonStartsWithUniformGaps[i] * chartWidth / totalLength) + "," + 0 + ")"
+                        return "translate(" + (
+                            exonStartsWithUniformGaps[i] * chartWidth / totalLength)
+                            + "," + margin.top + ")"
                     });
 
                 bar.append("rect")
                     .attr("width", x)
-                    .attr("height", barHeight - 1);
-                
-                /*
-                bar.append("text")
-                    .attr("x", function(d) { return x(d) - 3; })
-                    .attr("y", barHeight / 2)
-                    .attr("dy", ".35em")
-                    .text(function(d) { return d; });
-                */
+                    .attr("height", barHeight - 1)
+                    .attr("fill", "grey");
             });
         </script>
 
@@ -162,18 +146,18 @@
         </style>
     </head>
     <body>
-        <h1>{{ gene }}</h1>
+        <h3>Gene: {{ gene }}</h3>
+        <div class="y-axis-button-container">
+            <button type="button" class="MAF" value="MAF" onclick="changeYAxisVariable('MAF')">MAF</button>
+            <button type="button" class="alleleNumber" value="alleleNumber" onclick="changeYAxisVariable('alleleNumber')">alleleNumber</button>
+        </div>
+        <div class="chart-zoomed-out"></div>
+        <div class="chart-zoomed-in"></div>
         <ul>
-            <li>txstart: {{ gene.txstart }}</li>
-            <li>txend: {{ gene.txend }}</li>
             <li>cdsstart: {{ gene.cdsstart }}</li>
             <li>cdsend: {{ gene.cdsend }}</li>
             <li>exonstarts: {{ gene.exonstarts }}</li>
             <li>exonends: {{ gene.exonends }}</li>
-            <li>exoncount: {{ gene.exoncount }}</li>
         </ul>
-
-        <!-- This stores the D3 JS graph -->
-        <svg class="chart"></svg>
     </body>
 </html>
