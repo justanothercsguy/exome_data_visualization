@@ -1,3 +1,12 @@
+// Step 1: initialize exons from exonStarts and exonEnds
+// Step 2: trim non coding exon lengths by limit
+// step 3: calculate length of each exon 
+// step 4: calculate sum of lengths of exons
+// step 5: calculate length of uniform intron 
+// step 6: calculate sum of lengths of uniform introns
+// step 7: calculate exon array given uniform introns
+
+
 class Gene {
     constructor(cdsStart, cdsEnd, exonCount, exonStarts, exonEnds) {
         this.cdsStart = cdsStart;
@@ -14,9 +23,29 @@ class Gene {
         return exons;
     }
 
-    // NOTE: excluding functions to remove exons before cdsStart and after cdsEnd
-    // because such entries are extremely unlikely to occur - will add them in 
-    // later once the other data processing on exons are done
+    // Initially I pass in exonStarts and exonEnds but then use them to 
+    // initialize an array of Exon objects in the Gene object. 
+    // exonStarts and exonEnds are not stored in the Gene object as variables,
+    // but are instead derived from the array of Exon objects. 
+    getExonStarts() {
+        var exonStarts = [];
+        var length = this.exonCount;
+
+        for (var i = 0; i < length; i++) {
+            exonStarts.push(this.exons[i].start);
+        }
+        return exonStarts;
+    }
+
+    getExonEnds() {
+        var exonEnds = [];
+        var length = this.exonCount;
+
+        for (var i = 0; i < length; i++) {
+            exonEnds.push(this.exons[i].end);
+        }
+        return exonEnds;
+    }
 
 
     doesExonContainCdsStart(exon, cdsStart) {
@@ -82,32 +111,61 @@ class Gene {
         return this.getUniformIntronLength() * (this.exonCount - 1);
     }
 
+    getExonsWithUniformIntronLength() {
+        var exonCount = this.exonCount;
+        var exonStarts = this.getExonStarts();
+        var exonEnds = this.getExonEnds();
+        var exonLengths = this.getExonLengths();
+        var uniformIntronLength = this.getUniformIntronLength();
+        var exonStartsWithUniformIntronLength = [];
+        var exonEndsWithUniformIntronLength = [];
+    
+        if (exonCount == 1) {
+            return this.exons[0];
+        }
+
+        // first exon has no introns before it so it retains the same position
+        exonStartsWithUniformIntronLength.push(exonStarts[0]);
+        exonEndsWithUniformIntronLength.push(exonEnds[0]);
+    
+        for (var i = 1; i < exonCount; i++) {
+            exonStartsWithUniformIntronLength.push(
+                exonStartsWithUniformIntronLength[i - 1] 
+                + exonLengths[i - 1] + uniformIntronLength
+            ); 
+            exonEndsWithUniformIntronLength.push(
+                exonStartsWithUniformIntronLength[i] + exonLengths[i]
+            );
+            
+        }
+        return this.initializeExons(exonStartsWithUniformIntronLength, 
+            exonEndsWithUniformIntronLength, exonCount);
+    }
+
+    getExonStartsWithUniformIntronLength() {
+        var length = this.exonCount;
+        var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
+        var exonStartsWithUniformIntronLength = [];
+        
+        for (var i = 0; i < length; i++) {
+            exonStartsWithUniformIntronLength.push(exonsWithUniformIntronLength[i].start);
+        }
+        return exonStartsWithUniformIntronLength;
+    }
+
+    getExonEndsWithUniformIntronLength() {
+        var length = this.exonCount;
+        var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
+        var exonEndssWithUniformIntronLength = [];
+        
+        for (var i = 0; i < length; i++) {
+            exonEndssWithUniformIntronLength.push(exonsWithUniformIntronLength[i].end);
+        }
+        return exonEndssWithUniformIntronLength;
+    }
+
     getOffset() {
         return this.exons[0].start;
-    }
-
-    // Initially I pass in exonStarts and exonEnds but then use them to 
-    // initialize an array of Exon objects in the Gene object. 
-    // exonStarts and exonEnds are not stored in the Gene object as variables,
-    // but are instead derived from the array of Exon objects. 
-    getExonStarts() {
-        var exonStarts = [];
-        var length = this.exonCount;
-
-        for (var i = 0; i < length; i++) {
-            exonStarts.push(this.exons[i].start);
-        }
-        return exonStarts;
-    }
-
-    getExonEnds() {
-        var exonEnds = [];
-        var length = this.exonCount;
-
-        for (var i = 0; i < length; i++) {
-            exonEnds.push(this.exons[i].end);
-        }
-        return exonEnds;
     }
 
     getIntArrayMinusOffset(intArray, offset) {
@@ -115,17 +173,11 @@ class Gene {
         var length = intArray.length;
 
         for (var i = 0; i < length; i++) {
+            console.log(typeof(intArray[i]));
+            console.log(typeof(offset));
             intArrayMinusOffset.push(intArray[i] - offset);
         }
         return intArrayMinusOffset;
-    }
-
-    getExonStartsMinusOffset() {
-        return this.getIntArrayMinusOffset(this.getExonStarts(), this.getOffset());
-    }
-
-    getExonEndsMinusOffset() {
-        return this.getIntArrayMinusOffset(this.getExonEnds(), this.getOffset());
     }
 }
 
