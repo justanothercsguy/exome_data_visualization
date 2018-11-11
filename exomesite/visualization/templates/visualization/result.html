@@ -11,14 +11,13 @@
         
         {% load static %}
         <script src="{% static 'visualization/js/chart.js' %}"></script>
+        <script src="{% static 'visualization/js/gene.js' %}"></script>
+
         <!-- 
             This script below can be turned into a separate JS file later
         -->
         <script type="text/javascript">
-            // use array.reduce(getSum) to get sum of array
-            function getSum(total, num) {
-                return total + num;
-}
+
             // get strings from views.py
             var exonStartsString = "{{gene.exonstarts}}";
             var exonEndsString = "{{gene.exonends}}";
@@ -26,11 +25,9 @@
             var cdsEndString = "{{gene.cdsend}}";
             var exonCount = "{{gene.exoncount}}";
             var variant_list = "{{variant_list_json}}";
+            var gene = null;
 
             $(window).on("load", function() {
-                console.log(exonStartsString);
-                console.log(exonEndsString);
-
                 // remove '&quot;' string and parse json from variant_list
                 variant_list = JSON.parse(variant_list.replace(/&quot;/g,'"'));
                 console.log("variant_list");
@@ -42,115 +39,26 @@
                 exonStarts.pop()
                 exonEnds.pop()
                 
-                var exonCount = exonStarts.length;
+                exonCount = parseInt(exonCount);
                 console.log("exonCount");
                 console.log(exonCount);
+
+                for (var i = 0; i < exonCount; i++) {
+                    exonStarts[i] = parseInt(exonStarts[i]);
+                    exonEnds[i] = parseInt(exonEnds[i]);
+                }
                 
-                // TODO: get only parts of exons that code proteins, range from cdsStart to cdsEnd
-                // Case 1: exon that ends before cdsStart is non-coding
-                // Case 2: exon that starts after cdsEnd is non-coding
-                // Case 3: exon that starts before cdsStart but ends after cdsStart
-                // should be trimmed of part starting before cdsStart
-                // Case 4: exon that starts before cdsEnd but ends after cdsEnd
-                // should be trimmed of part ending after cdsEnd
                 var cdsStart = parseInt(cdsStartString);
                 var cdsEnd = parseInt(cdsEndString);
-                var exonStartsCoding = [];
-                var exonEndsCoding = [];
-                console.log("cdsStart");
-                console.log(cdsStart);
-                console.log("cdsEnd");
-                console.log(cdsEnd);
-                for (var i=0; i < exonCount; i++) {
-                    if (exonStarts[i] <= cdsStart && exonEnds >= cdsEnd) {
-                        exonStartsCoding.push(cdsStart);
-                        exonEndsCoding.push(exonEnds[i]);
-                    }
-                }
 
-                // adjust startExon data so that first element starts at index 0, 
-                // but lengths of exons and gaps are preserved
-                var exonStartsAdjusted = [];
-                var exonEndsAdjusted = [];
-                var exonLengths = [];
-                for (var i=0; i < exonCount; i++) {
-                    exonStartsAdjusted.push(exonStarts[i] - exonStarts[0]);
-                    exonEndsAdjusted.push(exonEnds[i] - exonStarts[0]);
-                    exonLengths.push(exonEnds[i] - exonStarts[i]);
-                }
-                console.log("exonStartsAdjusted");
-                console.log(exonStartsAdjusted);
-                console.log("exonEndsAdjusted");
-                console.log(exonEndsAdjusted);
-                console.log("Exon Lengths");
-                console.log(exonLengths);
-                
-                // Use this to display proportionate exons while minimizing gaps
-                var sumExonLengths = exonLengths.reduce(getSum);
-                // var sumGapLengths = sumExonLengths / 8;
-                // var gapLength = sumGapLengths / (exonLengths.length - 1);
-                var gapLength = sumExonLengths / 100;
-                var sumGapLengths = gapLength * (exonCount - 1);
-                var totalLength = sumGapLengths + sumExonLengths;
-                console.log("sumExonLengths");
-                console.log(sumExonLengths);
-                console.log("sumGapLengths");
-                console.log(sumGapLengths);
-                console.log("totalLength");
-                console.log(totalLength);
-                
-                // calculate starting x position for each exon, with uniform gapLength
-                var exonStartsWithUniformGaps = [exonStartsAdjusted[0]];
-                for (var i=1; i < exonCount; i++) {
-                    exonStartsWithUniformGaps.push(
-                        exonStartsWithUniformGaps[i-1] + exonLengths[i-1] + gapLength);
-                }
-
-                // calculate scaling between gene length and chart div width
-                var chartWidth = 800;
-                var barHeight = 20;
-
-                var x = d3.scaleLinear()
-                    .domain([0, totalLength])
-                    .range([0, chartWidth]);
-                
-                var margin = {top: 30, right: 30, bottom: 50, left: 120};
-                var dimension = {
-                    width: 1200 - margin.left - margin.right,
-                    height: 320 - margin.top - margin.bottom
-                }
-                // var chartWidth = 1200 - margin.left - margin.right;
-                // var chartHeight = 320 - margin.top - margin.bottom
-                
-                // var chart = d3.select(".chart-zoomed-out").append("svg")
-                //     .attr("width", chartWidth)
-                //     .attr("height", chartHeight);
-                var svgZoomedOut = addSvgToDiv(margin, dimension, ".chart-zoomed-out");
-                
-                // translate x coordinate will be the gaps between exons
-                // since there is one less gap than the number of elements in exonStarts,
-                // add a 0 for the first gap
-                var exonHandle = svgZoomedOut.selectAll("g")
-                    .data(exonLengths)
-                .enter().append("g")
-                    .attr("transform", function(d, i) { 
-                        return "translate(" + (
-                            exonStartsWithUniformGaps[i] * dimension.width / totalLength)
-                            + "," + margin.top + ")"
-                    });
-
-                exonHandle.append("rect")
-                    .attr("width", x)
-                    .attr("height", barHeight - 1)
-                    .attr("fill", "grey");
-
-                var tooltip = addTooltip();
-                console.log(tooltip);
+                gene = new Gene(cdsStart, cdsEnd, exonStarts, exonEnds);
+                console.log("gene");
+                console.log(gene);
             });
         </script>
     </head>
     <body>
-        <h3>Gene: {{ gene }}</h3>
+        <h3>Gene: {{ gene.exonstarts }}</h3>
         <div class="y-axis-button-container">
             <button type="button" class="MAF" value="MAF" onclick="changeYAxisVariable('MAF')">MAF</button>
             <button type="button" class="alleleNumber" value="alleleNumber" onclick="changeYAxisVariable('alleleNumber')">alleleNumber</button>
