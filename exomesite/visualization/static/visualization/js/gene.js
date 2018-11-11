@@ -27,22 +27,25 @@ class Gene {
     // initialize an array of Exon objects in the Gene object. 
     // exonStarts and exonEnds are not stored in the Gene object as variables,
     // but are instead derived from the array of Exon objects. 
-    getExonStarts() {
+    // This means that if I want to get modified values of exonStarts and exonEnds,
+    // I have to first create a modified array of Exons and then call 
+    // getExonStarts() or getExonEnds()
+    getExonStarts(exonArray) {
         var exonStarts = [];
         var length = this.exonCount;
 
         for (var i = 0; i < length; i++) {
-            exonStarts.push(this.exons[i].start);
+            exonStarts.push(exonArray[i].start);
         }
         return exonStarts;
     }
 
-    getExonEnds() {
+    getExonEnds(exonArray) {
         var exonEnds = [];
         var length = this.exonCount;
 
         for (var i = 0; i < length; i++) {
-            exonEnds.push(this.exons[i].end);
+            exonEnds.push(exonArray[i].end);
         }
         return exonEnds;
     }
@@ -113,8 +116,8 @@ class Gene {
 
     getExonsWithUniformIntronLength() {
         var exonCount = this.exonCount;
-        var exonStarts = this.getExonStarts();
-        var exonEnds = this.getExonEnds();
+        var exonStarts = this.getExonStarts(this.exons);
+        var exonEnds = this.getExonEnds(this.exons);
         var exonLengths = this.getExonLengths();
         var uniformIntronLength = this.getUniformIntronLength();
         var exonStartsWithUniformIntronLength = [];
@@ -142,27 +145,27 @@ class Gene {
             exonEndsWithUniformIntronLength, exonCount);
     }
 
-    getExonStartsWithUniformIntronLength() {
-        var length = this.exonCount;
-        var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
-        var exonStartsWithUniformIntronLength = [];
+    // getExonStartsWithUniformIntronLength() {
+    //     var length = this.exonCount;
+    //     var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
+    //     var exonStartsWithUniformIntronLength = [];
         
-        for (var i = 0; i < length; i++) {
-            exonStartsWithUniformIntronLength.push(exonsWithUniformIntronLength[i].start);
-        }
-        return exonStartsWithUniformIntronLength;
-    }
+    //     for (var i = 0; i < length; i++) {
+    //         exonStartsWithUniformIntronLength.push(exonsWithUniformIntronLength[i].start);
+    //     }
+    //     return exonStartsWithUniformIntronLength;
+    // }
 
-    getExonEndsWithUniformIntronLength() {
-        var length = this.exonCount;
-        var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
-        var exonEndssWithUniformIntronLength = [];
+    // getExonEndsWithUniformIntronLength() {
+    //     var length = this.exonCount;
+    //     var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
+    //     var exonEndssWithUniformIntronLength = [];
         
-        for (var i = 0; i < length; i++) {
-            exonEndssWithUniformIntronLength.push(exonsWithUniformIntronLength[i].end);
-        }
-        return exonEndssWithUniformIntronLength;
-    }
+    //     for (var i = 0; i < length; i++) {
+    //         exonEndssWithUniformIntronLength.push(exonsWithUniformIntronLength[i].end);
+    //     }
+    //     return exonEndssWithUniformIntronLength;
+    // }
 
     getOffset() {
         return this.exons[0].start;

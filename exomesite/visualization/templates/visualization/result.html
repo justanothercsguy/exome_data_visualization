@@ -54,19 +54,19 @@
                 console.log(gene.getExonsWithUniformIntronLength());
 
                 console.log("gene exon starts with uniform intron length")
-                console.log(gene.getExonStartsWithUniformIntronLength());
+                console.log(gene.getExonStarts(gene.getExonsWithUniformIntronLength()));
 
                 console.log("gene exon ends with uniform intron length")
-                console.log(gene.getExonEndsWithUniformIntronLength());
+                console.log(gene.getExonEnds(gene.getExonsWithUniformIntronLength()));
 
-                console.log("gene offset")
-                console.log(gene.getOffset());
+                // console.log("gene offset")
+                // console.log(gene.getOffset());
 
-                console.log("gene exon starts")
-                console.log(gene.getExonStarts());
+                // console.log("gene exon starts")
+                // console.log(gene.getExonStarts());
 
-                console.log("gene exon ends")
-                console.log(gene.getExonEnds());
+                // console.log("gene exon ends")
+                // console.log(gene.getExonEnds());
             });
         </script>
     </head>
