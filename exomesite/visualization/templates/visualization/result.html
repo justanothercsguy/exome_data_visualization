@@ -19,9 +19,6 @@
         <script type="text/javascript">
 
             $(window).on("load", function() {
-                // get strings from views.py
-                var gene = null;
-
                 // remove '&quot;' string and parse json from variant_list
                 variant_list = JSON.parse("{{variant_list_json}}".replace(/&quot;/g,'"'));
                 console.log("variant_list");
@@ -29,10 +26,11 @@
 
                 var cdsStart = jsonStringToInt("{{gene.cdsstart}}");
                 var cdsEnd = jsonStringToInt("{{gene.cdsend}}");
+                var exonCount = jsonStringToInt("{{gene.exoncount}}");
                 var exonStarts = jsonStringArrayToIntArray("{{gene.exonstarts}}");
                 var exonEnds = jsonStringArrayToIntArray("{{gene.exonends}}");
 
-                gene = new Gene(cdsStart, cdsEnd, exonStarts, exonEnds);
+                var gene = new Gene(cdsStart, cdsEnd, exonStarts, exonEnds, exonCount);
                 console.log("gene");
                 console.log(gene);
             });

@@ -1,15 +1,14 @@
 class Gene {
-    constructor(cdsStart, cdsEnd, exonStarts, exonEnds) {
+    constructor(cdsStart, cdsEnd, exonStarts, exonEnds, exonCount) {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
-        this.exons = this.initializeExons(exonStarts, exonEnds);
+        this.exons = this.initializeExons(exonStarts, exonEnds, exonCount);
+        this.exonCount = exonCount;
     }
 
-    initializeExons(exonStarts, exonEnds) {
-        var exons = [];
-        var length = exonStarts.length;
-    
-        for (let i = 0; i < length; i++) {
+    initializeExons(exonStarts, exonEnds, exonCount) {
+        var exons = [];    
+        for (let i = 0; i < exonCount; i++) {
             exons.push(new Exon(exonStarts[i], exonEnds[i]));
         }
         return exons;
