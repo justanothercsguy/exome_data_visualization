@@ -30,9 +30,19 @@
                 var exonStarts = jsonStringArrayToIntArray("{{gene.exonstarts}}");
                 var exonEnds = jsonStringArrayToIntArray("{{gene.exonends}}");
 
-                var gene = new Gene(cdsStart, cdsEnd, exonStarts, exonEnds, exonCount);
-                console.log("gene");
+                var gene = new Gene(cdsStart, cdsEnd, exonCount, exonStarts, exonEnds);
+
+                var nonCodingLengthLimit = 200;
+                gene.limitNonCodingExonLength(nonCodingLengthLimit);
+
+                console.log("gene after nonCodingLengthLimit")
                 console.log(gene);
+
+                console.log("gene exon length array")
+                console.log(gene.getExonLengths());
+
+                console.log("gene sum of exon length array")
+                console.log(gene.getSumOfExonLengths());
             });
         </script>
     </head>
