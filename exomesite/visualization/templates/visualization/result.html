@@ -34,7 +34,6 @@
 
                 var nonCodingLengthLimit = 200;
                 gene.limitNonCodingExonLength(nonCodingLengthLimit);
-                var offset = gene.getOffset()
 
                 console.log("gene after nonCodingLengthLimit")
                 console.log(gene);
@@ -67,7 +66,7 @@
                 console.log(gene.getExonEnds(gene.getExonsWithUniformIntronLength()));
 
                 console.log("gene offset")
-                console.log(offset);
+                console.log(gene.getOffset());
 
                 console.log("gene exon starts with original intron length minus offset")
                 console.log(gene.getIntArrayMinusOffset(
@@ -88,6 +87,16 @@
                 console.log(gene.getIntArrayMinusOffset(
                     gene.getExonEnds(gene.getExonsWithUniformIntronLength()), gene.getOffset()
                 ));
+
+                console.log("gene exon ends with uniform intron length minus offset - domain")
+                console.log(gene.getDomain());
+
+                console.log("gene introna")
+                console.log(gene.getIntrons());
+
+                console.log("gene intron lengths")
+                console.log(gene.getIntronLengths());
+                
             });
         </script>
     </head>

@@ -27,6 +27,28 @@ class Gene {
         return this.exons;
     }
 
+    getIntrons() {
+        var exons = this.getExons();
+        var length = this.exonCount;
+        var introns = [];
+
+        for (var i = 1; i < length; i++) {
+            introns.push(new Exon(exons[i-1].end, exons[i].start));
+        }
+        return introns;
+    }
+
+    getIntronLengths() {
+        var intronLengths = [];
+        var introns = this.getIntrons();
+        var length = this.exonCount - 1;
+        
+        for (var i = 0; i < length; i++) {
+            intronLengths.push(introns[i].getLength());
+        }
+        return intronLengths;
+    }
+
     // Initially I pass in exonStarts and exonEnds but then use them to 
     // initialize an array of Exon objects in the Gene object. 
     // exonStarts and exonEnds are not stored in the Gene object as variables,
@@ -95,7 +117,9 @@ class Gene {
     getExonLengths() {
         var exonLengths = [];
         var exons = this.getExons();
-        for (var i = 0; i < this.exonCount; i++) {
+        var length = this.exonCount;
+        for (var i = 0; i < length; i++) {
+
             exonLengths.push(exons[i].getLength());
         }
         return exonLengths;
@@ -104,7 +128,9 @@ class Gene {
     getSumOfExonLengths() {
         var sum = 0;
         var exonLengths = this.getExonLengths();
-        for (var i = 0; i < this.exonCount; i++) {
+        var length = this.exonCount;
+
+        for (var i = 0; i < length; i++) {
             sum += exonLengths[i];
         }
         return sum;
@@ -162,6 +188,46 @@ class Gene {
             intArrayMinusOffset.push(intArray[i] - offset);
         }
         return intArrayMinusOffset;
+    }
+
+    // Return an array of values containing the starting point of each exon and intron,
+    // where intron have their original lengths that have not been modified into a uniform length.
+    // Here, exonStarts[i] = starting point of exon i, and exonEnds[i] = starting point of intron i
+    // 
+    // Introns with length > (3 * basePairsOutsideExonLimit) will be split into three uneven parts,
+    // with most of the variants residing in parts 1 and 3
+    // 1. [exonEnds[i], exonEnds[i] + basePairsOutsideExonLimit]
+    // 2. [exonEnds[i] + basePairsOutsideExonLimit, exonStarts[i+1] - basePairsOutsideExonLimit]
+    // 3. [exonStarts[i+1] - basePairsOutsideExonLimit, exonStarts[i+1]
+    //
+    // TODO: Should i just make getting domain and range one function, so that I don't have to pass
+    // in splitIntronIndices to function getRange()?
+    getDomain(basePairsOutsideExonLimit) {
+        var domain = [];
+        var splitIntronIndices = [];
+        var threshold = 3 * basePairsOutsideExonLimit;
+        var exonStarts = this.getExonStarts(this.getExons());
+        var exonEnds = this.getExonEnds(this.getExons());
+        var length = this.exonCount;
+    
+        for (var i = 0; i < length - 1; i++) {
+        domain.push(exonStarts[i]);
+        domain.push(exonEnds[i]);
+    
+        if (exonStarts[i + 1] - exonEnds[i] > threshold) {
+            domain.push(exonEnds[i] + basePairsOutsideExonLimit);
+            domain.push(exonStarts[i + 1] - basePairsOutsideExonLimit);
+            splitIntronIndices.push(i);
+        }
+        }
+        // last exon does not have a intron after it
+        domain.push(exonStarts[length - 1]);
+        domain.push(exonEnds[length - 1]);
+    
+        return {
+            domain: domain,
+            splitIntronIndices: splitIntronIndices
+        };
     }
 }
 
