@@ -150,28 +150,6 @@ class Gene {
             exonEndsWithUniformIntronLength, exonCount);
     }
 
-    // getExonStartsWithUniformIntronLength() {
-    //     var length = this.exonCount;
-    //     var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
-    //     var exonStartsWithUniformIntronLength = [];
-        
-    //     for (var i = 0; i < length; i++) {
-    //         exonStartsWithUniformIntronLength.push(exonsWithUniformIntronLength[i].start);
-    //     }
-    //     return exonStartsWithUniformIntronLength;
-    // }
-
-    // getExonEndsWithUniformIntronLength() {
-    //     var length = this.exonCount;
-    //     var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
-    //     var exonEndssWithUniformIntronLength = [];
-        
-    //     for (var i = 0; i < length; i++) {
-    //         exonEndssWithUniformIntronLength.push(exonsWithUniformIntronLength[i].end);
-    //     }
-    //     return exonEndssWithUniformIntronLength;
-    // }
-
     getOffset() {
         return this.getExons()[0].start;
     }
@@ -181,8 +159,6 @@ class Gene {
         var length = intArray.length;
 
         for (var i = 0; i < length; i++) {
-            console.log(typeof(intArray[i]));
-            console.log(typeof(offset));
             intArrayMinusOffset.push(intArray[i] - offset);
         }
         return intArrayMinusOffset;
