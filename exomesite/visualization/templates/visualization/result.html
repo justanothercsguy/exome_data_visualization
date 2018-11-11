@@ -12,44 +12,25 @@
         {% load static %}
         <script src="{% static 'visualization/js/chart.js' %}"></script>
         <script src="{% static 'visualization/js/gene.js' %}"></script>
-
+        <script src="{% static 'visualization/js/utils.js' %}"></script>
         <!-- 
             This script below can be turned into a separate JS file later
         -->
         <script type="text/javascript">
 
-            // get strings from views.py
-            var exonStartsString = "{{gene.exonstarts}}";
-            var exonEndsString = "{{gene.exonends}}";
-            var cdsStartString = "{{gene.cdsstart}}";
-            var cdsEndString = "{{gene.cdsend}}";
-            var exonCount = "{{gene.exoncount}}";
-            var variant_list = "{{variant_list_json}}";
-            var gene = null;
-
             $(window).on("load", function() {
+                // get strings from views.py
+                var gene = null;
+
                 // remove '&quot;' string and parse json from variant_list
-                variant_list = JSON.parse(variant_list.replace(/&quot;/g,'"'));
+                variant_list = JSON.parse("{{variant_list_json}}".replace(/&quot;/g,'"'));
                 console.log("variant_list");
                 console.log(variant_list);
 
-                // exonStarts and exonEnds have a trailing comma that must be removed
-                var exonStarts = exonStartsString.split(",");
-                var exonEnds = exonEndsString.split(",");
-                exonStarts.pop()
-                exonEnds.pop()
-                
-                exonCount = parseInt(exonCount);
-                console.log("exonCount");
-                console.log(exonCount);
-
-                for (var i = 0; i < exonCount; i++) {
-                    exonStarts[i] = parseInt(exonStarts[i]);
-                    exonEnds[i] = parseInt(exonEnds[i]);
-                }
-                
-                var cdsStart = parseInt(cdsStartString);
-                var cdsEnd = parseInt(cdsEndString);
+                var cdsStart = jsonStringToInt("{{gene.cdsstart}}");
+                var cdsEnd = jsonStringToInt("{{gene.cdsend}}");
+                var exonStarts = jsonStringArrayToIntArray("{{gene.exonstarts}}");
+                var exonEnds = jsonStringArrayToIntArray("{{gene.exonends}}");
 
                 gene = new Gene(cdsStart, cdsEnd, exonStarts, exonEnds);
                 console.log("gene");
