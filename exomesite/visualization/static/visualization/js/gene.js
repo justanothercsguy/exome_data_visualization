@@ -75,6 +75,14 @@ class Gene {
         return sum;
     }
 
+    // sum of all intron lengths will equal to half of the sum of all exon lengths
+    getUniformIntronLength() {
+        return Math.ceil((this.getSumOfExonLengths() / 2) / (this.exonCount - 1));
+    }
+
+    getSumOfUniformIntronLengths() {
+        return this.getUniformIntronLength() * (this.exonCount - 1);
+    }
 }
 
 class Exon {
