@@ -86,26 +86,46 @@ class Gene {
         return this.exons[0].start;
     }
 
-    getExonStartsMinusOffset() {
-        var exonStartsMinusOffset = [];
+    // Initially I pass in exonStarts and exonEnds but then use them to 
+    // initialize an array of Exon objects in the Gene object. 
+    // exonStarts and exonEnds are not stored in the Gene object as variables,
+    // but are instead derived from the array of Exon objects. 
+    getExonStarts() {
+        var exonStarts = [];
         var length = this.exonCount;
-        var offset = this.getOffset();
-    
-        for (let i = 0; i < length; i++) {
-            exonStartsMinusOffset.push(this.exons[i].start - offset);
+
+        for (var i = 0; i < length; i++) {
+            exonStarts.push(this.exons[i].start);
         }
-        return exonStartsMinusOffset;
+        return exonStarts;
+    }
+
+    getExonEnds() {
+        var exonEnds = [];
+        var length = this.exonCount;
+
+        for (var i = 0; i < length; i++) {
+            exonEnds.push(this.exons[i].end);
+        }
+        return exonEnds;
+    }
+
+    getIntArrayMinusOffset(intArray, offset) {
+        var intArrayMinusOffset = [];
+        var length = intArray.length;
+
+        for (var i = 0; i < length; i++) {
+            intArrayMinusOffset.push(intArray[i] - offset);
+        }
+        return intArrayMinusOffset;
+    }
+
+    getExonStartsMinusOffset() {
+        return this.getIntArrayMinusOffset(this.getExonStarts(), this.getOffset());
     }
 
     getExonEndsMinusOffset() {
-        var exonEndsMinusOffset = [];
-        var length = this.exonCount;
-        var offset = this.getOffset();
-
-        for (let i = 0; i < length; i++) {
-            exonEndsMinusOffset.push(this.exons[i].end - offset);
-        }
-        return exonEndsMinusOffset;
+        return this.getIntArrayMinusOffset(this.getExonEnds(), this.getOffset());
     }
 }
 
