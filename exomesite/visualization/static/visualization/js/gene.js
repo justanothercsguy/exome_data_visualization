@@ -1,6 +1,4 @@
 class Gene {
-    // NOTE: danger in this design because intializeExons depends
-    // on exonCount input coming before exonStarts, exonEnds
     constructor(cdsStart, cdsEnd, exonCount, exonStarts, exonEnds) {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
@@ -82,6 +80,32 @@ class Gene {
 
     getSumOfUniformIntronLengths() {
         return this.getUniformIntronLength() * (this.exonCount - 1);
+    }
+
+    getOffset() {
+        return this.exons[0].start;
+    }
+
+    getExonStartsMinusOffset() {
+        var exonStartsMinusOffset = [];
+        var length = this.exonCount;
+        var offset = this.getOffset();
+    
+        for (let i = 0; i < length; i++) {
+            exonStartsMinusOffset.push(this.exons[i].start - offset);
+        }
+        return exonStartsMinusOffset;
+    }
+
+    getExonEndsMinusOffset() {
+        var exonEndsMinusOffset = [];
+        var length = this.exonCount;
+        var offset = this.getOffset();
+
+        for (let i = 0; i < length; i++) {
+            exonEndsMinusOffset.push(this.exons[i].end - offset);
+        }
+        return exonEndsMinusOffset;
     }
 }
 
