@@ -23,6 +23,10 @@ class Gene {
         return exons;
     }
 
+    getExons() {
+        return this.exons;
+    }
+
     // Initially I pass in exonStarts and exonEnds but then use them to 
     // initialize an array of Exon objects in the Gene object. 
     // exonStarts and exonEnds are not stored in the Gene object as variables,
@@ -71,8 +75,8 @@ class Gene {
     // Here, (cdsStart - exon[i].start) and (exon[j].end - cdsEnd) are the lengths of the non-coding
     // exon partitions.
     limitNonCodingExonLength(nonCodingLengthLimit) {
-        var firstExon = this.exons[0];
-        var lastExon = this.exons[this.exonCount - 1];
+        var firstExon = this.getExons()[0];
+        var lastExon = this.getExons()[this.exonCount - 1];
         var cdsStart = this.cdsStart;
         var cdsEnd = this.cdsEnd;
 
@@ -90,8 +94,9 @@ class Gene {
 
     getExonLengths() {
         var exonLengths = [];
+        var exons = this.getExons();
         for (var i = 0; i < this.exonCount; i++) {
-            exonLengths.push(this.exons[i].getLength());
+            exonLengths.push(exons[i].getLength());
         }
         return exonLengths;
     }
@@ -116,15 +121,15 @@ class Gene {
 
     getExonsWithUniformIntronLength() {
         var exonCount = this.exonCount;
-        var exonStarts = this.getExonStarts(this.exons);
-        var exonEnds = this.getExonEnds(this.exons);
+        var exonStarts = this.getExonStarts(this.getExons());
+        var exonEnds = this.getExonEnds(this.getExons());
         var exonLengths = this.getExonLengths();
         var uniformIntronLength = this.getUniformIntronLength();
         var exonStartsWithUniformIntronLength = [];
         var exonEndsWithUniformIntronLength = [];
     
         if (exonCount == 1) {
-            return this.exons[0];
+            return this.getExons();
         }
 
         // first exon has no introns before it so it retains the same position
@@ -168,7 +173,7 @@ class Gene {
     // }
 
     getOffset() {
-        return this.exons[0].start;
+        return this.getExons()[0].start;
     }
 
     getIntArrayMinusOffset(intArray, offset) {
