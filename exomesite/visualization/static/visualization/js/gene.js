@@ -57,6 +57,24 @@ class Gene {
                 new Exon(lastExon.start, cdsEnd + nonCodingLengthLimit);
         }
     }
+
+    getExonLengths() {
+        var exonLengths = [];
+        for (var i = 0; i < this.exonCount; i++) {
+            exonLengths.push(this.exons[i].getLength());
+        }
+        return exonLengths;
+    }
+
+    getSumOfExonLengths() {
+        var sum = 0;
+        var exonLengths = this.getExonLengths();
+        for (var i = 0; i < this.exonCount; i++) {
+            sum += exonLengths[i];
+        }
+        return sum;
+    }
+
 }
 
 class Exon {
