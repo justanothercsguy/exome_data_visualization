@@ -115,26 +115,31 @@
                     .range([0, chartWidth]);
                 
                 var margin = {top: 30, right: 30, bottom: 50, left: 120};
-                var chartWidth = 1200 - margin.left - margin.right;
-                var chartHeight = 320 - margin.top - margin.bottom
+                var dimension = {
+                    width: 1200 - margin.left - margin.right,
+                    height: 320 - margin.top - margin.bottom
+                }
+                // var chartWidth = 1200 - margin.left - margin.right;
+                // var chartHeight = 320 - margin.top - margin.bottom
                 
-                var chart = d3.select(".chart-zoomed-out").append("svg")
-                    .attr("width", chartWidth)
-                    .attr("height", chartHeight);
+                // var chart = d3.select(".chart-zoomed-out").append("svg")
+                //     .attr("width", chartWidth)
+                //     .attr("height", chartHeight);
+                var svgZoomedOut = addSvgToDiv(margin, dimension, ".chart-zoomed-out");
                 
                 // translate x coordinate will be the gaps between exons
                 // since there is one less gap than the number of elements in exonStarts,
                 // add a 0 for the first gap
-                var bar = chart.selectAll("g")
+                var exonHandle = svgZoomedOut.selectAll("g")
                     .data(exonLengths)
                 .enter().append("g")
                     .attr("transform", function(d, i) { 
                         return "translate(" + (
-                            exonStartsWithUniformGaps[i] * chartWidth / totalLength)
+                            exonStartsWithUniformGaps[i] * dimension.width / totalLength)
                             + "," + margin.top + ")"
                     });
 
-                bar.append("rect")
+                exonHandle.append("rect")
                     .attr("width", x)
                     .attr("height", barHeight - 1)
                     .attr("fill", "grey");
