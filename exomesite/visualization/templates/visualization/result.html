@@ -100,19 +100,11 @@
                 console.log("gene indices of introns with length greater than threshold")
                 console.log(gene.getSplitIntronIndices(basePairsOutsideExonLimit));
 
-                console.log("gene domain with original positions")
-                console.log(gene.getDomain(basePairsOutsideExonLimit));
-
-                console.log("gene range with original positions")
-                console.log(gene.getRange(basePairsOutsideExonLimit));
-                
-                var domain = gene.getDomain(basePairsOutsideExonLimit);
                 console.log("gene domain - base pair positions with original intron lengths")
-                console.log(domain);
+                console.log(gene.getDomain(basePairsOutsideExonLimit));
                 
-                var range = gene.getRange(basePairsOutsideExonLimit);
                 console.log("gene range - base pair positions with uniform intron length minus offset")
-                console.log(range);
+                console.log(gene.getRange(basePairsOutsideExonLimit));
                 
                 var chartMargin = {top: 30, right: 30, bottom: 50, left: 120};
                 var chartDimension = {width: 1200, height: 320};
@@ -134,8 +126,13 @@
                     svgZoomedOut, zoomedOutChartController.chartMargin.left, 
                     zoomedOutChartController.chartMargin.top
                 );
+                var scale = zoomedOutChartController.getScaleUniformIntronsToChart();
+                var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
+
                 console.log(svgZoomedOut);
                 console.log(exonTransformZoomedOut);
+                console.log(scale);
+                console.log(exonBars);
             });
         </script>
     </head>

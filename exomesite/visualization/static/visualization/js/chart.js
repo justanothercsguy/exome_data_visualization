@@ -33,4 +33,46 @@ class ChartController {
       
         return transformHandle;
     }
+
+    getScaleOriginalIntronsToUniformIntrons() {
+        return d3.scaleLinear()
+            .domain(this.gene.getDomain())
+            .range(this.gene.getRange());
+    }
+
+    getScaleUniformIntronsToChart() {
+        var totalLength = this.gene.getSumOfExonLengths()
+            + this.gene.getSumOfUniformIntronLengths();
+
+        return d3.scaleLinear()
+            .domain([0, totalLength])
+            .range([0, this.chartDimension.width - this.chartMargin.left - this.chartMargin.right]);
+    }
+
+    addRectToTransform(chartTransform) {
+        var scaleOriginalIntronsToUniformIntrons = this.getScaleOriginalIntronsToUniformIntrons();
+        var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
+        var exonLengths = this.gene.getExonLengths();
+        var exonStarts = this.gene.getExonStarts(this.gene.getExons());
+        var exonBar = this.exonBar;
+
+        var bar = chartTransform.selectAll("g")
+            .data(exonLengths)
+            .enter().append("g")
+            .attr("transform", function (d, i) {
+                return "translate(" + scaleUniformIntronsToChart(
+                    scaleOriginalIntronsToUniformIntrons(exonStarts[i])
+                ) + "," + 0 + ")";
+            });
+    
+        bar.append("rect")
+            .attr("fill", exonBar.color)
+            .attr("width", scaleUniformIntronsToChart)
+            .attr("height", function (d, i) {
+                return exonBar.codingHeight;
+            });
+    
+        return bar;
+    }
+
 }
