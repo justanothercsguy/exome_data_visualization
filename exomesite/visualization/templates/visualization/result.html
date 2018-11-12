@@ -113,13 +113,16 @@
                 console.log("gene range - base pair positions with uniform intron length minus offset")
                 console.log(range);
                 
-                var margin = {top: 30, right: 30, bottom: 50, left: 120};
-                var dimension = {
-                    width: 1200 - margin.left - margin.right,
-                    height: 320 - margin.top - margin.bottom
-                };
-                var zoomedOutChartController 
-                    = new ChartController(margin, dimension, domain, range);
+                var chartMargin = {top: 30, right: 30, bottom: 50, left: 120};
+                var chartDimension = {width: 1200, height: 320};
+                var yAxisVariableString = "alleleNumber";
+                var exonBar = {nonCodingHeight: 10, codingHeight: 20, color: "#868686"};
+                var variantLollipop = {width: 0.2, radius: 3};
+   
+                var zoomedOutChartController = new ChartController(
+                    chartMargin, chartDimension, yAxisVariableString, 
+                    exonBar, variantLollipop, gene
+                );
                 
                 console.log("zoomedOutChartController");
                 console.log(zoomedOutChartController);

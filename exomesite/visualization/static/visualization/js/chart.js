@@ -16,11 +16,15 @@ function addSvgToDiv(margin, dimension, divName) {
 }
 
 class ChartController {
-    constructor(margin, dimension, domain, range) {
-        this.margin = margin;
-        this.dimension = dimension;
-        this.domain = domain;
-        this.range = range;
+    constructor(chartMargin, chartDimension, yAxisVariableString, 
+        exonBar, variantLollipop, gene) 
+    {
+        this.chartMargin = chartMargin;
+        this.chartDimension = chartDimension;
+        this.yAxisVariableString = yAxisVariableString;
+        this.exonBar = exonBar;
+        this.variantLollipop = variantLollipop;
+        this.gene = gene;
     }
 
 }
