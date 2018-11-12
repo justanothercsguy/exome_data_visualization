@@ -34,12 +34,6 @@ class ChartController {
         return transformHandle;
     }
 
-    getScaleOriginalIntronsToUniformIntrons() {
-        return d3.scaleLinear()
-            .domain(this.gene.getDomain())
-            .range(this.gene.getRange());
-    }
-
     getScaleUniformIntronsToChart() {
         var totalLength = this.gene.getSumOfExonLengths()
             + this.gene.getSumOfUniformIntronLengths();
@@ -50,7 +44,8 @@ class ChartController {
     }
 
     addRectToTransform(chartTransform) {
-        var scaleOriginalIntronsToUniformIntrons = this.getScaleOriginalIntronsToUniformIntrons();
+        var scaleOriginalIntronsToUniformIntrons 
+            = this.gene.getScaleOriginalIntronsToUniformIntrons();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
         var exonLengths = this.gene.getExonLengths();
         var exonStarts = this.gene.getExonStarts(this.gene.getExons());

@@ -32,6 +32,8 @@ class Gene {
         var length = this.exonCount;
         var introns = [];
 
+        // I know that biologically, Introns are different from Exons, 
+        // but for prototyping I put them in the same class Exon 
         for (var i = 1; i < length; i++) {
             introns.push(new Exon(exons[i-1].end, exons[i].start));
         }
@@ -47,6 +49,27 @@ class Gene {
             intronLengths.push(introns[i].getLength());
         }
         return intronLengths;
+    }
+
+    getIntronsWithUniformIntronLength() {
+        var introns = this.getIntrons();
+        var intronsWithUniformIntronLength = [];
+        var length = this.getIntronCount();
+        var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
+        var uniformIntronLengthOneThird = 
+            this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
+        var scaleOriginalIntronsToUniformIntrons 
+            = this.getScaleOriginalIntronsToUniformIntrons();
+
+        for (var i = 0; i < length; i++) {
+            intronsWithUniformIntronLength.push(
+                new Exon(
+                    scaleOriginalIntronsToUniformIntrons(introns[i].start), 
+                    scaleOriginalIntronsToUniformIntrons(introns[i].end)
+                )
+            );
+        }
+        return intronsWithUniformIntronLength;
     }
 
     getIntronCount() {
@@ -291,6 +314,12 @@ class Gene {
         range.push(exonEnds[length - 1]);
     
         return range;
+    }
+
+    getScaleOriginalIntronsToUniformIntrons() {
+        return d3.scaleLinear()
+            .domain(this.getDomain())
+            .range(this.getRange());
     }
 
     roundToTwoDecimalPlaces(x) {

@@ -126,13 +126,17 @@
                     svgZoomedOut, zoomedOutChartController.chartMargin.left, 
                     zoomedOutChartController.chartMargin.top
                 );
-                var scale = zoomedOutChartController.getScaleUniformIntronsToChart();
+                var scaleUniformIntronsToChart 
+                    = zoomedOutChartController.getScaleUniformIntronsToChart();
+                var scaleOriginalIntronsToUniformIntrons 
+                    = gene.getScaleOriginalIntronsToUniformIntrons();
                 var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
+                var intronBars = zoomedOutChartController.gene.getIntronsWithUniformIntronLength();
 
                 console.log(svgZoomedOut);
                 console.log(exonTransformZoomedOut);
-                console.log(scale);
                 console.log(exonBars);
+                console.log(intronBars);
             });
         </script>
     </head>
