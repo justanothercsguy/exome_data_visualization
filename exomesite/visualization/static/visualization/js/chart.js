@@ -27,4 +27,10 @@ class ChartController {
         return svgChartHandle;
     }
 
+    addTransformToSvg(svgHandle, x, y) {
+        var transformHandle = svgHandle.append("g")
+          .attr("transform", "translate(" + x + "," + y + ")");
+      
+        return transformHandle;
+    }
 }

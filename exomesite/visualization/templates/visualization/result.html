@@ -128,9 +128,14 @@
                 console.log("zoomedOutChartController");
                 console.log(zoomedOutChartController);
 
-                // initialize svg object for zoomed out chart
+                // initialize svg object and transforms for zoomed out chart
                 var svgZoomedOut = zoomedOutChartController.addSvgToDiv(".chart-zoomed-out");
+                var exonTransformZoomedOut = zoomedOutChartController.addTransformToSvg(
+                    svgZoomedOut, zoomedOutChartController.chartMargin.left, 
+                    zoomedOutChartController.chartMargin.top
+                );
                 console.log(svgZoomedOut);
+                console.log(exonTransformZoomedOut);
             });
         </script>
     </head>
