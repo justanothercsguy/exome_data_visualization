@@ -33,6 +33,8 @@
                 var gene = new Gene(cdsStart, cdsEnd, exonCount, exonStarts, exonEnds);
 
                 var nonCodingLengthLimit = 200;
+                var basePairsOutsideExonLimit = 50; 
+
                 gene.limitNonCodingExonLength(nonCodingLengthLimit);
 
                 console.log("gene after nonCodingLengthLimit")
@@ -88,14 +90,17 @@
                     gene.getExonEnds(gene.getExonsWithUniformIntronLength()), gene.getOffset()
                 ));
 
-                console.log("gene exon ends with uniform intron length minus offset - domain")
-                console.log(gene.getDomain());
-
-                console.log("gene introna")
+                console.log("gene introns")
                 console.log(gene.getIntrons());
 
                 console.log("gene intron lengths")
                 console.log(gene.getIntronLengths());
+
+                console.log("gene indices of introns with length greater than threshold")
+                console.log(gene.getSplitIntronIndices(basePairsOutsideExonLimit));
+
+                console.log("gene exon ends with uniform intron length minus offset - domain")
+                console.log(gene.getDomain(basePairsOutsideExonLimit));
                 
             });
         </script>

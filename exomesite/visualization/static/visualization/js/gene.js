@@ -42,7 +42,7 @@ class Gene {
         var intronLengths = [];
         var introns = this.getIntrons();
         var length = this.exonCount - 1;
-        
+
         for (var i = 0; i < length; i++) {
             intronLengths.push(introns[i].getLength());
         }
@@ -190,6 +190,20 @@ class Gene {
         return intArrayMinusOffset;
     }
 
+    getSplitIntronIndices(basePairsOutsideExonLimit) {
+        var splitIntronIndices = [];
+        var threshold = 3 * basePairsOutsideExonLimit;
+        var introns = this.getIntrons();
+        var length = this.exonCount - 1;
+
+        for (var i = 0; i < length; i++) {
+            if (introns[i].getLength() > threshold) {
+                splitIntronIndices.push(i);
+            }
+        }
+        return splitIntronIndices;
+    }
+
     // Return an array of values containing the starting point of each exon and intron,
     // where intron have their original lengths that have not been modified into a uniform length.
     // Here, exonStarts[i] = starting point of exon i, and exonEnds[i] = starting point of intron i
@@ -199,35 +213,34 @@ class Gene {
     // 1. [exonEnds[i], exonEnds[i] + basePairsOutsideExonLimit]
     // 2. [exonEnds[i] + basePairsOutsideExonLimit, exonStarts[i+1] - basePairsOutsideExonLimit]
     // 3. [exonStarts[i+1] - basePairsOutsideExonLimit, exonStarts[i+1]
-    //
-    // TODO: Should i just make getting domain and range one function, so that I don't have to pass
-    // in splitIntronIndices to function getRange()?
     getDomain(basePairsOutsideExonLimit) {
         var domain = [];
-        var splitIntronIndices = [];
-        var threshold = 3 * basePairsOutsideExonLimit;
         var exonStarts = this.getExonStarts(this.getExons());
         var exonEnds = this.getExonEnds(this.getExons());
         var length = this.exonCount;
+
+        // Instead of searching through entire array of indices each time,
+        // reverse and pop them one by one knowing that the pop will correspond
+        // to the order of the iteration in the loop - O(N) time vs O(N^2)
+        var reverseSplitIntronIndices =
+            this.getSplitIntronIndices(basePairsOutsideExonLimit).reverse();
+        var currentSplitIntronIndex = reverseSplitIntronIndices.pop();
     
         for (var i = 0; i < length - 1; i++) {
-        domain.push(exonStarts[i]);
-        domain.push(exonEnds[i]);
-    
-        if (exonStarts[i + 1] - exonEnds[i] > threshold) {
-            domain.push(exonEnds[i] + basePairsOutsideExonLimit);
-            domain.push(exonStarts[i + 1] - basePairsOutsideExonLimit);
-            splitIntronIndices.push(i);
-        }
+            domain.push(exonStarts[i]);
+            domain.push(exonEnds[i]);
+        
+            if (currentSplitIntronIndex == i) {
+                domain.push(exonEnds[i] + basePairsOutsideExonLimit);
+                domain.push(exonStarts[i + 1] - basePairsOutsideExonLimit);
+                currentSplitIntronIndex = reverseSplitIntronIndices.pop();
+            }
         }
         // last exon does not have a intron after it
         domain.push(exonStarts[length - 1]);
         domain.push(exonEnds[length - 1]);
     
-        return {
-            domain: domain,
-            splitIntronIndices: splitIntronIndices
-        };
+        return domain;
     }
 }
 
