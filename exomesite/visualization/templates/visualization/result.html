@@ -104,6 +104,12 @@
 
                 console.log("gene range with original positions")
                 console.log(gene.getRange(basePairsOutsideExonLimit));
+
+                console.log("gene domain - base pair positions with original intron lengths")
+                console.log(gene.getDomain(basePairsOutsideExonLimit));
+
+                console.log("gene range - base pair positions with uniform intron length minus offset")
+                console.log(gene.getRange(basePairsOutsideExonLimit), gene.getOffset());
                 
             });
         </script>

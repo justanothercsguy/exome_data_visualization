@@ -14,3 +14,4 @@ function addSvgToDiv(margin, dimension, divName) {
 
     return svgChartHandle;
 }
+

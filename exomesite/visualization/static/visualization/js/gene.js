@@ -260,8 +260,12 @@ class Gene {
     // into three event parts.
     getRange(basePairsOutsideExonLimit) {
         var exonWithUniformIntronLength = this.getExonsWithUniformIntronLength();
-        var exonStarts = this.getExonStarts(exonWithUniformIntronLength);
-        var exonEnds = this.getExonEnds(exonWithUniformIntronLength);
+        var exonStarts = this.getIntArrayMinusOffset(
+            this.getExonStarts(exonWithUniformIntronLength), this.getOffset()
+        );
+        var exonEnds = this.getIntArrayMinusOffset(
+            this.getExonEnds(exonWithUniformIntronLength), this.getOffset()
+        );
         var length = this.exonCount;
         var range = [];
         var uniformIntronLengthOneThird = 
@@ -272,7 +276,7 @@ class Gene {
     
         for (var i = 0; i < length - 1; i++) {
             range.push(exonStarts[i]);
-            
+
             if (i == currentSplitIntronIndex) {
                 range.push(exonEnds[i]);
                 range.push(exonEnds[i] + uniformIntronLengthOneThird);
