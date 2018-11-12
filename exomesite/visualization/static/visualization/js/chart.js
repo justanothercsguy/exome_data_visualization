@@ -7,14 +7,6 @@ function addTooltip() {
     return tooltip;
 }
 
-function addSvgToDiv(margin, dimension, divName) {
-    var svgChartHandle = d3.select(divName).append("svg")
-        .attr("width", dimension.width + margin.left + margin.right)
-        .attr("height", dimension.height + margin.top + margin.bottom);
-
-    return svgChartHandle;
-}
-
 class ChartController {
     constructor(chartMargin, chartDimension, yAxisVariableString, 
         exonBar, variantLollipop, gene) 
@@ -25,6 +17,14 @@ class ChartController {
         this.exonBar = exonBar;
         this.variantLollipop = variantLollipop;
         this.gene = gene;
+    }
+
+    addSvgToDiv(divName) {
+        var svgChartHandle = d3.select(divName).append("svg")
+            .attr("width", this.chartDimension.width)
+            .attr("height", this.chartDimension.height);
+    
+        return svgChartHandle;
     }
 
 }

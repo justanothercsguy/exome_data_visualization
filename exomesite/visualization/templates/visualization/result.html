@@ -17,6 +17,7 @@
             This script below can be turned into a separate JS file later
         -->
         <script type="text/javascript">
+            var zoomedOutChartController = null;
 
             $(window).on("load", function() {
                 // remove '&quot;' string and parse json from variant_list
@@ -119,29 +120,27 @@
                 var exonBar = {nonCodingHeight: 10, codingHeight: 20, color: "#868686"};
                 var variantLollipop = {width: 0.2, radius: 3};
    
-                var zoomedOutChartController = new ChartController(
+                zoomedOutChartController = new ChartController(
                     chartMargin, chartDimension, yAxisVariableString, 
                     exonBar, variantLollipop, gene
                 );
                 
                 console.log("zoomedOutChartController");
                 console.log(zoomedOutChartController);
+
+                // initialize svg object for zoomed out chart
+                var svgZoomedOut = zoomedOutChartController.addSvgToDiv(".chart-zoomed-out");
+                console.log(svgZoomedOut);
             });
         </script>
     </head>
     <body>
-        <h3>Gene: {{ gene.exonstarts }}</h3>
+        <h3>Gene: {{ gene }}</h3>
         <div class="y-axis-button-container">
             <button type="button" class="MAF" value="MAF" onclick="changeYAxisVariable('MAF')">MAF</button>
             <button type="button" class="alleleNumber" value="alleleNumber" onclick="changeYAxisVariable('alleleNumber')">alleleNumber</button>
         </div>
         <div class="chart-zoomed-out"></div>
         <div class="chart-zoomed-in"></div>
-        <ul>
-            <li>cdsstart: {{ gene.cdsstart }}</li>
-            <li>cdsend: {{ gene.cdsend }}</li>
-            <li>exonstarts: {{ gene.exonstarts }}</li>
-            <li>exonends: {{ gene.exonends }}</li>
-        </ul>
     </body>
 </html>
