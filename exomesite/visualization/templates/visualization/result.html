@@ -99,8 +99,11 @@
                 console.log("gene indices of introns with length greater than threshold")
                 console.log(gene.getSplitIntronIndices(basePairsOutsideExonLimit));
 
-                console.log("gene exon ends with uniform intron length minus offset - domain")
+                console.log("gene domain with original positions")
                 console.log(gene.getDomain(basePairsOutsideExonLimit));
+
+                console.log("gene range with original positions")
+                console.log(gene.getRange(basePairsOutsideExonLimit));
                 
             });
         </script>

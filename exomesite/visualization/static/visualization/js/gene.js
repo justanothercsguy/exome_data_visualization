@@ -233,7 +233,7 @@ class Gene {
         for (var i = 0; i < length - 1; i++) {
             domain.push(exonStarts[i]);
             domain.push(exonEnds[i]);
-        
+
             if (currentSplitIntronIndex == i) {
                 domain.push(exonEnds[i] + basePairsOutsideExonLimit);
                 domain.push(exonStarts[i + 1] - basePairsOutsideExonLimit);
@@ -245,6 +245,52 @@ class Gene {
         domain.push(exonEnds[length - 1]);
     
         return domain;
+    }
+
+    // Return an array of values containing the starting point of each exon and intron,
+    // where introns have the same length.
+    // TODO: Theoretically, exonStartsWithUniformIntronLengths[i] = starting point of exon i, 
+    // and exonEndsWithUniformIntronLengths[i] = starting point of intron i
+    // But I split every intron since it would be extra work to keep track of which introns 
+    // are split and which are not.
+    // 
+    // splitIntronIndices contains indices of original intron lengths that exceeded the
+    // basePairsOutsideExonLimit and had to be split into three parts in the domain. 
+    // The introns in the corresponding indices in the range array will also be split
+    // into three event parts.
+    getRange(basePairsOutsideExonLimit) {
+        var exonWithUniformIntronLength = this.getExonsWithUniformIntronLength();
+        var exonStarts = this.getExonStarts(exonWithUniformIntronLength);
+        var exonEnds = this.getExonEnds(exonWithUniformIntronLength);
+        var length = this.exonCount;
+        var range = [];
+        var uniformIntronLengthOneThird = 
+            this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
+        var reverseSplitIntronIndices =
+            this.getSplitIntronIndices(basePairsOutsideExonLimit).reverse();
+        var currentSplitIntronIndex = reverseSplitIntronIndices.pop();
+    
+        for (var i = 0; i < length - 1; i++) {
+            range.push(exonStarts[i]);
+            
+            if (i == currentSplitIntronIndex) {
+                range.push(exonEnds[i]);
+                range.push(exonEnds[i] + uniformIntronLengthOneThird);
+                range.push(exonStarts[i + 1] - uniformIntronLengthOneThird);
+                currentSplitIntronIndex = reverseSplitIntronIndices.pop();
+            } else {
+                range.push(exonEnds[i]);
+            }
+        }
+        // last exon does not have a intron after it
+        range.push(exonStarts[length - 1]);
+        range.push(exonEnds[length - 1]);
+    
+        return range;
+    }
+
+    roundToTwoDecimalPlaces(x) {
+        return Math.round(x * 100) / 100;
     }
 }
 
