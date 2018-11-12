@@ -72,6 +72,30 @@ class Gene {
         return intronsWithUniformIntronLength;
     }
 
+    getIntronPartitionsWithUniformIntronLength() {
+        var intronPartitions = [];
+        var introns = this.getIntronsWithUniformIntronLength();
+        var length = this.getIntronCount();
+        var uniformIntronLengthOneThird = 
+            this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
+
+        for (var i = 0; i < length; i++) {
+            intronPartitions.push(
+                new Exon(introns[i].start, 
+                    introns[i].start + uniformIntronLengthOneThird
+            ));
+            intronPartitions.push(
+                new Exon(introns[i].start + uniformIntronLengthOneThird, 
+                    introns[i].end - uniformIntronLengthOneThird
+            ));
+            intronPartitions.push(
+                new Exon(introns[i].end - uniformIntronLengthOneThird, 
+                    introns[i].end
+            ));
+        }
+        return intronPartitions;
+    }
+
     getIntronCount() {
         return this.exonCount - 1;
     }

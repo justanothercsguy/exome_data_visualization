@@ -131,10 +131,8 @@
                 var scaleOriginalIntronsToUniformIntrons 
                     = gene.getScaleOriginalIntronsToUniformIntrons();
                 var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
-                var intronBars = zoomedOutChartController.gene.getIntronsWithUniformIntronLength();
+                var intronBars = zoomedOutChartController.gene.getIntronPartitionsWithUniformIntronLength();
 
-                console.log(svgZoomedOut);
-                console.log(exonTransformZoomedOut);
                 console.log(exonBars);
                 console.log(intronBars);
             });
