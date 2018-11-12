@@ -104,13 +104,25 @@
 
                 console.log("gene range with original positions")
                 console.log(gene.getRange(basePairsOutsideExonLimit));
-
-                console.log("gene domain - base pair positions with original intron lengths")
-                console.log(gene.getDomain(basePairsOutsideExonLimit));
-
-                console.log("gene range - base pair positions with uniform intron length minus offset")
-                console.log(gene.getRange(basePairsOutsideExonLimit), gene.getOffset());
                 
+                var domain = gene.getDomain(basePairsOutsideExonLimit);
+                console.log("gene domain - base pair positions with original intron lengths")
+                console.log(domain);
+                
+                var range = gene.getRange(basePairsOutsideExonLimit);
+                console.log("gene range - base pair positions with uniform intron length minus offset")
+                console.log(range);
+                
+                var margin = {top: 30, right: 30, bottom: 50, left: 120};
+                var dimension = {
+                    width: 1200 - margin.left - margin.right,
+                    height: 320 - margin.top - margin.bottom
+                };
+                var zoomedOutChartController 
+                    = new ChartController(margin, dimension, domain, range);
+                
+                console.log("zoomedOutChartController");
+                console.log(zoomedOutChartController);
             });
         </script>
     </head>

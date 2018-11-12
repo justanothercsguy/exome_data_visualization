@@ -15,3 +15,12 @@ function addSvgToDiv(margin, dimension, divName) {
     return svgChartHandle;
 }
 
+class ChartController {
+    constructor(margin, dimension, domain, range) {
+        this.margin = margin;
+        this.dimension = dimension;
+        this.domain = domain;
+        this.range = range;
+    }
+
+}
