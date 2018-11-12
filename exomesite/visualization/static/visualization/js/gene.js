@@ -41,12 +41,16 @@ class Gene {
     getIntronLengths() {
         var intronLengths = [];
         var introns = this.getIntrons();
-        var length = this.exonCount - 1;
+        var length = this.getIntronCount();
 
         for (var i = 0; i < length; i++) {
             intronLengths.push(introns[i].getLength());
         }
         return intronLengths;
+    }
+
+    getIntronCount() {
+        return this.exonCount - 1;
     }
 
     // Initially I pass in exonStarts and exonEnds but then use them to 
@@ -98,7 +102,7 @@ class Gene {
     // exon partitions.
     limitNonCodingExonLength(nonCodingLengthLimit) {
         var firstExon = this.getExons()[0];
-        var lastExon = this.getExons()[this.exonCount - 1];
+        var lastExon = this.getExons()[this.getIntronCount()];
         var cdsStart = this.cdsStart;
         var cdsEnd = this.cdsEnd;
 
@@ -109,7 +113,7 @@ class Gene {
 
         if (this.doesExonContainCdsEnd(lastExon, cdsEnd)
         && (lastExon.end - cdsEnd > nonCodingLengthLimit)) {
-            this.exons[this.exonCount - 1] = 
+            this.exons[this.getIntronCount()] = 
                 new Exon(lastExon.start, cdsEnd + nonCodingLengthLimit);
         }
     }
@@ -138,11 +142,11 @@ class Gene {
 
     // sum of all intron lengths will equal to half of the sum of all exon lengths
     getUniformIntronLength() {
-        return Math.ceil((this.getSumOfExonLengths() / 2) / (this.exonCount - 1));
+        return Math.ceil(this.getSumOfExonLengths() * 0.5 / this.getIntronCount());
     }
 
     getSumOfUniformIntronLengths() {
-        return this.getUniformIntronLength() * (this.exonCount - 1);
+        return this.getUniformIntronLength() * this.getIntronCount();
     }
 
     getExonsWithUniformIntronLength() {
@@ -194,7 +198,7 @@ class Gene {
         var splitIntronIndices = [];
         var threshold = 3 * basePairsOutsideExonLimit;
         var introns = this.getIntrons();
-        var length = this.exonCount - 1;
+        var length = this.getIntronCount();;
 
         for (var i = 0; i < length; i++) {
             if (introns[i].getLength() > threshold) {
