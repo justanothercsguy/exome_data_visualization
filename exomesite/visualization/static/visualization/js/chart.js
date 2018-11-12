@@ -70,4 +70,56 @@ class ChartController {
         return bar;
     }
 
+    addLinesToZoomedOutChart(chartTransform) {
+        var intronPartitionsWithUniformIntronLength = 
+            this.gene.getIntronPartitionsWithUniformIntronLength();
+        var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
+        var length = intronPartitionsWithUniformIntronLength.length;
+        var nonCodingHeight = this.exonBar.nonCodingHeight;
+        var data = [];
+
+        // calculate coordinates for where the dashed lines represented by introns 
+        // will be drawn on the chart
+        for (var i = 0; i < length; i++) {
+            data.push([
+                [
+                    scaleUniformIntronsToChart(intronPartitionsWithUniformIntronLength[i].start), 
+                    nonCodingHeight
+                ],
+                [
+                    scaleUniformIntronsToChart(intronPartitionsWithUniformIntronLength[i].end), 
+                    nonCodingHeight
+                ]
+            ]);
+        }
+
+        var lines = chartTransform.append("g")
+            .selectAll("path")
+            .data(data)
+            .enter().append("path")
+            .style("stroke", function (d, i) {
+                if (i % 3 != 1) { 
+                    return "black";
+                }
+                return "grey";
+            })
+            .attr("stroke-width", function (d, i) {
+                // controls the height of each dash
+                if (i % 3 != 1) { 
+                    return nonCodingHeight * 0.5; 
+                }
+                return nonCodingHeight * 0.25;
+            })
+            .style("stroke-dasharray", function (d, i) {
+                // first number controls width of each dash 
+                // second number controls width of spaces between dashes
+                if (i % 3 != 1) { 
+                    return "2,2"; 
+                }
+                return "2,1"; 
+            })
+            .attr("d", d3.line());
+        
+        return lines;    
+    }
 }
