@@ -319,14 +319,15 @@ class ChartController {
 
         return yAxisScale;
     }
+}
 
-    changeYAxisVariable(chartTransform, newYAxisVariable, tooltip) {
+function changeYAxisVariable(variantTransformZoomedOut, 
+    chartController, newYAxisVariable, tooltip) {
 
-        this.setYAxisVariableString(newYAxisVariable);
-        console.log("newYAxisVariable");
-        console.log(newYAxisVariable);
-        console.log(this.yAxisVariableString);
-        
-        this.addVariantsToTransform(chartTransform, tooltip);
-    }
+    chartController.setYAxisVariableString(newYAxisVariable);
+    console.log("newYAxisVariable");
+    console.log(newYAxisVariable);
+    console.log(chartController.yAxisVariableString);
+    
+    chartController.addVariantsToTransform(variantTransformZoomedOut, tooltip);
 }

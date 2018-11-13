@@ -19,8 +19,10 @@
         -->
         <script type="text/javascript">
             var zoomedOutChartController = null;
+            var tooltip = null;
+            var variantTransformZoomedOut = null;
 
-            $(window).on("load", function() {
+            $(window).on("load", function() {                
                 // remove '&quot;' string and parse json from variant_list_json
                 var variants = JSON.parse("{{variant_list_json}}".replace(/&quot;/g,'"'));
                 var cdsStart = jsonStringToInt("{{gene.cdsstart}}");
@@ -35,74 +37,7 @@
                 );
 
                 gene.limitNonCodingExonLength(nonCodingLengthLimit);
-                console.log("gene after nonCodingLengthLimit");
-                console.log(gene);
-
-                console.log("gene exon length array");
-                console.log(gene.getExonLengths(gene.getExons()));
-
-                console.log("gene sum of exon length array");
-                console.log(gene.getSumOfExonLengths(gene.getExons()));
-                
-                console.log("gene sum of uniform intron length");
-                console.log(gene.getUniformIntronLength());
-
-                console.log("gene sum of uniform intron length array");
-                console.log(gene.getSumOfUniformIntronLengths());
-
-                console.log("gene exons with uniform intron length");
-                console.log(gene.getExonsWithUniformIntronLength());
-
-                console.log("gene exon starts with original intron length");
-                console.log(gene.getExonStarts(gene.getExons()));
-
-                console.log("gene exon ends with original intron length");
-                console.log(gene.getExonEnds(gene.getExons()));
-
-                console.log("gene exon starts with uniform intron length");
-                console.log(gene.getExonStarts(gene.getExonsWithUniformIntronLength()));
-
-                console.log("gene exon ends with uniform intron length");
-                console.log(gene.getExonEnds(gene.getExonsWithUniformIntronLength()));
-
-                console.log("gene offset");
-                console.log(gene.getOffset());
-
-                console.log("gene exon starts with original intron length minus offset");
-                console.log(gene.getIntArrayMinusOffset(
-                    gene.getExonStarts(gene.getExons()), gene.getOffset()
-                ));
-
-                console.log("gene exon ends with original intron length minus offset");
-                console.log(gene.getIntArrayMinusOffset(
-                    gene.getExonEnds(gene.getExons()), gene.getOffset()
-                ));
-
-                console.log("gene exon starts with uniform intron length minus offset");
-                console.log(gene.getIntArrayMinusOffset(
-                    gene.getExonStarts(gene.getExonsWithUniformIntronLength()), gene.getOffset()
-                ));
-
-                console.log("gene exon ends with uniform intron length minus offset");
-                console.log(gene.getIntArrayMinusOffset(
-                    gene.getExonEnds(gene.getExonsWithUniformIntronLength()), gene.getOffset()
-                ));
-
-                console.log("gene introns");
-                console.log(gene.getIntrons());
-
-                console.log("gene intron lengths");
-                console.log(gene.getIntronLengths());
-
-                console.log("gene indices of introns with length greater than threshold");
-                console.log(gene.getSplitIntronIndices(basePairsOutsideExonLimit));
-
-                console.log("gene domain - base pair positions with original intron lengths");
-                console.log(gene.getDomain(basePairsOutsideExonLimit));
-                
-                console.log("gene range - base pair positions with uniform intron length minus offset");
-                console.log(gene.getRange(basePairsOutsideExonLimit));
-                
+  
                 var chartMargin = {top: 30, right: 30, bottom: 50, left: 120};
                 var chartDimension = {width: 1200, height: 320};
                 var yAxisVariableString = "MAF";
@@ -124,39 +59,27 @@
                     zoomedOutChartController.chartMargin.top
                 );
                 var yGapBetweenExonsAndVariants = 5;
-                var variantTransformZoomedOut = zoomedOutChartController.addTransformToSvg(
+                variantTransformZoomedOut = zoomedOutChartController.addTransformToSvg(
                     svgZoomedOut, zoomedOutChartController.chartMargin.left, 
                     (zoomedOutChartController.chartMargin.top 
                         + zoomedOutChartController.exonBar.codingHeight 
                         + yGapBetweenExonsAndVariants)
                 );
-
-                var scaleUniformIntronsToChart 
-                    = zoomedOutChartController.getScaleUniformIntronsToChart();
-                var scaleOriginalIntronsToUniformIntrons 
-                    = gene.getScaleOriginalIntronsToUniformIntrons();
-                var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
-                var intronLines = zoomedOutChartController.addLinesToTransform(exonTransformZoomedOut);
                 
-                console.log("gene non coding exon partitions")
-                console.log(gene.getNonCodingExonPartitions());
-
-                console.log("gene non coding exon partition lengths")
-                console.log(gene.getExonLengths(gene.getNonCodingExonPartitions()));
-
+                // render exons and introns in the exon transform handle
+                var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
+                var intronLines = zoomedOutChartController.addLinesToTransform(exonTransformZoomedOut);    
                 var nonCodingExonBars = 
                     zoomedOutChartController.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
                 
+                // process variant data and render it in the variant transform handle
                 gene.initializeVariants(variants);
                 console.log("gene variants after initializeVariants()");
                 console.log(gene.getVariants());
-
-                console.log("gene variant map");
-                console.log(gene.getVariantMap());
                 
-                var tooltip = addTooltip();
+                tooltip = addTooltip();
                 console.log("chart add variants to transform map");
-                zoomedOutChartController.addVariantsToTransform(
+                var variantLollipops = zoomedOutChartController.addVariantsToTransform(
                     variantTransformZoomedOut, tooltip);
 
             });
@@ -165,8 +88,14 @@
     <body>
         <h3>Gene: {{ gene }}</h3>
         <div class="y-axis-button-container">
-            <button type="button" class="MAF" value="MAF" onclick="changeYAxisVariable('MAF')">MAF</button>
-            <button type="button" class="alleleNumber" value="alleleNumber" onclick="changeYAxisVariable('alleleNumber')">alleleNumber</button>
+            <button type="button" class="MAF" value="MAF" 
+                onclick="changeYAxisVariable(variantTransformZoomedOut,
+                zoomedOutChartController, 'MAF', tooltip)">MAF
+            </button>
+            <button type="button" class="alleleNumber" value="alleleNumber" 
+                onclick="changeYAxisVariable(variantTransformZoomedOut, 
+                zoomedOutChartController, 'alleleNumber', tooltip)">alleleNumber
+            </button>
         </div>
         <div class="chart-zoomed-out"></div>
         <div class="chart-zoomed-in"></div>

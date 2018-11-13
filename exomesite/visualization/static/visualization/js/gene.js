@@ -36,7 +36,7 @@ class Gene {
         // I know that biologically, Introns are different from Exons, 
         // but for prototyping I put them in the same class Exon 
         for (var i = 1; i < length; i++) {
-            introns.push(new Exon(exons[i-1].end, exons[i].start));
+            introns.push(new Exon(exons[i-1].getEnd(), exons[i].getStart()));
         }
         return introns;
     }
@@ -69,8 +69,8 @@ class Gene {
         for (var i = 0; i < length; i++) {
             intronsWithUniformIntronLength.push(
                 new Exon(
-                    scaleOriginalIntronsToUniformIntrons(introns[i].start), 
-                    scaleOriginalIntronsToUniformIntrons(introns[i].end)
+                    scaleOriginalIntronsToUniformIntrons(introns[i].getStart()), 
+                    scaleOriginalIntronsToUniformIntrons(introns[i].getEnd())
                 )
             );
         }
@@ -85,18 +85,13 @@ class Gene {
             this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
 
         for (var i = 0; i < length; i++) {
-            intronPartitions.push(
-                new Exon(introns[i].start, 
-                    introns[i].start + uniformIntronLengthOneThird
-            ));
-            intronPartitions.push(
-                new Exon(introns[i].start + uniformIntronLengthOneThird, 
-                    introns[i].end - uniformIntronLengthOneThird
-            ));
-            intronPartitions.push(
-                new Exon(introns[i].end - uniformIntronLengthOneThird, 
-                    introns[i].end
-            ));
+            var start = introns[i].getStart();
+            var end = introns[i].getEnd();
+
+            intronPartitions.push(new Exon(start, start + uniformIntronLengthOneThird));
+            intronPartitions.push(new Exon(
+                start + uniformIntronLengthOneThird, end - uniformIntronLengthOneThird));
+            intronPartitions.push(new Exon(end - uniformIntronLengthOneThird, end));
         }
         return intronPartitions;
     }
@@ -113,7 +108,7 @@ class Gene {
         var length = exons.length;
 
         for (var i = 0; i < length; i++) {
-            exonStarts.push(exons[i].start);
+            exonStarts.push(exons[i].getStart());
         }
         return exonStarts;
     }
@@ -123,7 +118,7 @@ class Gene {
         var length = exons.length;
 
         for (var i = 0; i < length; i++) {
-            exonEnds.push(exons[i].end);
+            exonEnds.push(exons[i].getEnd());
         }
         return exonEnds;
     }
@@ -131,13 +126,13 @@ class Gene {
     doesExonContainCdsStart(exon) {
         // Don't split in the case where exonStart >= cdsStart and everything is coding,
         // or the case where exonEnd < cdsStart and everything is non-coding
-        return (exon.start < this.cdsStart && exon.end >= this.cdsStart);
+        return (exon.getStart() < this.cdsStart && exon.getEnd() >= this.cdsStart);
     }      
       
     doesExonContainCdsEnd(exon) {
         // Don't split in the case where exonEnds[length - 1] <= cdsEnd and everything is coding,
         // or the case where exonStarts[length - 1] > cdsEnd and everything is non-coding 
-        return (exon.start <= this.cdsEnd && exon.end > this.cdsEnd);
+        return (exon.getStart() <= this.cdsEnd && exon.getEnd() > this.cdsEnd);
     }
 
     // Let i be the index of the exon that contains cdsStart within its domain
@@ -153,14 +148,14 @@ class Gene {
         var cdsEnd = this.cdsEnd;
 
         if (this.doesExonContainCdsStart(firstExon)
-        && (cdsStart - firstExon.start > nonCodingLengthLimit)) {
-            this.exons[0] = new Exon(cdsStart - nonCodingLengthLimit, firstExon.end);
+        && (cdsStart - firstExon.getStart() > nonCodingLengthLimit)) {
+            this.exons[0] = new Exon(cdsStart - nonCodingLengthLimit, firstExon.getEnd());
         }
 
         if (this.doesExonContainCdsEnd(lastExon)
-        && (lastExon.end - cdsEnd > nonCodingLengthLimit)) {
+        && (lastExon.getEnd() - cdsEnd > nonCodingLengthLimit)) {
             this.exons[this.getIntronCount()] = 
-                new Exon(lastExon.start, cdsEnd + nonCodingLengthLimit);
+                new Exon(lastExon.getStart(), cdsEnd + nonCodingLengthLimit);
         }
     }
 
@@ -226,7 +221,7 @@ class Gene {
     }
 
     getOffset() {
-        return this.getExons()[0].start;
+        return this.getExons()[0].getStart();
     }
 
     getIntArrayMinusOffset(intArray, offset) {
@@ -357,8 +352,8 @@ class Gene {
         var lastExonIndex = this.getExonCount() - 1;
         var nonCodingExonPartitions = [];
 
-        nonCodingExonPartitions.push(new Exon(exons[0].start, this.cdsStart));
-        nonCodingExonPartitions.push(new Exon(this.cdsEnd, exons[lastExonIndex].end));
+        nonCodingExonPartitions.push(new Exon(exons[0].getStart(), this.cdsStart));
+        nonCodingExonPartitions.push(new Exon(this.cdsEnd, exons[lastExonIndex].getEnd()));
         return nonCodingExonPartitions;
     }
 
@@ -370,8 +365,8 @@ class Gene {
     initializeVariants(variants) {
         var variantsFiltered = null;
         var exons = this.getExons();
-        var lowerBound = exons[0].start;
-        var upperBound = exons[exons.length - 1].end;
+        var lowerBound = exons[0].getStart();
+        var upperBound = exons[exons.length - 1].getEnd();
         var length = 0;
         var variantList = [];
 
@@ -416,6 +411,14 @@ class Exon {
     constructor(start, end) {
         this.start = start;
         this.end = end;
+    }
+
+    getStart() {
+        return this.start;
+    }
+
+    getEnd() {
+        return this.end;
     }
 
     getLength() {
