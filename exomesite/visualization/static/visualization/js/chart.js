@@ -192,14 +192,9 @@ class ChartController {
         var scaleYAxis = this.getYAxisScale(
             yAxisVariableString, variantData, this.getChartHeight());
 
-        console.log("current Y axis variable");
-        console.log(yAxisVariableString);
-
         // clear the previous variant visualization
         chartTransform.selectAll("g").remove();
 
-        // NOTE: Every field in the database is shifted down by one
-        // have to figure out why and reimport the csv file into the db
         var lollipopRect = chartTransform.selectAll("g")
             .data(variantData)
             .enter().append("g")
@@ -213,15 +208,38 @@ class ChartController {
             .attr("width", this.variantLollipop.width)
             .attr("height", function (d) {
                 if (yAxisVariableString == 'MAF') {
-                    return scaleYAxis(d.allelefrequency);
+                    return scaleYAxis(variantMap[d.position][0].allelefrequency);
                 }
                 else if (yAxisVariableString == 'alleleNumber') {
-                    return scaleYAxis(d.allelenumber);
+                    return scaleYAxis(variantMap[d.position][0].allelenumber);
                 }
             })
             .attr('fill', function (d) {
                 return scaleVariantFlagToLollipopColor(d.annotation);
             });
+
+        var lollipopCircle = chartTransform.selectAll('circle')
+            .data(variantData)
+            .enter().append("g").append('circle')
+            .attr('cx', function (d) {
+                return scaleUniformIntronsToChart(
+                    scaleOriginalIntronsToUniformIntrons(d.position)
+                );
+            })
+            .attr('cy', function (d) {
+                if (yAxisVariableString == 'MAF') {
+                    return scaleYAxis(variantMap[d.position][0].allelefrequency);
+                }
+                else if (yAxisVariableString == 'alleleNumber') {
+                    return scaleYAxis(variantMap[d.position][0].allelenumber);
+                }
+            })
+            .attr('r', this.variantLollipop.radius)
+            .attr('fill', function (d) {
+                return scaleVariantFlagToLollipopColor(d.annotation);
+            });
+
+        return lollipopCircle;
     }
 
     getScaleVariantFlagToLollipopColor() {

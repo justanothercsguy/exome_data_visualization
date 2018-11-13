@@ -122,10 +122,12 @@
                     svgZoomedOut, zoomedOutChartController.chartMargin.left, 
                     zoomedOutChartController.chartMargin.top
                 );
+                var yGapBetweenExonsAndVariants = 5;
                 var variantTransformZoomedOut = zoomedOutChartController.addTransformToSvg(
                     svgZoomedOut, zoomedOutChartController.chartMargin.left, 
                     (zoomedOutChartController.chartMargin.top 
-                        + zoomedOutChartController.exonBar.codingHeight)
+                        + zoomedOutChartController.exonBar.codingHeight 
+                        + yGapBetweenExonsAndVariants)
                 );
 
                 var scaleUniformIntronsToChart 
