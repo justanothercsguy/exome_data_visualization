@@ -42,10 +42,10 @@
                 console.log(gene);
 
                 console.log("gene exon length array")
-                console.log(gene.getExonLengths());
+                console.log(gene.getExonLengths(gene.getExons()));
 
                 console.log("gene sum of exon length array")
-                console.log(gene.getSumOfExonLengths());
+                console.log(gene.getSumOfExonLengths(gene.getExons()));
                 
                 console.log("gene sum of uniform intron length")
                 console.log(gene.getUniformIntronLength());
@@ -133,8 +133,11 @@
                 var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
                 var intronLines = zoomedOutChartController.addLinesToZoomedOutChart(exonTransformZoomedOut);
                 
-                console.log(exonBars);
-                console.log(intronLines);
+                console.log("gene non coding exon partitions")
+                console.log(gene.getNonCodingExonPartitions());
+
+                console.log("gene non coding exon partition lengths")
+                console.log(gene.getExonLengths(gene.getNonCodingExonPartitions()));
             });
         </script>
     </head>

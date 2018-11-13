@@ -35,7 +35,7 @@ class ChartController {
     }
 
     getScaleUniformIntronsToChart() {
-        var totalLength = this.gene.getSumOfExonLengths()
+        var totalLength = this.gene.getSumOfExonLengths(this.gene.getExons())
             + this.gene.getSumOfUniformIntronLengths();
 
         return d3.scaleLinear()
@@ -47,8 +47,9 @@ class ChartController {
         var scaleOriginalIntronsToUniformIntrons 
             = this.gene.getScaleOriginalIntronsToUniformIntrons();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
-        var exonLengths = this.gene.getExonLengths();
-        var exonStarts = this.gene.getExonStarts(this.gene.getExons());
+        var exons = this.gene.getExons();
+        var exonLengths = this.gene.getExonLengths(exons);
+        var exonStarts = this.gene.getExonStarts(exons);
         var exonBar = this.exonBar;
 
         var bar = chartTransform.selectAll("g")
@@ -78,8 +79,8 @@ class ChartController {
         var nonCodingHeight = this.exonBar.nonCodingHeight;
         var data = [];
 
-        // calculate coordinates for where the dashed lines represented by introns 
-        // will be drawn on the chart
+        // calculate x,y coordinates of where the dashed lines 
+        // representing introns will be drawn
         for (var i = 0; i < length; i++) {
             data.push([
                 [

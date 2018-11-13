@@ -128,17 +128,17 @@ class Gene {
     }
 
 
-    doesExonContainCdsStart(exon, cdsStart) {
+    doesExonContainCdsStart(exon) {
         // Don't split in the case where exonStart >= cdsStart and everything is coding,
         // or the case where exonEnd < cdsStart and everything is non-coding
-        return (exon.start < cdsStart && exon.end >= cdsStart);
+        return (exon.start < this.cdsStart && exon.end >= this.cdsStart);
     }
       
       
-    doesExonContainCdsEnd(exon, cdsEnd) {
+    doesExonContainCdsEnd(exon) {
         // Don't split in the case where exonEnds[length - 1] <= cdsEnd and everything is coding,
         // or the case where exonStarts[length - 1] > cdsEnd and everything is non-coding 
-        return (exon.start <= cdsEnd && exon.end > cdsEnd);
+        return (exon.start <= this.cdsEnd && exon.end > this.cdsEnd);
     }
 
     // Let i be the index of the exon that contains cdsStart within its domain
@@ -153,33 +153,31 @@ class Gene {
         var cdsStart = this.cdsStart;
         var cdsEnd = this.cdsEnd;
 
-        if (this.doesExonContainCdsStart(firstExon, cdsStart)
+        if (this.doesExonContainCdsStart(firstExon)
         && (cdsStart - firstExon.start > nonCodingLengthLimit)) {
             this.exons[0] = new Exon(cdsStart - nonCodingLengthLimit, firstExon.end);
         }
 
-        if (this.doesExonContainCdsEnd(lastExon, cdsEnd)
+        if (this.doesExonContainCdsEnd(lastExon)
         && (lastExon.end - cdsEnd > nonCodingLengthLimit)) {
             this.exons[this.getIntronCount()] = 
                 new Exon(lastExon.start, cdsEnd + nonCodingLengthLimit);
         }
     }
 
-    getExonLengths() {
+    getExonLengths(exons) {
         var exonLengths = [];
-        var exons = this.getExons();
-        var length = this.exonCount;
+        var length = exons.length;
         for (var i = 0; i < length; i++) {
-
             exonLengths.push(exons[i].getLength());
         }
         return exonLengths;
     }
 
-    getSumOfExonLengths() {
+    getSumOfExonLengths(exons) {
         var sum = 0;
-        var exonLengths = this.getExonLengths();
-        var length = this.exonCount;
+        var exonLengths = this.getExonLengths(exons);
+        var length = exons.length;
 
         for (var i = 0; i < length; i++) {
             sum += exonLengths[i];
@@ -189,7 +187,7 @@ class Gene {
 
     // sum of all intron lengths will equal to half of the sum of all exon lengths
     getUniformIntronLength() {
-        return Math.ceil(this.getSumOfExonLengths() * 0.5 / this.getIntronCount());
+        return Math.ceil(this.getSumOfExonLengths(this.getExons()) * 0.5 / this.getIntronCount());
     }
 
     getSumOfUniformIntronLengths() {
@@ -198,9 +196,10 @@ class Gene {
 
     getExonsWithUniformIntronLength() {
         var exonCount = this.exonCount;
-        var exonStarts = this.getExonStarts(this.getExons());
-        var exonEnds = this.getExonEnds(this.getExons());
-        var exonLengths = this.getExonLengths();
+        var exons = this.getExons();
+        var exonStarts = this.getExonStarts(exons);
+        var exonEnds = this.getExonEnds(exons);
+        var exonLengths = this.getExonLengths(exons);
         var uniformIntronLength = this.getUniformIntronLength();
         var exonStartsWithUniformIntronLength = [];
         var exonEndsWithUniformIntronLength = [];
@@ -348,6 +347,20 @@ class Gene {
 
     roundToTwoDecimalPlaces(x) {
         return Math.round(x * 100) / 100;
+    }
+
+    getNonCodingExonPartitions() {
+        // For now, I assume that the first exon and last exon contain
+        // non-protein encoding parts - in other words, part of the 
+        // first exon starts before cdsStart and part of the last exon
+        // starts after cdsEnd. This might not always be the case
+        var exons = this.getExons();
+        var lastExonIndex = this.exonCount - 1;
+        var nonCodingExonPartitions = [];
+
+        nonCodingExonPartitions.push(new Exon(exons[0].start, this.cdsStart));
+        nonCodingExonPartitions.push(new Exon(this.cdsEnd, exons[lastExonIndex].end));
+        return nonCodingExonPartitions;
     }
 }
 
