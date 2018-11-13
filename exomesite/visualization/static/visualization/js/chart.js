@@ -211,12 +211,8 @@ class ChartController {
             .append("rect")
             .attr("width", this.variantLollipop.width)
             .attr("height", function (d) {
-                if (yAxisVariableString == 'MAF') {
-                    return scaleYAxis(variantMap[d.position][0].allelefrequency);
-                }
-                else if (yAxisVariableString == 'alleleNumber') {
-                    return scaleYAxis(variantMap[d.position][0].allelenumber);
-                }
+                return scaleYAxis(
+                    getYAxisVariableFromMap(yAxisVariableString, variantMap, d));
             })
             .attr('fill', function (d) {
                 return scaleVariantFlagToLollipopColor(d.annotation);
@@ -231,12 +227,8 @@ class ChartController {
                 );
             })
             .attr('cy', function (d) {
-                if (yAxisVariableString == 'MAF') {
-                    return scaleYAxis(variantMap[d.position][0].allelefrequency);
-                }
-                else if (yAxisVariableString == 'alleleNumber') {
-                    return scaleYAxis(variantMap[d.position][0].allelenumber);
-                }
+                return scaleYAxis(
+                    getYAxisVariableFromMap(yAxisVariableString, variantMap, d));
             })
             .attr('r', this.variantLollipop.radius)
             .attr('fill', function (d) {
@@ -318,6 +310,19 @@ class ChartController {
         }
 
         return yAxisScale;
+    }
+}
+
+// This function is outside of the ChartController class because 
+// the anonymous function that calls it cannot use "this.getYAxisVariableFromMap"
+// because in the scope of the anonymous function, "this" does not refer to the
+// ChartController object
+function getYAxisVariableFromMap(yAxisVariableString, variantMap, variant) {
+    if (yAxisVariableString == 'MAF') {
+        return variantMap[variant.position][0].allelefrequency;
+    }
+    else if (yAxisVariableString == 'alleleNumber') {
+        return variantMap[variant.position][0].allelenumber;
     }
 }
 
