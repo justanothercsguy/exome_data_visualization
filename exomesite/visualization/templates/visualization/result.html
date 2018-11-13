@@ -20,89 +20,86 @@
             var zoomedOutChartController = null;
 
             $(window).on("load", function() {
-                // remove '&quot;' string and parse json from variant_list
-                variant_list = JSON.parse("{{variant_list_json}}".replace(/&quot;/g,'"'));
-                console.log("variant_list");
-                console.log(variant_list);
-
+                // remove '&quot;' string and parse json from variant_list_json
+                var variants = JSON.parse("{{variant_list_json}}".replace(/&quot;/g,'"'));
                 var cdsStart = jsonStringToInt("{{gene.cdsstart}}");
                 var cdsEnd = jsonStringToInt("{{gene.cdsend}}");
                 var exonStarts = jsonStringArrayToIntArray("{{gene.exonstarts}}");
                 var exonEnds = jsonStringArrayToIntArray("{{gene.exonends}}");
 
-                var gene = new Gene(cdsStart, cdsEnd, exonStarts, exonEnds);
-
                 var nonCodingLengthLimit = 200;
                 var basePairsOutsideExonLimit = 50; 
+                var gene = new Gene(
+                    cdsStart, cdsEnd, exonStarts, exonEnds, variants, nonCodingLengthLimit
+                );
 
                 gene.limitNonCodingExonLength(nonCodingLengthLimit);
-
-                console.log("gene after nonCodingLengthLimit")
+                console.log("gene after nonCodingLengthLimit");
                 console.log(gene);
 
-                console.log("gene exon length array")
+                console.log("gene exon length array");
                 console.log(gene.getExonLengths(gene.getExons()));
 
-                console.log("gene sum of exon length array")
+                console.log("gene sum of exon length array");
                 console.log(gene.getSumOfExonLengths(gene.getExons()));
                 
-                console.log("gene sum of uniform intron length")
+                console.log("gene sum of uniform intron length");
                 console.log(gene.getUniformIntronLength());
 
-                console.log("gene sum of uniform intron length array")
+                console.log("gene sum of uniform intron length array");
                 console.log(gene.getSumOfUniformIntronLengths());
 
-                console.log("gene exons with uniform intron length")
+                console.log("gene exons with uniform intron length");
                 console.log(gene.getExonsWithUniformIntronLength());
 
-                console.log("gene exon starts with original intron length")
+                console.log("gene exon starts with original intron length");
                 console.log(gene.getExonStarts(gene.getExons()));
 
-                console.log("gene exon ends with original intron length")
+                console.log("gene exon ends with original intron length");
                 console.log(gene.getExonEnds(gene.getExons()));
 
-                console.log("gene exon starts with uniform intron length")
+                console.log("gene exon starts with uniform intron length");
                 console.log(gene.getExonStarts(gene.getExonsWithUniformIntronLength()));
 
-                console.log("gene exon ends with uniform intron length")
+                console.log("gene exon ends with uniform intron length");
                 console.log(gene.getExonEnds(gene.getExonsWithUniformIntronLength()));
 
-                console.log("gene offset")
+                console.log("gene offset");
                 console.log(gene.getOffset());
 
-                console.log("gene exon starts with original intron length minus offset")
+                console.log("gene exon starts with original intron length minus offset");
                 console.log(gene.getIntArrayMinusOffset(
                     gene.getExonStarts(gene.getExons()), gene.getOffset()
                 ));
 
-                console.log("gene exon ends with original intron length minus offset")
+                console.log("gene exon ends with original intron length minus offset");
                 console.log(gene.getIntArrayMinusOffset(
                     gene.getExonEnds(gene.getExons()), gene.getOffset()
                 ));
 
-                console.log("gene exon starts with uniform intron length minus offset")
+                console.log("gene exon starts with uniform intron length minus offset");
                 console.log(gene.getIntArrayMinusOffset(
                     gene.getExonStarts(gene.getExonsWithUniformIntronLength()), gene.getOffset()
                 ));
 
-                console.log("gene exon ends with uniform intron length minus offset")
+                console.log("gene exon ends with uniform intron length minus offset");
                 console.log(gene.getIntArrayMinusOffset(
                     gene.getExonEnds(gene.getExonsWithUniformIntronLength()), gene.getOffset()
                 ));
 
-                console.log("gene introns")
+                console.log("gene introns");
                 console.log(gene.getIntrons());
 
-                console.log("gene intron lengths")
+                console.log("gene intron lengths");
                 console.log(gene.getIntronLengths());
 
-                console.log("gene indices of introns with length greater than threshold")
+                console.log("gene indices of introns with length greater than threshold");
                 console.log(gene.getSplitIntronIndices(basePairsOutsideExonLimit));
 
-                console.log("gene domain - base pair positions with original intron lengths")
+                console.log("gene domain - base pair positions with original intron lengths");
                 console.log(gene.getDomain(basePairsOutsideExonLimit));
                 
-                console.log("gene range - base pair positions with uniform intron length minus offset")
+                console.log("gene range - base pair positions with uniform intron length minus offset");
                 console.log(gene.getRange(basePairsOutsideExonLimit));
                 
                 var chartMargin = {top: 30, right: 30, bottom: 50, left: 120};
@@ -140,7 +137,10 @@
 
                 var nonCodingExonBars = 
                     zoomedOutChartController.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
-
+                
+                gene.initializeVariants(variants);
+                console.log("gene variants after initializeVariants()");
+                console.log(gene.getVariants());
             });
         </script>
     </head>

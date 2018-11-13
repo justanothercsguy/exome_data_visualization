@@ -3,6 +3,7 @@ class Gene {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
         this.exons = this.initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds);
+        this.variants = null;
     }
 
     // Handle exceptional case where the first exon starts and ends before cdsStart
@@ -127,13 +128,11 @@ class Gene {
         return exonEnds;
     }
 
-
     doesExonContainCdsStart(exon) {
         // Don't split in the case where exonStart >= cdsStart and everything is coding,
         // or the case where exonEnd < cdsStart and everything is non-coding
         return (exon.start < this.cdsStart && exon.end >= this.cdsStart);
-    }
-      
+    }      
       
     doesExonContainCdsEnd(exon) {
         // Don't split in the case where exonEnds[length - 1] <= cdsEnd and everything is coding,
@@ -361,6 +360,37 @@ class Gene {
         nonCodingExonPartitions.push(new Exon(exons[0].start, this.cdsStart));
         nonCodingExonPartitions.push(new Exon(this.cdsEnd, exons[lastExonIndex].end));
         return nonCodingExonPartitions;
+    }
+
+    // initializeVariants() has to be called after limitNonCodingLength() is called.
+    // This makes me wonder if I should pass in nonCodingLengthLimit to the 
+    // Gene constructor and call limitNonCodingLength as a part of initializeExons().
+    // I am also not sure if I should make a Variant class, seeing I already have 
+    // a Variant class in exomesite/visualization/models.py 
+    initializeVariants(variants) {
+        var variantsFiltered = null;
+        var exons = this.getExons();
+        var lowerBound = exons[0].start;
+        var upperBound = exons[exons.length - 1].end;
+        var length = 0;
+        var variantList = [];
+
+        variantsFiltered = variants.filter(function(d) {
+          if (d.fields.position >= lowerBound && d.fields.position <= upperBound) {
+            return true;
+          }
+          return false;
+        });
+
+        length = variantsFiltered.length;
+        for (var i = 0; i < length; i++) {
+            variantList.push(variantsFiltered[i].fields);   
+        }
+        this.variants = variantList;
+    }
+
+    getVariants() {
+        return this.variants;
     }
 }
 
