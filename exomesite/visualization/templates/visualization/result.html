@@ -67,8 +67,8 @@
                 );
                 
                 // render exons and introns in the exon transform handle
-                var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
-                var intronLines = zoomedOutChartController.addLinesToTransform(exonTransformZoomedOut);    
+                var exonBars = zoomedOutChartController.addExonsToTransform(exonTransformZoomedOut);
+                var intronLines = zoomedOutChartController.addIntronsToTransform(exonTransformZoomedOut);    
                 var nonCodingExonBars = 
                     zoomedOutChartController.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
                 
@@ -86,7 +86,7 @@
         </script>
     </head>
     <body>
-        <h3>Gene: {{ gene }}</h3>
+        <h4>Gene: {{ gene }}</h4>
         <div class="y-axis-button-container">
             <button type="button" class="MAF" value="MAF" 
                 onclick="changeYAxisVariable(variantTransformZoomedOut,

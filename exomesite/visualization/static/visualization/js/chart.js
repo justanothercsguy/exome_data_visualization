@@ -57,7 +57,7 @@ class ChartController {
             .range([0, this.getChartWidth()]);
     }
 
-    addRectToTransform(chartTransform) {
+    addExonsToTransform(chartTransform) {
         var scaleOriginalIntronsToUniformIntrons 
             = this.gene.getScaleOriginalIntronsToUniformIntrons();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
@@ -85,7 +85,7 @@ class ChartController {
         return bar;
     }
 
-    addLinesToTransform(chartTransform) {
+    addIntronsToTransform(chartTransform) {
         var intronPartitionsWithUniformIntronLength = 
             this.gene.getIntronPartitionsWithUniformIntronLength();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
@@ -204,7 +204,7 @@ class ChartController {
             .enter().append("g")
             .attr("transform", function (d) {
             return "translate(" +
-                scaleUniformIntronsToChart(
+                (
                     scaleOriginalIntronsToUniformIntrons(d.position)
                 ) + "," + 0 + ")";
             })
@@ -222,7 +222,7 @@ class ChartController {
             .data(variantData)
             .enter().append("g").append('circle')
             .attr('cx', function (d) {
-                return scaleUniformIntronsToChart(
+                return (
                     scaleOriginalIntronsToUniformIntrons(d.position)
                 );
             })
