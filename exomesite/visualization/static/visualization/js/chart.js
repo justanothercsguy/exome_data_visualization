@@ -287,28 +287,34 @@ class ChartController {
         var yAxisScale = 0;
       
         if (yAxisVariableString == 'MAF') {
-          console.log("getYAxisScale(MAF)");
-          // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
-          // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
-          // Default y axis variable is allele frequency
-          yScaleMin = d3.min(variantData, function(d) { return d.allelefrequency; });
-          yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
-          yScaleMin = Math.pow(10, yScaleMinExponent);
-      
-          yAxisScale = d3.scaleLog()
-            .domain([ yScaleMin, 1 ])
-            .range([ 0, height ]);
+            // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
+            // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
+            // Default y axis variable is allele frequency
+            yScaleMin = d3.min(variantData, function(d) { return d.allelefrequency; });
+            yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
+            yScaleMin = Math.pow(10, yScaleMinExponent);
+        
+            yAxisScale = d3.scaleLog()
+                .domain([ yScaleMin, 1 ])
+                .range([ 0, height ]);
         }
         else if (yAxisVariableString == 'alleleNumber') {
-          console.log("getYAxisScale(alleleNumber)");
-          yScaleMin = d3.min(variantData, function(d) { return d.allelenumber; });
-          yScaleMax = d3.max(variantData, function(d) { return d.allelenumber; });
-       
-          yAxisScale = d3.scaleLinear()
-            .domain([ yScaleMin, yScaleMax ])
-            .range([ 0, height ]);
+            yScaleMin = d3.min(variantData, function(d) { return d.allelenumber; });
+            yScaleMax = d3.max(variantData, function(d) { return d.allelenumber; });
+        
+            yAxisScale = d3.scaleLinear()
+                .domain([ yScaleMin, yScaleMax ])
+                .range([ 0, height ]);
         }
-
+        else if (yAxisVariableString == 'alleleCount') {
+            yScaleMin = d3.min(variantData, function(d) { return d.allelecount; });
+            yScaleMax = d3.max(variantData, function(d) { return d.allelecount; });
+         
+            yAxisScale = d3.scaleLog()
+              .domain([ yScaleMin, yScaleMax ])
+              .range([ 0, height ]);
+        }
+        
         return yAxisScale;
     }
 }
@@ -324,6 +330,9 @@ function getYAxisVariableFromMap(yAxisVariableString, variantMap, variant) {
     else if (yAxisVariableString == 'alleleNumber') {
         return variantMap[variant.position][0].allelenumber;
     }
+    else if (yAxisVariableString == 'alleleCount') {
+        return variantMap[variant.position][0].allelecount;
+    }
 }
 
 function changeYAxisVariable(variantTransformZoomedOut, 
@@ -331,7 +340,6 @@ function changeYAxisVariable(variantTransformZoomedOut,
 
     chartController.setYAxisVariableString(newYAxisVariable);
     console.log("newYAxisVariable");
-    console.log(newYAxisVariable);
     console.log(chartController.yAxisVariableString);
     
     chartController.addVariantsToTransform(variantTransformZoomedOut, tooltip);
