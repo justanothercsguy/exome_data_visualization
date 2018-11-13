@@ -392,6 +392,24 @@ class Gene {
     getVariants() {
         return this.variants;
     }
+
+    // sometimes there are multiple variants in the same base pair position
+    // return a map object where key = position and value = array of variants
+    getVariantMap() {
+        var variants = this.getVariants();
+        var map = {};
+
+        variants.forEach(function(variant) {
+            var position = variant.position;
+            if (!map[position]) {
+                map[position] = [variant];
+            }
+            else {
+                map[position].push(variant);
+            }
+        });
+        return map;
+    }
 }
 
 class Exon {
