@@ -131,13 +131,17 @@
                 var scaleOriginalIntronsToUniformIntrons 
                     = gene.getScaleOriginalIntronsToUniformIntrons();
                 var exonBars = zoomedOutChartController.addRectToTransform(exonTransformZoomedOut);
-                var intronLines = zoomedOutChartController.addLinesToZoomedOutChart(exonTransformZoomedOut);
+                var intronLines = zoomedOutChartController.addLinesToTransform(exonTransformZoomedOut);
                 
                 console.log("gene non coding exon partitions")
                 console.log(gene.getNonCodingExonPartitions());
 
                 console.log("gene non coding exon partition lengths")
                 console.log(gene.getExonLengths(gene.getNonCodingExonPartitions()));
+
+                var nonCodingExonBars = 
+                    zoomedOutChartController.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
+
             });
         </script>
     </head>

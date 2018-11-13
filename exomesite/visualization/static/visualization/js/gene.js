@@ -107,22 +107,22 @@ class Gene {
     // This means that if I want to get modified values of exonStarts and exonEnds,
     // I have to first create a modified array of Exons and then call 
     // getExonStarts() or getExonEnds()
-    getExonStarts(exonArray) {
+    getExonStarts(exons) {
         var exonStarts = [];
-        var length = this.exonCount;
+        var length = exons.length;
 
         for (var i = 0; i < length; i++) {
-            exonStarts.push(exonArray[i].start);
+            exonStarts.push(exons[i].start);
         }
         return exonStarts;
     }
 
-    getExonEnds(exonArray) {
+    getExonEnds(exons) {
         var exonEnds = [];
-        var length = this.exonCount;
+        var length = exons.length;
 
         for (var i = 0; i < length; i++) {
-            exonEnds.push(exonArray[i].end);
+            exonEnds.push(exons[i].end);
         }
         return exonEnds;
     }

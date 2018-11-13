@@ -71,7 +71,7 @@ class ChartController {
         return bar;
     }
 
-    addLinesToZoomedOutChart(chartTransform) {
+    addLinesToTransform(chartTransform) {
         var intronPartitionsWithUniformIntronLength = 
             this.gene.getIntronPartitionsWithUniformIntronLength();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
@@ -122,5 +122,49 @@ class ChartController {
             .attr("d", d3.line());
         
         return lines;    
+    }
+
+    // add white rectangles to the non-coding area in the 
+    // first exon that occurs before cdsStart and the non-coding area in the
+    // last exon that occurs after cdsEnd, thereby distinguishing the height
+    // of the non-coding area with the coding area of those exons
+    addNonCodingExonPartitionsToTransform(chartTransform) {
+        var nonCodingExonPartitions = this.gene.getNonCodingExonPartitions();
+        var scaleOriginalIntronsToUniformIntrons 
+            = this.gene.getScaleOriginalIntronsToUniformIntrons();
+        var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
+        var codingHeight = this.exonBar.codingHeight;
+        var nonCodingHeight = this.exonBar.nonCodingHeight;
+
+        // need to add white rectangles to the top and bottom of the first and last exons,
+        // so duplicate the exon start positions and the exon lengths
+        var nonCodingExonPartitionStarts = this.gene.getExonStarts(nonCodingExonPartitions);
+        var xPositionStarts = nonCodingExonPartitionStarts.concat(nonCodingExonPartitionStarts);
+        var nonCodingExonLengths = this.gene.getExonLengths(nonCodingExonPartitions);
+        var data = nonCodingExonLengths.concat(nonCodingExonLengths);
+
+        var nonCodingExonBars = chartTransform.append("g")
+            .selectAll(".rectNonCodingZoomedOut")
+            .data(data)
+            .enter().append("rect")
+            .classed('rectNonCodingZoomedOut', true)
+            .attr("transform", function (d, i) {
+                // first two indices draw the top two white rectangles,
+                // last two indices draw the bottom two white rectangles
+                var yPositionStart = 0;
+                if (i > 1) {
+                    yPositionStart = codingHeight - (nonCodingHeight / 2);
+                }
+                return "translate(" + scaleUniformIntronsToChart(
+                    scaleOriginalIntronsToUniformIntrons(xPositionStarts[i])
+                ) + "," + yPositionStart + ")";
+            })
+            .attr("fill", "white")
+            .attr("width", scaleUniformIntronsToChart)
+            .attr("height", function (d, i) {
+                return nonCodingHeight / 2;
+            });
+
+        return nonCodingExonBars;
     }
 }
