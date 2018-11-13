@@ -198,7 +198,7 @@ class ChartController {
                 return 50;
             })
             .attr('fill', function (d) {
-                return scaleVariantFlagToLollipopColor(d.flags);
+                return scaleVariantFlagToLollipopColor(d.annotation);
             });
     }
 

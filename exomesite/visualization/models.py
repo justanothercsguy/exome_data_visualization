@@ -1,3 +1,17 @@
+# NOTE: Don't try to manually change db.sqlite3 and edit tables
+# unless you really know what you are doing.
+# I added a field called id to by csv file and imported it but now
+# am getting some errors because on the migration the id field
+# shows up as autoincrement instead of serial, and thus gets registered
+# as an extra field that shifted all my other fields values one column
+# to the right, so the value for the annotation field became
+# the value for the flag field.
+# Solved this problem by reverting all migrations, redoing migrations
+# for Gene and Variant model, and reimporting csv file with id column
+# into the db.sqlite file.
+# https://docs.djangoproject.com/en/2.0/intro/tutorial02/
+# https://simpleisbetterthancomplex.com/tutorial/2016/07/26/how-to-reset-migrations.html
+
 from django.db import models
 
 class Gene(models.Model):
