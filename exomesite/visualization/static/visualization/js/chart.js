@@ -175,13 +175,14 @@ class ChartController {
         var scaleOriginalIntronsToUniformIntrons = 
             this.gene.getScaleOriginalIntronsToUniformIntrons();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
+        var scaleVariantFlagToLollipopColor = this.getScaleVariantFlagToLollipopColor();
 
         console.log("current Y axis variable");
         console.log(yAxisVariableString);
 
         // clear previous variant visualization
         chartTransform.selectAll("g").remove();
-        
+
         var lollipopRect = chartTransform.selectAll("g")
             .data(variantData)
             .enter().append("g")
@@ -195,6 +196,24 @@ class ChartController {
             .attr("width", this.variantLollipop.width)
             .attr("height", function (d) {
                 return 50;
+            })
+            .attr('fill', function (d) {
+                return scaleVariantFlagToLollipopColor(d.flags);
             });
+    }
+
+    getScaleVariantFlagToLollipopColor() {
+        var scaleVariantFlagToLollipopColor = d3.scaleOrdinal();
+        scaleVariantFlagToLollipopColor.domain([
+            "3' UTR", "5' UTR", "downstream gene", "frameshift", "inframe insertion", 
+            "intron", "missense", "non coding transcript exon", "splice acceptor", 
+            "splice donor", "splice region", "stop gained", "stop lost", "synonymous"
+        ]);
+        scaleVariantFlagToLollipopColor.range([
+            'brown', 'steelblue', 'violet', 'red', 'darkgoldenrod', 
+            'gray', 'forestgreen', 'sienna', 'darkkhaki', 'navy', 
+            'magenta', 'turquoise', 'deepskyblue', 'orange'
+        ]);
+        return scaleVariantFlagToLollipopColor;
     }
 }
