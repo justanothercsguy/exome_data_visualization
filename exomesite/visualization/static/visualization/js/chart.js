@@ -18,6 +18,16 @@ class ChartController {
         this.variantLollipop = variantLollipop;
         this.gene = gene;
     }
+    
+    getChartHeight() {
+        return this.chartDimension.height 
+            - this.chartMargin.top - this.chartMargin.bottom;
+    }
+
+    getChartWidth() {
+        return this.chartDimension.width 
+            - this.chartMargin.left - this.chartMargin.right;
+    }
 
     addSvgToDiv(divName) {
         var svgChartHandle = d3.select(divName).append("svg")
@@ -40,7 +50,7 @@ class ChartController {
 
         return d3.scaleLinear()
             .domain([0, totalLength])
-            .range([0, this.chartDimension.width - this.chartMargin.left - this.chartMargin.right]);
+            .range([0, this.getChartWidth()]);
     }
 
     addRectToTransform(chartTransform) {
@@ -84,11 +94,13 @@ class ChartController {
         for (var i = 0; i < length; i++) {
             data.push([
                 [
-                    scaleUniformIntronsToChart(intronPartitionsWithUniformIntronLength[i].start), 
+                    scaleUniformIntronsToChart(
+                        intronPartitionsWithUniformIntronLength[i].start), 
                     nonCodingHeight
                 ],
                 [
-                    scaleUniformIntronsToChart(intronPartitionsWithUniformIntronLength[i].end), 
+                    scaleUniformIntronsToChart(
+                        intronPartitionsWithUniformIntronLength[i].end), 
                     nonCodingHeight
                 ]
             ]);
@@ -139,7 +151,8 @@ class ChartController {
         // need to add white rectangles to the top and bottom of the first and last exons,
         // so duplicate the exon start positions and the exon lengths
         var nonCodingExonPartitionStarts = this.gene.getExonStarts(nonCodingExonPartitions);
-        var xPositionStarts = nonCodingExonPartitionStarts.concat(nonCodingExonPartitionStarts);
+        var xPositionStarts 
+            = nonCodingExonPartitionStarts.concat(nonCodingExonPartitionStarts);
         var nonCodingExonLengths = this.gene.getExonLengths(nonCodingExonPartitions);
         var data = nonCodingExonLengths.concat(nonCodingExonLengths);
 
@@ -176,13 +189,17 @@ class ChartController {
             this.gene.getScaleOriginalIntronsToUniformIntrons();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
         var scaleVariantFlagToLollipopColor = this.getScaleVariantFlagToLollipopColor();
+        var scaleYAxis = this.getYAxisScale(
+            yAxisVariableString, variantData, this.getChartHeight());
 
         console.log("current Y axis variable");
         console.log(yAxisVariableString);
 
-        // clear previous variant visualization
+        // clear the previous variant visualization
         chartTransform.selectAll("g").remove();
 
+        // NOTE: Every field in the database is shifted down by one
+        // have to figure out why and reimport the csv file into the db
         var lollipopRect = chartTransform.selectAll("g")
             .data(variantData)
             .enter().append("g")
@@ -195,7 +212,12 @@ class ChartController {
             .append("rect")
             .attr("width", this.variantLollipop.width)
             .attr("height", function (d) {
-                return 50;
+                if (yAxisVariableString == 'MAF') {
+                    return scaleYAxis(d.allelefrequency);
+                }
+                else if (yAxisVariableString == 'alleleNumber') {
+                    return scaleYAxis(d.allelenumber);
+                }
             })
             .attr('fill', function (d) {
                 return scaleVariantFlagToLollipopColor(d.annotation);
@@ -215,5 +237,37 @@ class ChartController {
             'magenta', 'turquoise', 'deepskyblue', 'orange'
         ]);
         return scaleVariantFlagToLollipopColor;
+    }
+
+    getYAxisScale(yAxisVariableString, variantData, height) {
+        var yScaleMin = 0;
+        var yScaleMax = 0;
+        var yScaleMinExponent = 0;
+        var yAxisScale = 0;
+      
+        if (yAxisVariableString == 'MAF') {
+          console.log("getYAxisScale(MAF)");
+          // Get the exponential level of the minimum value, and set yScaleMin to 1 * 10^(exponent)
+          // So if min = 2.05 * 10^(-6), then yScaleMin = 1 * 10^(-6)
+          // Default y axis variable is allele frequency
+          yScaleMin = d3.min(variantData, function(d) { return d.allelefrequency; });
+          yScaleMinExponent = Math.floor( Math.log(yScaleMin) / Math.log(10) );
+          yScaleMin = Math.pow(10, yScaleMinExponent);
+      
+          yAxisScale = d3.scaleLog()
+            .domain([ yScaleMin, 1 ])
+            .range([ 0, height ]);
+        }
+        else if (yAxisVariableString == 'alleleNumber') {
+          console.log("getYAxisScale(alleleNumber)");
+          yScaleMin = d3.min(variantData, function(d) { return d.allelenumber; });
+          yScaleMax = d3.max(variantData, function(d) { return d.allelenumber; });
+       
+          yAxisScale = d3.scaleLinear()
+            .domain([ yScaleMin, yScaleMax ])
+            .range([ 0, height ]);
+        }
+
+        return yAxisScale;
     }
 }
