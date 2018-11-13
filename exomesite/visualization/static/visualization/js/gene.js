@@ -1,24 +1,20 @@
-// Step 1: initialize exons from exonStarts and exonEnds
-// Step 2: trim non coding exon lengths by limit
-// step 3: calculate length of each exon 
-// step 4: calculate sum of lengths of exons
-// step 5: calculate length of uniform intron 
-// step 6: calculate sum of lengths of uniform introns
-// step 7: calculate exon array given uniform introns
-
-
 class Gene {
-    constructor(cdsStart, cdsEnd, exonCount, exonStarts, exonEnds) {
+    constructor(cdsStart, cdsEnd, exonStarts, exonEnds) {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
-        this.exonCount = exonCount;
-        this.exons = this.initializeExons(exonStarts, exonEnds, exonCount);
+        this.exons = this.initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds);
     }
 
-    initializeExons(exonStarts, exonEnds, exonCount) {
+    // Handle exceptional case where the first exon starts and ends before cdsStart
+    // or the last exon starts and ends after cdsEnd, by excluding those exons
+    // For example in SAMD11, start = 861120 and end = 861180, while cdsStart = 861321
+    initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds) {
         var exons = [];    
-        for (var i = 0; i < exonCount; i++) {
-            exons.push(new Exon(exonStarts[i], exonEnds[i]));
+        var length = exonStarts.length;
+        for (var i = 0; i < length; i++) {
+            if ((exonEnds[i] >= cdsStart) && (exonStarts[i] <= cdsEnd)) {
+                exons.push(new Exon(exonStarts[i], exonEnds[i]));
+            }
         }
         return exons;
     }
@@ -27,9 +23,13 @@ class Gene {
         return this.exons;
     }
 
+    getExonCount() {
+        return this.exons.length;
+    }
+
     getIntrons() {
         var exons = this.getExons();
-        var length = this.exonCount;
+        var length = this.getExonCount();
         var introns = [];
 
         // I know that biologically, Introns are different from Exons, 
@@ -38,6 +38,10 @@ class Gene {
             introns.push(new Exon(exons[i-1].end, exons[i].start));
         }
         return introns;
+    }
+
+    getIntronCount() {
+        return this.getExonCount() - 1;
     }
 
     getIntronLengths() {
@@ -94,10 +98,6 @@ class Gene {
             ));
         }
         return intronPartitions;
-    }
-
-    getIntronCount() {
-        return this.exonCount - 1;
     }
 
     // Initially I pass in exonStarts and exonEnds but then use them to 
@@ -195,7 +195,7 @@ class Gene {
     }
 
     getExonsWithUniformIntronLength() {
-        var exonCount = this.exonCount;
+        var exonCount = this.getExonCount();
         var exons = this.getExons();
         var exonStarts = this.getExonStarts(exons);
         var exonEnds = this.getExonEnds(exons);
@@ -222,7 +222,7 @@ class Gene {
             );
             
         }
-        return this.initializeExons(exonStartsWithUniformIntronLength, 
+        return this.initializeExons(this.cdsStart, this.cdsEnd, exonStartsWithUniformIntronLength, 
             exonEndsWithUniformIntronLength, exonCount);
     }
 
@@ -267,7 +267,7 @@ class Gene {
         var domain = [];
         var exonStarts = this.getExonStarts(this.getExons());
         var exonEnds = this.getExonEnds(this.getExons());
-        var length = this.exonCount;
+        var length = this.getExonCount();
 
         // Instead of searching through entire array of indices each time,
         // reverse and pop them one by one knowing that the pop will correspond
@@ -312,7 +312,7 @@ class Gene {
         var exonEnds = this.getIntArrayMinusOffset(
             this.getExonEnds(exonWithUniformIntronLength), this.getOffset()
         );
-        var length = this.exonCount;
+        var length = this.getExonCount();
         var range = [];
         var uniformIntronLengthOneThird = 
             this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
@@ -355,7 +355,7 @@ class Gene {
         // first exon starts before cdsStart and part of the last exon
         // starts after cdsEnd. This might not always be the case
         var exons = this.getExons();
-        var lastExonIndex = this.exonCount - 1;
+        var lastExonIndex = this.getExonCount() - 1;
         var nonCodingExonPartitions = [];
 
         nonCodingExonPartitions.push(new Exon(exons[0].start, this.cdsStart));

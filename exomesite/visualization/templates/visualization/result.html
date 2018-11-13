@@ -27,11 +27,10 @@
 
                 var cdsStart = jsonStringToInt("{{gene.cdsstart}}");
                 var cdsEnd = jsonStringToInt("{{gene.cdsend}}");
-                var exonCount = jsonStringToInt("{{gene.exoncount}}");
                 var exonStarts = jsonStringArrayToIntArray("{{gene.exonstarts}}");
                 var exonEnds = jsonStringArrayToIntArray("{{gene.exonends}}");
 
-                var gene = new Gene(cdsStart, cdsEnd, exonCount, exonStarts, exonEnds);
+                var gene = new Gene(cdsStart, cdsEnd, exonStarts, exonEnds);
 
                 var nonCodingLengthLimit = 200;
                 var basePairsOutsideExonLimit = 50; 
