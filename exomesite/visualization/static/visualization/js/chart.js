@@ -167,4 +167,34 @@ class ChartController {
 
         return nonCodingExonBars;
     }
+
+    addVariantsToTransform(chartTransform) {
+        var variantData = this.gene.getVariants();
+        var variantMap = this.gene.getVariantMap();
+        var yAxisVariableString = this.yAxisVariableString;
+        var scaleOriginalIntronsToUniformIntrons = 
+            this.gene.getScaleOriginalIntronsToUniformIntrons();
+        var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
+
+        console.log("current Y axis variable");
+        console.log(yAxisVariableString);
+
+        // clear previous variant visualization
+        chartTransform.selectAll("g").remove();
+        
+        var lollipopRect = chartTransform.selectAll("g")
+            .data(variantData)
+            .enter().append("g")
+            .attr("transform", function (d) {
+            return "translate(" +
+                scaleUniformIntronsToChart(
+                    scaleOriginalIntronsToUniformIntrons(d.position)
+                ) + "," + 0 + ")";
+            })
+            .append("rect")
+            .attr("width", this.variantLollipop.width)
+            .attr("height", function (d) {
+                return 50;
+            });
+    }
 }
