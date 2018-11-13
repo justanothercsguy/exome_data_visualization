@@ -29,6 +29,10 @@ class ChartController {
             - this.chartMargin.left - this.chartMargin.right;
     }
 
+    setYAxisVariableString(yAxisVariableString) {
+        this.yAxisVariableString = yAxisVariableString;
+    }
+
     addSvgToDiv(divName) {
         var svgChartHandle = d3.select(divName).append("svg")
             .attr("width", this.chartDimension.width)
@@ -181,7 +185,7 @@ class ChartController {
         return nonCodingExonBars;
     }
 
-    addVariantsToTransform(chartTransform) {
+    addVariantsToTransform(chartTransform, tooltip) {
         var variantData = this.gene.getVariants();
         var variantMap = this.gene.getVariantMap();
         var yAxisVariableString = this.yAxisVariableString;
@@ -238,6 +242,33 @@ class ChartController {
             .attr('fill', function (d) {
                 return scaleVariantFlagToLollipopColor(d.annotation);
             });
+        
+        // When hovering over a circle, open a tooltip displaying variant data
+        lollipopCircle.on("mouseover", function(d, i) {   
+            tooltip.transition()    
+                .duration(200)    
+                .style("opacity", .9); 
+
+            // TODO: If there is more that one variant in a position, we need to show a table
+            // of variants when clicking or hovering over that lollipop circle.
+            // For now if a position has multiple variants, the tooltip shows the first variant
+            tooltip.html("chromosome: " + variantMap[d.position][0].chrom + "<br/>"
+            + "position: " + variantMap[d.position][0].position + "<br/>"
+            + "referenceAllele: " + variantMap[d.position][0].reference + "<br/>"
+            + "alternateAllele: " + variantMap[d.position][0].alternate + "<br/>"
+            + "annotation: " + variantMap[d.position][0].annotation + "<br/>"
+            + "alleleCount: " + variantMap[d.position][0].allelecount + "<br/>"
+            + "alleleNumber: " + variantMap[d.position][0].allelenumber + "<br/>"
+            + "alleleFrequency: " + variantMap[d.position][0].allelefrequency + "<br/>"
+            + "number of variants: " + variantMap[d.position].length)
+                .style("left", (d3.event.pageX) + "px")   
+                .style("top", (d3.event.pageY - 50) + "px");  
+        })          
+        .on("mouseout", function(d) {   
+            tooltip.transition()    
+                .duration(500)    
+                .style("opacity", 0);
+        });
 
         return lollipopCircle;
     }
@@ -287,5 +318,15 @@ class ChartController {
         }
 
         return yAxisScale;
+    }
+
+    changeYAxisVariable(chartTransform, newYAxisVariable, tooltip) {
+
+        this.setYAxisVariableString(newYAxisVariable);
+        console.log("newYAxisVariable");
+        console.log(newYAxisVariable);
+        console.log(this.yAxisVariableString);
+        
+        this.addVariantsToTransform(chartTransform, tooltip);
     }
 }

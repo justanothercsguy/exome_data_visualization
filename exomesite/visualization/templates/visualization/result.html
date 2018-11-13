@@ -13,6 +13,7 @@
         <script src="{% static 'visualization/js/chart.js' %}"></script>
         <script src="{% static 'visualization/js/gene.js' %}"></script>
         <script src="{% static 'visualization/js/utils.js' %}"></script>
+        <link rel="stylesheet" type="text/css" href="{% static 'visualization/css/style.css' %}" />
         <!-- 
             This script below can be turned into a separate JS file later
         -->
@@ -152,9 +153,11 @@
 
                 console.log("gene variant map");
                 console.log(gene.getVariantMap());
-
+                
+                var tooltip = addTooltip();
                 console.log("chart add variants to transform map");
-                zoomedOutChartController.addVariantsToTransform(variantTransformZoomedOut);
+                zoomedOutChartController.addVariantsToTransform(
+                    variantTransformZoomedOut, tooltip);
 
             });
         </script>

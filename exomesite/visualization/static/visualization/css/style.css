@@ -5,3 +5,16 @@ li a {
 #searchbox {
     color: red;
 }
+
+div.tooltip {	
+    position: absolute;			
+    text-align: left;			
+    width: 280px;					
+    height: 140px;					
+    padding: 4px;				
+    font: 12px sans-serif;		
+    background: lightsteelblue;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}
