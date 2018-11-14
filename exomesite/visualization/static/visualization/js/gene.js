@@ -1,8 +1,9 @@
 class Gene {
-    constructor(cdsStart, cdsEnd, exonStarts, exonEnds) {
+    constructor(cdsStart, cdsEnd, exonStarts, exonEnds, basePairsOutsideExonLimit) {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
         this.exons = this.initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds);
+        this.basePairsOutsideExonLimit = basePairsOutsideExonLimit;
         this.variants = null;
     }
 
@@ -22,6 +23,10 @@ class Gene {
 
     getExons() {
         return this.exons;
+    }
+
+    getBasePairsOutsideExonLimit() {
+        return this.basePairsOutsideExonLimit;
     }
 
     getExonCount() {
@@ -46,14 +51,7 @@ class Gene {
     }
 
     getIntronLengths() {
-        var intronLengths = [];
-        var introns = this.getIntrons();
-        var length = this.getIntronCount();
-
-        for (var i = 0; i < length; i++) {
-            intronLengths.push(introns[i].getLength());
-        }
-        return intronLengths;
+        return this.getExonLengths( this.getIntrons() );
     }
 
     getIntronsWithUniformIntronLength() {
@@ -63,8 +61,8 @@ class Gene {
         var exonsWithUniformIntronLength = this.getExonsWithUniformIntronLength();
         var uniformIntronLengthOneThird = 
             this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
-        var scaleOriginalIntronsToUniformIntrons 
-            = this.getScaleOriginalIntronsToUniformIntrons();
+        var scaleOriginalIntronsToUniformIntrons = 
+            this.getScaleOriginalIntronsToUniformIntrons(this.getBasePairsOutsideExonLimit());
 
         for (var i = 0; i < length; i++) {
             intronsWithUniformIntronLength.push(
@@ -79,7 +77,8 @@ class Gene {
 
     getIntronPartitionsWithUniformIntronLength() {
         var intronPartitions = [];
-        var introns = this.getIntronsWithUniformIntronLength();
+        var introns = this.getIntronsWithUniformIntronLength(
+            this.getBasePairsOutsideExonLimit());
         var length = this.getIntronCount();
         var uniformIntronLengthOneThird = 
             this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
@@ -234,17 +233,29 @@ class Gene {
         return intArrayMinusOffset;
     }
 
-    getSplitIntronIndices(basePairsOutsideExonLimit) {
+    getSplitIntronIndices() {
+        console.log("called getSplitIntrondices()");
+
         var splitIntronIndices = [];
-        var threshold = 3 * basePairsOutsideExonLimit;
+        var threshold = 3 * this.getBasePairsOutsideExonLimit();
         var introns = this.getIntrons();
+        var intronLengths = this.getIntronLengths() 
         var length = this.getIntronCount();;
 
+        console.log("introns");
+        console.log(introns);
+        console.log("intron length");
+        console.log(length);
+
         for (var i = 0; i < length; i++) {
-            if (introns[i].getLength() > threshold) {
+            console.log(intronLengths[i]);
+            console.log(threshold);
+            if (intronLengths[i] > threshold) {
                 splitIntronIndices.push(i);
             }
         }
+        console.log("splitIntrondices");
+        console.log(splitIntronIndices);
         return splitIntronIndices;
     }
 
@@ -257,11 +268,15 @@ class Gene {
     // 1. [exonEnds[i], exonEnds[i] + basePairsOutsideExonLimit]
     // 2. [exonEnds[i] + basePairsOutsideExonLimit, exonStarts[i+1] - basePairsOutsideExonLimit]
     // 3. [exonStarts[i+1] - basePairsOutsideExonLimit, exonStarts[i+1]
-    getDomain(basePairsOutsideExonLimit) {
+    getDomain() {
         var domain = [];
         var exonStarts = this.getExonStarts(this.getExons());
         var exonEnds = this.getExonEnds(this.getExons());
         var length = this.getExonCount();
+        var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
+
+        console.log("getDomain()");
+        console.log(basePairsOutsideExonLimit);
 
         // Instead of searching through entire array of indices each time,
         // reverse and pop them one by one knowing that the pop will correspond
@@ -298,7 +313,7 @@ class Gene {
     // basePairsOutsideExonLimit and had to be split into three parts in the domain. 
     // The introns in the corresponding indices in the range array will also be split
     // into three event parts.
-    getRange(basePairsOutsideExonLimit) {
+    getRange() {
         var exonWithUniformIntronLength = this.getExonsWithUniformIntronLength();
         var exonStarts = this.getIntArrayMinusOffset(
             this.getExonStarts(exonWithUniformIntronLength), this.getOffset()
@@ -311,7 +326,7 @@ class Gene {
         var uniformIntronLengthOneThird = 
             this.roundToTwoDecimalPlaces(this.getUniformIntronLength() / 3);
         var reverseSplitIntronIndices =
-            this.getSplitIntronIndices(basePairsOutsideExonLimit).reverse();
+            this.getSplitIntronIndices(this.getBasePairsOutsideExonLimit()).reverse();
         var currentSplitIntronIndex = reverseSplitIntronIndices.pop();
     
         for (var i = 0; i < length - 1; i++) {
@@ -334,9 +349,12 @@ class Gene {
     }
 
     getScaleOriginalIntronsToUniformIntrons() {
+        var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
+        console.log(this.getDomain(basePairsOutsideExonLimit));
+        console.log(this.getRange(basePairsOutsideExonLimit));
         return d3.scaleLinear()
-            .domain(this.getDomain())
-            .range(this.getRange());
+            .domain(this.getDomain(basePairsOutsideExonLimit))
+            .range(this.getRange(basePairsOutsideExonLimit));
     }
 
     roundToTwoDecimalPlaces(x) {

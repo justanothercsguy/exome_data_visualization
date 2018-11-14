@@ -204,7 +204,7 @@ class ChartController {
             .enter().append("g")
             .attr("transform", function (d) {
             return "translate(" +
-                (
+            scaleUniformIntronsToChart(
                     scaleOriginalIntronsToUniformIntrons(d.position)
                 ) + "," + 0 + ")";
             })
@@ -223,7 +223,9 @@ class ChartController {
             .enter().append("g").append('circle')
             .attr('cx', function (d) {
                 return (
-                    scaleOriginalIntronsToUniformIntrons(d.position)
+                    scaleUniformIntronsToChart(
+                        scaleOriginalIntronsToUniformIntrons(d.position)
+                    )
                 );
             })
             .attr('cy', function (d) {
