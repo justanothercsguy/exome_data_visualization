@@ -81,7 +81,9 @@ class ChartController {
             .attr("height", function (d, i) {
                 return exonBar.codingHeight;
             });
-    
+
+        this.hoverOverExon(bar, exonBar.color);
+
         return bar;
     }
 
@@ -204,7 +206,7 @@ class ChartController {
             .enter().append("g")
             .attr("transform", function (d) {
             return "translate(" +
-            scaleUniformIntronsToChart(
+                scaleUniformIntronsToChart(
                     scaleOriginalIntronsToUniformIntrons(d.position)
                 ) + "," + 0 + ")";
             })
@@ -222,10 +224,8 @@ class ChartController {
             .data(variantData)
             .enter().append("g").append('circle')
             .attr('cx', function (d) {
-                return (
-                    scaleUniformIntronsToChart(
-                        scaleOriginalIntronsToUniformIntrons(d.position)
-                    )
+                return (scaleUniformIntronsToChart(
+                    scaleOriginalIntronsToUniformIntrons(d.position))
                 );
             })
             .attr('cy', function (d) {
@@ -318,6 +318,22 @@ class ChartController {
         }
         
         return yAxisScale;
+    }
+
+    hoverOverExon(exonBars, defaultExonBarColor) {
+        var hoveredExonIndex = -1;
+        var previousHoveredExonIndex = -1;
+        var exonSelector = exonBars._groups[0];
+
+        exonBars.on("mouseover", function(d, i) {
+            previousHoveredExonIndex = hoveredExonIndex;
+            hoveredExonIndex = i;
+            
+            d3.select(exonSelector[previousHoveredExonIndex])
+                .select("rect").attr("fill", defaultExonBarColor);
+            d3.select(exonSelector[hoveredExonIndex])
+                .select("rect").attr("fill", "lightgreen");
+        });
     }
 }
 

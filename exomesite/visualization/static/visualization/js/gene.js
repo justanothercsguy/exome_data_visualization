@@ -350,8 +350,6 @@ class Gene {
 
     getScaleOriginalIntronsToUniformIntrons() {
         var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
-        console.log(this.getDomain(basePairsOutsideExonLimit));
-        console.log(this.getRange(basePairsOutsideExonLimit));
         return d3.scaleLinear()
             .domain(this.getDomain(basePairsOutsideExonLimit))
             .range(this.getRange(basePairsOutsideExonLimit));
