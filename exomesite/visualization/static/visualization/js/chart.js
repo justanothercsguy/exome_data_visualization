@@ -82,7 +82,7 @@ class ChartController {
                 return exonBar.codingHeight;
             });
 
-        this.hoverOverExon(bar, exonBar.color);
+        this.drawZoomedInChart(chartTransform, bar, exonBar.color, exons);
 
         return bar;
     }
@@ -320,27 +320,36 @@ class ChartController {
         return yAxisScale;
     }
 
-    hoverOverExon(exonBars, defaultExonBarColor) {
+    drawZoomedInChart(chartTransform, exonBars, defaultExonBarColor, exons) {
         var hoveredExonIndex = -1;
         var previousHoveredExonIndex = -1;
         var exonSelector = exonBars._groups[0];
+        var chartController = this;
 
         exonBars.on("mouseover", function(d, i) {
             previousHoveredExonIndex = hoveredExonIndex;
             hoveredExonIndex = i;
-            
+
             d3.select(exonSelector[previousHoveredExonIndex])
                 .select("rect").attr("fill", defaultExonBarColor);
             d3.select(exonSelector[hoveredExonIndex])
                 .select("rect").attr("fill", "lightgreen");
+            
+            chartController.addZoomedInExonToTransform(
+                chartTransform, exons[hoveredExonIndex]);
         });
+    }
+
+    addZoomedInExonToTransform(chartTransform, exon) {
+        console.log(exon);
     }
 }
 
 // This function is outside of the ChartController class because 
 // the anonymous function that calls it cannot use "this.getYAxisVariableFromMap"
 // because in the scope of the anonymous function, "this" does not refer to the
-// ChartController object
+// ChartController object. Workaround is to store chartController as a variable
+// in the function that calls it.
 function getYAxisVariableFromMap(yAxisVariableString, variantMap, variant) {
     if (yAxisVariableString == 'MAF') {
         return variantMap[variant.position][0].allelefrequency;
