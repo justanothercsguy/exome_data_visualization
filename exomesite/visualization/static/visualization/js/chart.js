@@ -19,6 +19,7 @@ class ChartController {
         this.gene = gene;
         this.tooltip = addTooltip();
         this.hoveredExonIndex = -1;
+        this.variantTransformZoomedOut = null;
     }
     
     getChartHeight() {
@@ -45,6 +46,14 @@ class ChartController {
 
     setHoveredExonIndex(hoveredExonIndex) {
         this.hoveredExonIndex = hoveredExonIndex;
+    }
+
+    getVariantTransformZoomedOut() {
+        return this.variantTransformZoomedOut;
+    }
+
+    setVariantTransformZoomedOut(variantTransformZoomedOut) {
+        this.variantTransformZoomedOut = variantTransformZoomedOut;
     }
 
     addSvgToDiv(divName) {
@@ -79,12 +88,13 @@ class ChartController {
             this.chartMargin.top
         );
         var yGapBetweenExonsAndVariants = 5;
-        variantTransformZoomedOut = this.addTransformToSvg(
+        var variantTransformZoomedOut = this.addTransformToSvg(
             svgZoomedOut, this.chartMargin.left, 
             (this.chartMargin.top 
                 + this.exonBar.codingHeight 
                 + yGapBetweenExonsAndVariants)
         );
+        this.setVariantTransformZoomedOut(variantTransformZoomedOut);
 
         // render exons and introns in the exon transform handle for zoomed out chart
         var exonBars = this.addExonsToTransform(exonTransformZoomedOut);
@@ -100,9 +110,9 @@ class ChartController {
         
         console.log("chart add variants to transform map");
         var variantLollipops = this.addVariantsToTransform(
-            variantTransformZoomedOut, this.getTooltip());
-                
+            variantTransformZoomedOut, this.getTooltip());           
     }
+    
 
     addExonsToTransform(chartTransform) {
         var scaleOriginalIntronsToUniformIntrons 
@@ -405,12 +415,12 @@ function getYAxisVariableFromMap(yAxisVariableString, variantMap, variant) {
     }
 }
 
-function changeYAxisVariable(variantTransformZoomedOut, 
-    chartController, newYAxisVariable, tooltip) {
+function changeYAxisVariable(chartController, newYAxisVariable) {
 
     chartController.setYAxisVariableString(newYAxisVariable);
     console.log("newYAxisVariable");
     console.log(chartController.yAxisVariableString);
-    
+
+    var variantTransformZoomedOut = chartController.getVariantTransformZoomedOut();
     chartController.addVariantsToTransform(variantTransformZoomedOut);
 }

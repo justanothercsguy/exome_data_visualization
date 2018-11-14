@@ -19,8 +19,6 @@
         -->
         <script type="text/javascript">
             var chartController = null;
-            var tooltip = null;
-            var variantTransformZoomedOut = null;
 
             $(window).on("load", function() {                
                 // remove '&quot;' string and parse json from variant_list_json
@@ -56,21 +54,10 @@
                 console.log(chartController);
 
                 console.log("chartController draw zoomed out chart");
-                console.log(chartController.drawZoomedOutChart());
+                chartController.drawZoomedOutChart();
 
-                // // initialize svg object and transforms for zoomed in chart
-                // var svgZoomedIn = chartController.addSvgToDiv(".chart-zoomed-in");
-                // var exonTransformZoomedIn = chartController.addTransformToSvg(
-                //     svgZoomedIn, chartController.chartMargin.left, 
-                //     chartController.chartMargin.top
-                // );
-                // variantTransformZoomedIn = chartController.addTransformToSvg(
-                //     svgZoomedIn, chartController.chartMargin.left, 
-                //     (chartController.chartMargin.top 
-                //         + chartController.exonBar.codingHeight 
-                //         + yGapBetweenExonsAndVariants)
-                // );
-
+                // console.log("chartController draw zoomed in chart");
+                // console.log(chartController.drawZoomedInChart());
             });
         </script>
     </head>
@@ -78,16 +65,14 @@
         <h5>Gene: {{ gene }}</h5>
         <div class="y-axis-button-container">
             <button type="button" class="MAF" value="MAF" 
-                onclick="changeYAxisVariable(variantTransformZoomedOut,
-                chartController, 'MAF', tooltip)">MAF
+                onclick="changeYAxisVariable(
+                chartController, 'MAF')">MAF
             </button>
             <button type="button" class="alleleNumber" value="alleleNumber" 
-                onclick="changeYAxisVariable(variantTransformZoomedOut, 
-                chartController, 'alleleNumber', tooltip)">alleleNumber
+                onclick="changeYAxisVariable(chartController, 'alleleNumber')">alleleNumber
             </button>
             <button type="button" class="alleleCount" value="alleleCount" 
-                onclick="changeYAxisVariable(variantTransformZoomedOut, 
-                chartController, 'alleleCount', tooltip)">alleleCount
+                onclick="changeYAxisVariable(chartController, 'alleleCount')">alleleCount
             </button>
         </div>
         <div class="chart-zoomed-out"></div>
