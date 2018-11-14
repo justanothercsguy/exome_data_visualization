@@ -116,21 +116,69 @@ class ChartController {
             variantTransformZoomedOut, this.getTooltip());           
     }
 
-    drawZoomedInChart() {
+    drawZoomedInChart(svgZoomedIn) {
+        // clear out previous transforms containing visualizations on the svg handle
+        svgZoomedIn.selectAll("g").remove();
+
         // initialize svg object and transforms for zoomed out chart
-        var svgZoomedIn = this.addSvgToDiv(".chart-zoomed-in");
         var exonTransformZoomedIn = this.addTransformToSvg(
-            svgZoomedIn, this.chartMargin.left, 
-            this.chartMargin.top
+            svgZoomedIn, this.chartMargin.left, this.chartMargin.top
         );
         var yGapBetweenExonsAndVariants = 5;
         var variantTransformZoomedIn = this.addTransformToSvg(
             svgZoomedIn, this.chartMargin.left, 
-            (this.chartMargin.top 
-                + this.exonBar.codingHeight 
-                + yGapBetweenExonsAndVariants)
+            (this.chartMargin.top + this.exonBar.codingHeight + yGapBetweenExonsAndVariants)
         );
         this.setVariantTransformZoomedIn(variantTransformZoomedIn);
+
+        // render exons and introns in the exon transform handle for zoomed out chart
+        var exonBars = this.addZoomedInExonToTransform(exonTransformZoomedIn);
+    }
+
+    addZoomedInExonToTransform(chartTransform) {
+        var hoveredExonIndex = this.getHoveredExonIndex()
+        var zoomBar = null;
+
+        if (hoveredExonIndex != -1) {
+            var exon = this.gene.getExons()[hoveredExonIndex];
+            var exonLength = exon.getLength();
+            var scaleSingleExonToChart = this.getScaleSingleExonToChart(exonLength); 
+            var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
+            var exonBarColor = this.exonBar.color;
+            var codingHeight = this.exonBar.codingHeight;
+
+            zoomBar = chartTransform.append("g")
+                .selectAll("g")
+                .data([ exonLength ])
+                .enter().append("g")
+                .attr("transform", function(d) { 
+                    return "translate(" + 
+                    scaleSingleExonToChart(
+                        basePairsOutsideExonLimit
+                    ) + "," + 0 + ")";
+                });
+
+            zoomBar.append("rect")
+                .attr("fill", exonBarColor)
+                .attr("width", scaleSingleExonToChart)
+                .attr("height", function(d) {
+                    return codingHeight;
+                });       
+        }
+        return zoomBar;
+    }
+
+    // Have to display the exon and its variants up to basePairsOutsideExonLimit
+    // so account for padding consisting of 2 * basePairsOutsideExonLimit
+    getScaleSingleExonToChart(exonLength) {
+        var exonLengthPlusPadding = exonLength
+            + (2 * this.gene.getBasePairsOutsideExonLimit());
+
+        var scaleSingleExonToChart = d3.scaleLinear()
+          .domain([ 0, exonLengthPlusPadding ])
+          .range([ 0, this.getChartWidth() ]);   
+
+        return scaleSingleExonToChart;
     }
 
     addZoomedOutExonsToTransform(chartTransform) {
@@ -402,6 +450,12 @@ class ChartController {
         var previousHoveredExonIndex = -1;
         var exonSelector = exonBars._groups[0];
         var chartController = this;
+
+        // later I should do a separate function for initializing 
+        // handles for svg objects and transform objects
+        // and later just call them using getters and setters 
+        console.log("initialize svg object for zoomed in chart");
+        var svgZoomedIn = chartController.addSvgToDiv(".chart-zoomed-in");
     
         exonBars.on("mouseover", function(d, i) {
             previousHoveredExonIndex = chartController.getHoveredExonIndex();
@@ -413,6 +467,9 @@ class ChartController {
                 .select("rect").attr("fill", "lightgreen");
             
             chartController.setHoveredExonIndex(hoveredExonIndex);
+
+            console.log("chartController draw zoomed in chart");
+            chartController.drawZoomedInChart(svgZoomedIn);
         });
     }
 }
