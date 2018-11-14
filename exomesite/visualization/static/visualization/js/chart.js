@@ -17,6 +17,7 @@ class ChartController {
         this.exonBar = exonBar;
         this.variantLollipop = variantLollipop;
         this.gene = gene;
+        this.tooltip = addTooltip();
     }
     
     getChartHeight() {
@@ -31,6 +32,10 @@ class ChartController {
 
     setYAxisVariableString(yAxisVariableString) {
         this.yAxisVariableString = yAxisVariableString;
+    }
+    
+    getTooltip() {
+        return this.tooltip;
     }
 
     addSvgToDiv(divName) {
@@ -55,6 +60,39 @@ class ChartController {
         return d3.scaleLinear()
             .domain([0, totalLength])
             .range([0, this.getChartWidth()]);
+    }
+
+    drawZoomedOutChart() {
+        // initialize svg object and transforms for zoomed out chart
+        var svgZoomedOut = this.addSvgToDiv(".chart-zoomed-out");
+        var exonTransformZoomedOut = this.addTransformToSvg(
+            svgZoomedOut, this.chartMargin.left, 
+            this.chartMargin.top
+        );
+        var yGapBetweenExonsAndVariants = 5;
+        variantTransformZoomedOut = this.addTransformToSvg(
+            svgZoomedOut, this.chartMargin.left, 
+            (this.chartMargin.top 
+                + this.exonBar.codingHeight 
+                + yGapBetweenExonsAndVariants)
+        );
+
+        // render exons and introns in the exon transform handle for zoomed out chart
+        var exonBars = this.addExonsToTransform(exonTransformZoomedOut);
+        var intronLines = this.addIntronsToTransform(
+            exonTransformZoomedOut);    
+        var nonCodingExonBars = 
+        this.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
+        
+        // process and render variant data for the zoomed out chart
+        this.gene.initializeVariants();
+        console.log("gene variants after initializeVariants()");
+        console.log(this.gene.getVariants());
+        
+        console.log("chart add variants to transform map");
+        var variantLollipops = this.addVariantsToTransform(
+            variantTransformZoomedOut, this.getTooltip());
+                
     }
 
     addExonsToTransform(chartTransform) {

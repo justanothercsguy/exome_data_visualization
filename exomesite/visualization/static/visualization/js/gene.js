@@ -1,10 +1,11 @@
 class Gene {
-    constructor(cdsStart, cdsEnd, exonStarts, exonEnds, basePairsOutsideExonLimit) {
+    constructor(cdsStart, cdsEnd, exonStarts, exonEnds, 
+        basePairsOutsideExonLimit, variants) {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
         this.exons = this.initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds);
         this.basePairsOutsideExonLimit = basePairsOutsideExonLimit;
-        this.variants = null;
+        this.variants = variants;
     }
 
     // Handle exceptional case where the first exon starts and ends before cdsStart
@@ -378,7 +379,8 @@ class Gene {
     // Gene constructor and call limitNonCodingLength as a part of initializeExons().
     // I am also not sure if I should make a Variant class, seeing I already have 
     // a Variant class in exomesite/visualization/models.py 
-    initializeVariants(variants) {
+    initializeVariants() {
+        var variants = this.getVariants();
         var variantsFiltered = null;
         var exons = this.getExons();
         var lowerBound = exons[0].getStart();

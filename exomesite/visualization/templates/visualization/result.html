@@ -33,7 +33,8 @@
                 var nonCodingLengthLimit = 200;
                 var basePairsOutsideExonLimit = 50; 
                 var gene = new Gene(
-                    cdsStart, cdsEnd, exonStarts, exonEnds, basePairsOutsideExonLimit
+                    cdsStart, cdsEnd, exonStarts, exonEnds, 
+                    basePairsOutsideExonLimit, variants
                 );
 
                 gene.limitNonCodingExonLength(nonCodingLengthLimit);
@@ -54,49 +55,21 @@
                 console.log("chartController");
                 console.log(chartController);
 
-                // initialize svg object and transforms for zoomed out chart
-                var svgZoomedOut = chartController.addSvgToDiv(".chart-zoomed-out");
-                var exonTransformZoomedOut = chartController.addTransformToSvg(
-                    svgZoomedOut, chartController.chartMargin.left, 
-                    chartController.chartMargin.top
-                );
-                var yGapBetweenExonsAndVariants = 5;
-                variantTransformZoomedOut = chartController.addTransformToSvg(
-                    svgZoomedOut, chartController.chartMargin.left, 
-                    (chartController.chartMargin.top 
-                        + chartController.exonBar.codingHeight 
-                        + yGapBetweenExonsAndVariants)
-                );
-                
-                // render exons and introns in the exon transform handle for zoomed out chart
-                var exonBars = chartController.addExonsToTransform(exonTransformZoomedOut);
-                var intronLines = chartController.addIntronsToTransform(
-                    exonTransformZoomedOut);    
-                var nonCodingExonBars = 
-                    chartController.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
-                
-                // process and render variant data for the zoomed out chart
-                gene.initializeVariants(variants);
-                console.log("gene variants after initializeVariants()");
-                console.log(gene.getVariants());
-                
-                tooltip = addTooltip();
-                console.log("chart add variants to transform map");
-                var variantLollipops = chartController.addVariantsToTransform(
-                    variantTransformZoomedOut, tooltip);
-                
-                // initialize svg object and transforms for zoomed in chart
-                var svgZoomedIn = chartController.addSvgToDiv(".chart-zoomed-in");
-                var exonTransformZoomedIn = chartController.addTransformToSvg(
-                    svgZoomedIn, chartController.chartMargin.left, 
-                    chartController.chartMargin.top
-                );
-                variantTransformZoomedIn = chartController.addTransformToSvg(
-                    svgZoomedIn, chartController.chartMargin.left, 
-                    (chartController.chartMargin.top 
-                        + chartController.exonBar.codingHeight 
-                        + yGapBetweenExonsAndVariants)
-                );
+                console.log("chartController draw zoomed out chart");
+                console.log(chartController.drawZoomedOutChart());
+
+                // // initialize svg object and transforms for zoomed in chart
+                // var svgZoomedIn = chartController.addSvgToDiv(".chart-zoomed-in");
+                // var exonTransformZoomedIn = chartController.addTransformToSvg(
+                //     svgZoomedIn, chartController.chartMargin.left, 
+                //     chartController.chartMargin.top
+                // );
+                // variantTransformZoomedIn = chartController.addTransformToSvg(
+                //     svgZoomedIn, chartController.chartMargin.left, 
+                //     (chartController.chartMargin.top 
+                //         + chartController.exonBar.codingHeight 
+                //         + yGapBetweenExonsAndVariants)
+                // );
 
             });
         </script>
