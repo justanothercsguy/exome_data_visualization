@@ -26,6 +26,9 @@ class Gene {
         newExons = this.limitNonCodingExonLength(
             exons, nonCodingLengthLimit, cdsStart, cdsEnd,);
 
+        console.log("initializeExons()");
+        console.log(newExons);
+
         return newExons;
     }
 
@@ -212,20 +215,25 @@ class Gene {
     getExonsWithUniformIntronLength() {
         var exonCount = this.getExonCount();
         var exons = this.getExons();
-        var exonStarts = this.getExonStarts(exons);
-        var exonEnds = this.getExonEnds(exons);
+        var firstExon = exons[0];
         var exonLengths = this.getExonLengths(exons);
         var uniformIntronLength = this.getUniformIntronLength();
         var exonStartsWithUniformIntronLength = [];
         var exonEndsWithUniformIntronLength = [];
-    
+        var exonsWithUniformIntronLength = [];
+
+        // there is a possible case where exonCount == 0  
+        // due to a bad entry in the database - that should be 
+        // handled in the Django backend layer though
         if (exonCount == 1) {
             return this.getExons();
         }
 
         // first exon has no introns before it so it retains the same position
-        exonStartsWithUniformIntronLength.push(exonStarts[0]);
-        exonEndsWithUniformIntronLength.push(exonEnds[0]);
+        // regardless of original intron length shifting to uniform intron length
+        exonStartsWithUniformIntronLength.push(firstExon.getStart());
+        exonEndsWithUniformIntronLength.push(firstExon.getEnd());
+        exonsWithUniformIntronLength.push(firstExon);
     
         for (var i = 1; i < exonCount; i++) {
             exonStartsWithUniformIntronLength.push(
@@ -235,10 +243,12 @@ class Gene {
             exonEndsWithUniformIntronLength.push(
                 exonStartsWithUniformIntronLength[i] + exonLengths[i]
             );
-            
+            exonsWithUniformIntronLength.push(new Exon(
+                exonStartsWithUniformIntronLength[i], 
+                exonEndsWithUniformIntronLength[i]
+            ));
         }
-        return this.initializeExons(this.cdsStart, this.cdsEnd, exonStartsWithUniformIntronLength, 
-            exonEndsWithUniformIntronLength, exonCount);
+        return exonsWithUniformIntronLength;
     }
 
     getOffset() {
@@ -256,7 +266,7 @@ class Gene {
     }
 
     getSplitIntronIndices() {
-        console.log("called getSplitIntrondices()");
+        // console.log("called getSplitIntrondices()");
 
         var splitIntronIndices = [];
         var threshold = 3 * this.getBasePairsOutsideExonLimit();
@@ -264,20 +274,14 @@ class Gene {
         var intronLengths = this.getIntronLengths() 
         var length = this.getIntronCount();;
 
-        console.log("introns");
-        console.log(introns);
-        console.log("intron length");
-        console.log(length);
-
         for (var i = 0; i < length; i++) {
-            console.log(intronLengths[i]);
-            console.log(threshold);
+            // console.log(intronLengths[i]);
+            // console.log(threshold);
             if (intronLengths[i] > threshold) {
                 splitIntronIndices.push(i);
             }
         }
-        console.log("splitIntrondices");
-        console.log(splitIntronIndices);
+        
         return splitIntronIndices;
     }
 
@@ -368,10 +372,9 @@ class Gene {
     }
 
     getScaleOriginalIntronsToUniformIntrons() {
-        var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
         return d3.scaleLinear()
-            .domain(this.getDomain(basePairsOutsideExonLimit))
-            .range(this.getRange(basePairsOutsideExonLimit));
+            .domain(this.getDomain())
+            .range(this.getRange());
     }
 
     roundToTwoDecimalPlaces(x) {
