@@ -18,6 +18,7 @@ class ChartController {
         this.variantLollipop = variantLollipop;
         this.gene = gene;
         this.tooltip = addTooltip();
+        this.hoveredExonIndex = -1;
     }
     
     getChartHeight() {
@@ -36,6 +37,14 @@ class ChartController {
     
     getTooltip() {
         return this.tooltip;
+    }
+    
+    getHoveredExonIndex() {
+        return this.hoveredExonIndex;
+    }
+
+    setHoveredExonIndex(hoveredExonIndex) {
+        this.hoveredExonIndex = hoveredExonIndex;
     }
 
     addSvgToDiv(divName) {
@@ -120,7 +129,7 @@ class ChartController {
                 return exonBar.codingHeight;
             });
 
-        this.drawZoomedInChart(chartTransform, bar, exonBar.color, exons);
+        this.highlightHoveredExon(bar, exonBar.color, exons);
 
         return bar;
     }
@@ -225,7 +234,7 @@ class ChartController {
         return nonCodingExonBars;
     }
 
-    addVariantsToTransform(chartTransform, tooltip) {
+    addVariantsToTransform(chartTransform) {
         var variantData = this.gene.getVariants();
         var variantMap = this.gene.getVariantMap();
         var yAxisVariableString = this.yAxisVariableString;
@@ -235,6 +244,7 @@ class ChartController {
         var scaleVariantFlagToLollipopColor = this.getScaleVariantFlagToLollipopColor();
         var scaleYAxis = this.getYAxisScale(
             yAxisVariableString, variantData, this.getChartHeight());
+        var tooltip = this.getTooltip();
 
         // clear the previous variant visualization
         chartTransform.selectAll("g").remove();
@@ -358,14 +368,14 @@ class ChartController {
         return yAxisScale;
     }
 
-    drawZoomedInChart(chartTransform, exonBars, defaultExonBarColor, exons) {
+    highlightHoveredExon(exonBars, defaultExonBarColor, exons) {
         var hoveredExonIndex = -1;
         var previousHoveredExonIndex = -1;
         var exonSelector = exonBars._groups[0];
         var chartController = this;
-
+    
         exonBars.on("mouseover", function(d, i) {
-            previousHoveredExonIndex = hoveredExonIndex;
+            previousHoveredExonIndex = chartController.getHoveredExonIndex();
             hoveredExonIndex = i;
 
             d3.select(exonSelector[previousHoveredExonIndex])
@@ -373,13 +383,8 @@ class ChartController {
             d3.select(exonSelector[hoveredExonIndex])
                 .select("rect").attr("fill", "lightgreen");
             
-            chartController.addZoomedInExonToTransform(
-                chartTransform, exons[hoveredExonIndex]);
+            chartController.setHoveredExonIndex(hoveredExonIndex);
         });
-    }
-
-    addZoomedInExonToTransform(chartTransform, exon) {
-        console.log(exon);
     }
 }
 
@@ -407,5 +412,5 @@ function changeYAxisVariable(variantTransformZoomedOut,
     console.log("newYAxisVariable");
     console.log(chartController.yAxisVariableString);
     
-    chartController.addVariantsToTransform(variantTransformZoomedOut, tooltip);
+    chartController.addVariantsToTransform(variantTransformZoomedOut);
 }
