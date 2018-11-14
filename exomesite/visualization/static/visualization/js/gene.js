@@ -266,8 +266,6 @@ class Gene {
     }
 
     getSplitIntronIndices() {
-        // console.log("called getSplitIntrondices()");
-
         var splitIntronIndices = [];
         var threshold = 3 * this.getBasePairsOutsideExonLimit();
         var introns = this.getIntrons();
@@ -275,13 +273,10 @@ class Gene {
         var length = this.getIntronCount();;
 
         for (var i = 0; i < length; i++) {
-            // console.log(intronLengths[i]);
-            // console.log(threshold);
             if (intronLengths[i] > threshold) {
                 splitIntronIndices.push(i);
             }
         }
-        
         return splitIntronIndices;
     }
 

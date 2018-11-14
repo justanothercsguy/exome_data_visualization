@@ -132,40 +132,71 @@ class ChartController {
         this.setVariantTransformZoomedIn(variantTransformZoomedIn);
 
         // render exons and introns in the exon transform handle for zoomed out chart
-        var exonBars = this.addZoomedInExonToTransform(exonTransformZoomedIn);
+        var hoveredExon = this.gene.getExons()[this.getHoveredExonIndex()];
+        var exonBars = this.addZoomedInExonToTransform(exonTransformZoomedIn, hoveredExon);
+        var intronLines = this.addZoomedInIntronsToTransform(exonTransformZoomedIn, hoveredExon);
     }
 
-    addZoomedInExonToTransform(chartTransform) {
-        var hoveredExonIndex = this.getHoveredExonIndex()
-        var zoomBar = null;
+    addZoomedInExonToTransform(chartTransform, hoveredExon) {
+        var exonLength = hoveredExon.getLength();
+        var scaleSingleExonToChart 
+            = this.getScaleSingleExonToChart(exonLength); 
+        var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
+        var exonBarColor = this.exonBar.color;
+        var codingHeight = this.exonBar.codingHeight;
 
-        if (hoveredExonIndex != -1) {
-            var exon = this.gene.getExons()[hoveredExonIndex];
-            var exonLength = exon.getLength();
-            var scaleSingleExonToChart = this.getScaleSingleExonToChart(exonLength); 
-            var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
-            var exonBarColor = this.exonBar.color;
-            var codingHeight = this.exonBar.codingHeight;
+        var zoomBar = chartTransform.append("g")
+            .selectAll("g")
+            .data([ exonLength ])
+            .enter().append("g")
+            .attr("transform", function(d) { 
+                return "translate(" + 
+                scaleSingleExonToChart(
+                    basePairsOutsideExonLimit
+                ) + "," + 0 + ")";
+            });
 
-            zoomBar = chartTransform.append("g")
-                .selectAll("g")
-                .data([ exonLength ])
-                .enter().append("g")
-                .attr("transform", function(d) { 
-                    return "translate(" + 
-                    scaleSingleExonToChart(
-                        basePairsOutsideExonLimit
-                    ) + "," + 0 + ")";
-                });
-
-            zoomBar.append("rect")
-                .attr("fill", exonBarColor)
-                .attr("width", scaleSingleExonToChart)
-                .attr("height", function(d) {
-                    return codingHeight;
-                });       
-        }
+        zoomBar.append("rect")
+            .attr("fill", exonBarColor)
+            .attr("width", scaleSingleExonToChart)
+            .attr("height", function(d) {
+                return codingHeight;
+            });       
+            
         return zoomBar;
+    }
+
+    addZoomedInIntronsToTransform(chartTransform, hoveredExon) {
+        var zoomLineCoordinates = [];
+        var nonCodingHeight = this.exonBar.nonCodingHeight;
+        var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
+        var scaleSingleExonToChart 
+            = this.getScaleSingleExonToChart(hoveredExon.getLength()); 
+        var width = this.getChartWidth();
+
+        zoomLineCoordinates.push(
+            [
+                [0, 0], 
+                [0, nonCodingHeight], 
+                [scaleSingleExonToChart(basePairsOutsideExonLimit), nonCodingHeight]
+            ],
+            [
+                [width, 0], 
+                [width, nonCodingHeight], 
+                [width - scaleSingleExonToChart(basePairsOutsideExonLimit), nonCodingHeight]
+            ]);
+
+        var zoomLine = chartTransform.append("g")
+            .selectAll("path")
+            .data(zoomLineCoordinates)
+            .enter().append("path")
+                .style("fill", "none")
+                .style("stroke", "black")
+                .attr("stroke-width", 2)
+                .style("stroke-dasharray", "2,1")
+                .attr("d", d3.line());
+            
+        return zoomLine;
     }
 
     // Have to display the exon and its variants up to basePairsOutsideExonLimit
