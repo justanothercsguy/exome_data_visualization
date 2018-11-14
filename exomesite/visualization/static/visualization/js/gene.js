@@ -3,7 +3,8 @@ class Gene {
         basePairsOutsideExonLimit, variants, nonCodingLengthLimit) {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
-        this.exons = this.initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds);
+        this.exons = this.initializeExons(cdsStart, cdsEnd, 
+            exonStarts, exonEnds, nonCodingLengthLimit);
         this.basePairsOutsideExonLimit = basePairsOutsideExonLimit;
         this.variants = null;
         this.nonCodingLengthLimit = nonCodingLengthLimit;
@@ -15,16 +16,17 @@ class Gene {
     // For example in SAMD11, start = 861120 and end = 861180, while cdsStart = 861321
     initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds, nonCodingLengthLimit) {
         var exons = [];    
+        var newExons = [];
         var length = exonStarts.length;
         for (var i = 0; i < length; i++) {
             if ((exonEnds[i] >= cdsStart) && (exonStarts[i] <= cdsEnd)) {
                 exons.push(new Exon(exonStarts[i], exonEnds[i]));
             }
         }
-        exons = this.limitNonCodingExonLength(
+        newExons = this.limitNonCodingExonLength(
             exons, nonCodingLengthLimit, cdsStart, cdsEnd,);
 
-        return exons;
+        return newExons;
     }
 
     getExons() {
@@ -136,16 +138,16 @@ class Gene {
         return exonEnds;
     }
 
-    doesExonContainCdsStart(exon) {
+    doesExonContainCdsStart(exon, cdsStart) {
         // Don't split in the case where exonStart >= cdsStart and everything is coding,
         // or the case where exonEnd < cdsStart and everything is non-coding
-        return (exon.getStart() < this.cdsStart && exon.getEnd() >= this.cdsStart);
+        return (exon.getStart() < cdsStart && exon.getEnd() >= cdsStart);
     }      
       
-    doesExonContainCdsEnd(exon) {
+    doesExonContainCdsEnd(exon, cdsEnd) {
         // Don't split in the case where exonEnds[length - 1] <= cdsEnd and everything is coding,
         // or the case where exonStarts[length - 1] > cdsEnd and everything is non-coding 
-        return (exon.getStart() <= this.cdsEnd && exon.getEnd() > this.cdsEnd);
+        return (exon.getStart() <= cdsEnd && exon.getEnd() > cdsEnd);
     }
 
     // Let i be the index of the exon that contains cdsStart within its domain
@@ -158,18 +160,23 @@ class Gene {
         var length = exons.length;
         var firstExon = exons[0];
         var lastExon = exons[length-1];
-        var newExons = exons.slice();
+        var newExons = [];
 
-        if (this.doesExonContainCdsStart(firstExon)
+        for (var i = 0; i < length; i++) {
+            newExons.push(exons[i]);
+        }
+
+        if (this.doesExonContainCdsStart(firstExon, cdsStart)
         && (cdsStart - firstExon.getStart() > nonCodingLengthLimit)) {
             newExons[0] = new Exon(cdsStart - nonCodingLengthLimit, firstExon.getEnd());
         }
 
-        if (this.doesExonContainCdsEnd(lastExon)
+        if (this.doesExonContainCdsEnd(lastExon, cdsEnd)
         && (lastExon.getEnd() - cdsEnd > nonCodingLengthLimit)) {
-            newExons[this.getIntronCount()] = 
+            newExons[length - 1] = 
                 new Exon(lastExon.getStart(), cdsEnd + nonCodingLengthLimit);
         }
+
         return newExons;
     }
 
@@ -290,9 +297,6 @@ class Gene {
         var length = this.getExonCount();
         var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
 
-        console.log("getDomain()");
-        console.log(basePairsOutsideExonLimit);
-
         // Instead of searching through entire array of indices each time,
         // reverse and pop them one by one knowing that the pop will correspond
         // to the order of the iteration in the loop - O(N) time vs O(N^2)
@@ -412,7 +416,7 @@ class Gene {
         for (var i = 0; i < length; i++) {
             variantList.push(variantsFiltered[i].fields);   
         }
-        
+
         this.setVariants(variantList);
     }
 

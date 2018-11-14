@@ -225,12 +225,12 @@ class ChartController {
             data.push([
                 [
                     scaleUniformIntronsToChart(
-                        intronPartitionsWithUniformIntronLength[i].start), 
+                        intronPartitionsWithUniformIntronLength[i].getStart()), 
                     nonCodingHeight
                 ],
                 [
                     scaleUniformIntronsToChart(
-                        intronPartitionsWithUniformIntronLength[i].end), 
+                        intronPartitionsWithUniformIntronLength[i].getEnd()), 
                     nonCodingHeight
                 ]
             ]);
