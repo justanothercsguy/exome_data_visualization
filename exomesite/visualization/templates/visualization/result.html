@@ -18,7 +18,7 @@
             This script below can be turned into a separate JS file later
         -->
         <script type="text/javascript">
-            var zoomedOutChartController = null;
+            var chartController = null;
             var tooltip = null;
             var variantTransformZoomedOut = null;
 
@@ -41,67 +41,80 @@
                 console.log(gene.getExons());
   
                 var chartMargin = {top: 30, right: 30, bottom: 50, left: 120};
-                var chartDimension = {width: 1200, height: 320};
+                var chartDimension = {width: 1200, height: 300};
                 var yAxisVariableString = "MAF";
                 var exonBar = {nonCodingHeight: 10, codingHeight: 20, color: "#868686"};
                 var variantLollipop = {width: 0.2, radius: 3};
    
-                zoomedOutChartController = new ChartController(
+                chartController = new ChartController(
                     chartMargin, chartDimension, yAxisVariableString, 
                     exonBar, variantLollipop, gene
                 );
                 
-                console.log("zoomedOutChartController");
-                console.log(zoomedOutChartController);
+                console.log("chartController");
+                console.log(chartController);
 
                 // initialize svg object and transforms for zoomed out chart
-                var svgZoomedOut = zoomedOutChartController.addSvgToDiv(".chart-zoomed-out");
-                var exonTransformZoomedOut = zoomedOutChartController.addTransformToSvg(
-                    svgZoomedOut, zoomedOutChartController.chartMargin.left, 
-                    zoomedOutChartController.chartMargin.top
+                var svgZoomedOut = chartController.addSvgToDiv(".chart-zoomed-out");
+                var exonTransformZoomedOut = chartController.addTransformToSvg(
+                    svgZoomedOut, chartController.chartMargin.left, 
+                    chartController.chartMargin.top
                 );
                 var yGapBetweenExonsAndVariants = 5;
-                variantTransformZoomedOut = zoomedOutChartController.addTransformToSvg(
-                    svgZoomedOut, zoomedOutChartController.chartMargin.left, 
-                    (zoomedOutChartController.chartMargin.top 
-                        + zoomedOutChartController.exonBar.codingHeight 
+                variantTransformZoomedOut = chartController.addTransformToSvg(
+                    svgZoomedOut, chartController.chartMargin.left, 
+                    (chartController.chartMargin.top 
+                        + chartController.exonBar.codingHeight 
                         + yGapBetweenExonsAndVariants)
                 );
                 
-                // render exons and introns in the exon transform handle
-                var exonBars = zoomedOutChartController.addExonsToTransform(exonTransformZoomedOut);
-                var intronLines = zoomedOutChartController.addIntronsToTransform(
+                // render exons and introns in the exon transform handle for zoomed out chart
+                var exonBars = chartController.addExonsToTransform(exonTransformZoomedOut);
+                var intronLines = chartController.addIntronsToTransform(
                     exonTransformZoomedOut);    
                 var nonCodingExonBars = 
-                    zoomedOutChartController.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
+                    chartController.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
                 
-                // process variant data and render it in the variant transform handle
+                // process and render variant data for the zoomed out chart
                 gene.initializeVariants(variants);
                 console.log("gene variants after initializeVariants()");
                 console.log(gene.getVariants());
                 
                 tooltip = addTooltip();
                 console.log("chart add variants to transform map");
-                var variantLollipops = zoomedOutChartController.addVariantsToTransform(
+                var variantLollipops = chartController.addVariantsToTransform(
                     variantTransformZoomedOut, tooltip);
+                
+                // initialize svg object and transforms for zoomed in chart
+                var svgZoomedIn = chartController.addSvgToDiv(".chart-zoomed-in");
+                var exonTransformZoomedIn = chartController.addTransformToSvg(
+                    svgZoomedIn, chartController.chartMargin.left, 
+                    chartController.chartMargin.top
+                );
+                variantTransformZoomedIn = chartController.addTransformToSvg(
+                    svgZoomedIn, chartController.chartMargin.left, 
+                    (chartController.chartMargin.top 
+                        + chartController.exonBar.codingHeight 
+                        + yGapBetweenExonsAndVariants)
+                );
 
             });
         </script>
     </head>
     <body>
-        <h4>Gene: {{ gene }}</h4>
+        <h5>Gene: {{ gene }}</h5>
         <div class="y-axis-button-container">
             <button type="button" class="MAF" value="MAF" 
                 onclick="changeYAxisVariable(variantTransformZoomedOut,
-                zoomedOutChartController, 'MAF', tooltip)">MAF
+                chartController, 'MAF', tooltip)">MAF
             </button>
             <button type="button" class="alleleNumber" value="alleleNumber" 
                 onclick="changeYAxisVariable(variantTransformZoomedOut, 
-                zoomedOutChartController, 'alleleNumber', tooltip)">alleleNumber
+                chartController, 'alleleNumber', tooltip)">alleleNumber
             </button>
             <button type="button" class="alleleCount" value="alleleCount" 
                 onclick="changeYAxisVariable(variantTransformZoomedOut, 
-                zoomedOutChartController, 'alleleCount', tooltip)">alleleCount
+                chartController, 'alleleCount', tooltip)">alleleCount
             </button>
         </div>
         <div class="chart-zoomed-out"></div>
