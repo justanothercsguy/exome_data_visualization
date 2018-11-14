@@ -121,20 +121,29 @@ class ChartController {
         svgZoomedIn.selectAll("g").remove();
 
         // initialize svg object and transforms for zoomed out chart
-        var exonTransformZoomedIn = this.addTransformToSvg(
-            svgZoomedIn, this.chartMargin.left, this.chartMargin.top
-        );
         var yGapBetweenExonsAndVariants = 5;
+        var textSize = 10;
+
+        var exonTransformZoomedIn = this.addTransformToSvg(
+            svgZoomedIn, this.chartMargin.left, this.chartMargin.top);
+
         var variantTransformZoomedIn = this.addTransformToSvg(
             svgZoomedIn, this.chartMargin.left, 
-            (this.chartMargin.top + this.exonBar.codingHeight + yGapBetweenExonsAndVariants)
-        );
+            (this.chartMargin.top + this.exonBar.codingHeight + yGapBetweenExonsAndVariants));
+        
         this.setVariantTransformZoomedIn(variantTransformZoomedIn);
 
-        // render exons and introns in the exon transform handle for zoomed out chart
+        var textTransformZoomedIn = this.addTransformToSvg(
+            svgZoomedIn, this.chartMargin.left, this.chartMargin.top / 2);
+
+        // render exons and introns in the exon transform handle for zoomed in chart
         var hoveredExon = this.gene.getExons()[this.getHoveredExonIndex()];
         var exonBars = this.addZoomedInExonToTransform(exonTransformZoomedIn, hoveredExon);
         var intronLines = this.addZoomedInIntronsToTransform(exonTransformZoomedIn, hoveredExon);
+        var basePairsOutsideExonLimitText 
+            = this.addZoomedInBasePairOutsideExonLimitTextToTransform(
+                textTransformZoomedIn, hoveredExon, textSize);
+        
     }
 
     addZoomedInExonToTransform(chartTransform, hoveredExon) {
@@ -201,6 +210,25 @@ class ChartController {
                 .attr("d", d3.line());
             
         return zoomLine;
+    }
+
+    // draw text labeling the basePairsOutsideExonLimit on top of the intron lines
+    addZoomedInBasePairOutsideExonLimitTextToTransform(chartTransform, hoveredExon, textSize) {
+        var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
+        var zoomLineCoordinates = this.getZoomedInIntronCoordinates(hoveredExon);
+
+        var text = chartTransform.selectAll("text")
+            .data(zoomLineCoordinates)
+            .enter().append("text")
+            .attr("x", function(d, i) { 
+              return d[0][0]; 
+            })
+            .attr("y", textSize)
+            .text(basePairsOutsideExonLimit + " bp")
+            .attr("font-family", "sans-serif")
+            .attr("font-size", textSize + "px");
+      
+        return text;
     }
 
     // Have to display the exon and its variants up to basePairsOutsideExonLimit
