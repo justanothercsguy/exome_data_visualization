@@ -20,6 +20,7 @@ class ChartController {
         this.tooltip = addTooltip();
         this.hoveredExonIndex = -1;
         this.variantTransformZoomedOut = null;
+        this.variantTransformZoomedIn = null;
     }
     
     getChartHeight() {
@@ -54,6 +55,14 @@ class ChartController {
 
     setVariantTransformZoomedOut(variantTransformZoomedOut) {
         this.variantTransformZoomedOut = variantTransformZoomedOut;
+    }
+
+    getVariantTransformZoomedIn() {
+        return this.variantTransformZoomedIn;
+    }
+
+    setVariantTransformZoomedIn(variantTransformZoomedIn) {
+        this.variantTransformZoomedIn = variantTransformZoomedIn;
     }
 
     addSvgToDiv(divName) {
@@ -97,11 +106,10 @@ class ChartController {
         this.setVariantTransformZoomedOut(variantTransformZoomedOut);
 
         // render exons and introns in the exon transform handle for zoomed out chart
-        var exonBars = this.addExonsToTransform(exonTransformZoomedOut);
-        var intronLines = this.addIntronsToTransform(
-            exonTransformZoomedOut);    
+        var exonBars = this.addZoomedOutExonsToTransform(exonTransformZoomedOut);
+        var intronLines = this.addZoomedOutIntronsToTransform(exonTransformZoomedOut);    
         var nonCodingExonBars = 
-        this.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
+            this.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
         
         // process and render variant data for the zoomed out chart
         this.gene.initializeVariants();
@@ -112,9 +120,25 @@ class ChartController {
         var variantLollipops = this.addVariantsToTransform(
             variantTransformZoomedOut, this.getTooltip());           
     }
-    
 
-    addExonsToTransform(chartTransform) {
+    drawZoomedInChart() {
+        // initialize svg object and transforms for zoomed out chart
+        var svgZoomedIn = this.addSvgToDiv(".chart-zoomed-in");
+        var exonTransformZoomedIn = this.addTransformToSvg(
+            svgZoomedIn, this.chartMargin.left, 
+            this.chartMargin.top
+        );
+        var yGapBetweenExonsAndVariants = 5;
+        var exonTransformZoomedIn = this.addTransformToSvg(
+            svgZoomedIn, this.chartMargin.left, 
+            (this.chartMargin.top 
+                + this.exonBar.codingHeight 
+                + yGapBetweenExonsAndVariants)
+        );
+        this.setVariantTransformZoomedIn(variantTransformZoomedIn);
+    }
+
+    addZoomedOutExonsToTransform(chartTransform) {
         var scaleOriginalIntronsToUniformIntrons 
             = this.gene.getScaleOriginalIntronsToUniformIntrons();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
@@ -144,7 +168,7 @@ class ChartController {
         return bar;
     }
 
-    addIntronsToTransform(chartTransform) {
+    addZoomedOutIntronsToTransform(chartTransform) {
         var intronPartitionsWithUniformIntronLength = 
             this.gene.getIntronPartitionsWithUniformIntronLength();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
