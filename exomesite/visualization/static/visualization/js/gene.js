@@ -7,14 +7,18 @@ class Gene {
             exonStarts, exonEnds, nonCodingLengthLimit);
         this.basePairsOutsideExonLimit = basePairsOutsideExonLimit;
         this.variants = null;
+        this.nonCodingExonIndices = null;
         this.nonCodingLengthLimit = nonCodingLengthLimit;
         this.initializeVariants(variants);
+        this.initializeNonCodingExonIndices(this.exons, cdsStart, cdsEnd);
     }
 
     // Handle exceptional case where the first exon starts and ends before cdsStart
     // or the last exon starts and ends after cdsEnd, by excluding those exons
     // For example in SAMD11, start = 861120 and end = 861180, while cdsStart = 861321
     initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds, nonCodingLengthLimit) {
+        console.log("initializeExons()");
+
         var exons = [];    
         var newExons = [];
         var length = exonStarts.length;
@@ -26,10 +30,37 @@ class Gene {
         newExons = this.limitNonCodingExonLength(
             exons, nonCodingLengthLimit, cdsStart, cdsEnd,);
 
-        console.log("initializeExons()");
         console.log(newExons);
 
         return newExons;
+    }
+
+    initializeNonCodingExonIndices(exons, cdsStart, cdsEnd) {
+        console.log("initializeNonCodingExonIndices()");
+
+        var length = exons.length;
+        var firstExon = exons[0];
+        var lastExon = exons[length - 1];
+        var nonCodingExonIndices = [];
+
+        if (this.doesExonContainCdsStart(firstExon, cdsStart)) {
+            nonCodingExonIndices.push(0);
+        }
+
+        if (this.doesExonContainCdsEnd(lastExon, cdsEnd)) {
+            nonCodingExonIndices.push(length - 1);
+        }
+
+        this.setNonCodingExonIndices(nonCodingExonIndices);
+        console.log(this.getNonCodingExonIndices());
+    }
+
+    getNonCodingExonIndices() {
+        return this.nonCodingExonIndices;
+    }
+
+    setNonCodingExonIndices(nonCodingExonIndices) {
+        this.nonCodingExonIndices = nonCodingExonIndices;
     }
 
     getExons() {
@@ -396,6 +427,8 @@ class Gene {
     // I am also not sure if I should make a Variant class, seeing I already have 
     // a Variant class in exomesite/visualization/models.py 
     initializeVariants(variants) {
+        console.log("initializeVariants()");
+        
         var variantsFiltered = null;
         var exons = this.getExons();
         var lowerBound = exons[0].getStart();
