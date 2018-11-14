@@ -111,11 +111,6 @@ class ChartController {
         var nonCodingExonBars = 
             this.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
         
-        // process and render variant data for the zoomed out chart
-        this.gene.initializeVariants();
-        console.log("gene variants after initializeVariants()");
-        console.log(this.gene.getVariants());
-        
         console.log("chart add variants to transform map");
         var variantLollipops = this.addVariantsToTransform(
             variantTransformZoomedOut, this.getTooltip());           
@@ -129,7 +124,7 @@ class ChartController {
             this.chartMargin.top
         );
         var yGapBetweenExonsAndVariants = 5;
-        var exonTransformZoomedIn = this.addTransformToSvg(
+        var variantTransformZoomedIn = this.addTransformToSvg(
             svgZoomedIn, this.chartMargin.left, 
             (this.chartMargin.top 
                 + this.exonBar.codingHeight 

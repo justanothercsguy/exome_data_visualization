@@ -5,8 +5,9 @@ class Gene {
         this.cdsEnd = cdsEnd;
         this.exons = this.initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds);
         this.basePairsOutsideExonLimit = basePairsOutsideExonLimit;
-        this.variants = variants;
+        this.variants = null;
         this.nonCodingLengthLimit = nonCodingLengthLimit;
+        this.initializeVariants(variants);
     }
 
     // Handle exceptional case where the first exon starts and ends before cdsStart
@@ -32,6 +33,14 @@ class Gene {
 
     getBasePairsOutsideExonLimit() {
         return this.basePairsOutsideExonLimit;
+    }
+
+    getVariants() {
+        return this.variants;
+    }
+
+    setVariants(variants) {
+        this.variants = variants;
     }
 
     getExonCount() {
@@ -384,8 +393,7 @@ class Gene {
     // Gene constructor and call limitNonCodingLength as a part of initializeExons().
     // I am also not sure if I should make a Variant class, seeing I already have 
     // a Variant class in exomesite/visualization/models.py 
-    initializeVariants() {
-        var variants = this.getVariants();
+    initializeVariants(variants) {
         var variantsFiltered = null;
         var exons = this.getExons();
         var lowerBound = exons[0].getStart();
@@ -404,11 +412,8 @@ class Gene {
         for (var i = 0; i < length; i++) {
             variantList.push(variantsFiltered[i].fields);   
         }
-        this.variants = variantList;
-    }
-
-    getVariants() {
-        return this.variants;
+        
+        this.setVariants(variantList);
     }
 
     // sometimes there are multiple variants in the same base pair position
