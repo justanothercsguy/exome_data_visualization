@@ -109,7 +109,7 @@ class ChartController {
         var exonBars = this.addZoomedOutExonsToTransform(exonTransformZoomedOut);
         var intronLines = this.addZoomedOutIntronsToTransform(exonTransformZoomedOut);    
         var nonCodingExonBars = 
-            this.addNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
+            this.addZoomedOutNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
         
         console.log("chart add variants to transform map");
         var variantLollipops = this.addVariantsToTransform(
@@ -139,6 +139,9 @@ class ChartController {
         // render exons and introns in the exon transform handle for zoomed in chart
         var hoveredExon = this.gene.getExons()[this.getHoveredExonIndex()];
         var exonBars = this.addZoomedInExonToTransform(exonTransformZoomedIn, hoveredExon);
+        var nonCodingExonBars = 
+            this.addZoomedInNonCodingExonPartitionsToTransform(exonTransformZoomedIn, hoveredExon);
+    
         var intronLines = this.addZoomedInIntronsToTransform(exonTransformZoomedIn, hoveredExon);
         var basePairsOutsideExonLimitText 
             = this.addZoomedInBasePairOutsideExonLimitTextToTransform(
@@ -329,11 +332,62 @@ class ChartController {
         return lines;    
     }
 
+    addZoomedInNonCodingExonPartitionsToTransform(chartTransform, hoveredExon) {
+        var hoveredExonIndex = this.getHoveredExonIndex();
+        var nonCodingExonIndices = this.gene.getNonCodingExonIndices();
+        var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
+        var scaleSingleExonToChart = 
+            this.getScaleSingleExonToChart(hoveredExon.getLength());
+        var barHeightCoding = this.exonBar.codingHeight;
+        var barHeightNonCoding = this.exonBar.nonCodingHeight;
+        var nonCodingExonBar = null;
+        var exonNonPartitionLength = 0;     
+        var nonCodingXPositionStart = 0;
+
+        if (nonCodingExonIndices.includes(hoveredExonIndex)) {
+            console.log("nonCodingExonIndices hovered over!");
+
+            // case with first exon containing non coding partition
+            if (hoveredExonIndex == nonCodingExonIndices[0]) {
+                exonNonPartitionLength = this.gene.cdsStart - hoveredExon.getStart();
+                nonCodingXPositionStart = 
+                    scaleSingleExonToChart(basePairsOutsideExonLimit);      
+            }
+            // case with last exon containing non coding partition
+            else if (hoveredExonIndex == nonCodingExonIndices[1]) {
+                exonNonPartitionLength = hoveredExon.getEnd() - this.gene.cdsEnd;
+                nonCodingXPositionStart = this.getChartWidth() - scaleSingleExonToChart(
+                    exonNonPartitionLength + basePairsOutsideExonLimit);
+            }
+
+            nonCodingExonBar = chartTransform.append("g")
+                .selectAll(".rectNonCodingZoomedIn")
+                .data([exonNonPartitionLength, exonNonPartitionLength])
+                .enter().append("rect")
+                .classed('rectNonCodingZoomedIn', true)
+                .attr("transform", function(d, i) { 
+                    var yPositionStart = 0;
+                    if (i == 1) {
+                        yPositionStart = barHeightCoding - (barHeightNonCoding / 2);
+                    }
+                    return "translate(" + (
+                        nonCodingXPositionStart
+                    ) + "," + yPositionStart + ")";
+                })
+                .attr("fill", "white")
+                .attr("width", scaleSingleExonToChart)
+                .attr("height", function(d, i) {
+                    return barHeightNonCoding / 2;
+                });
+        }
+        return nonCodingExonBar;
+    }
+
     // add white rectangles to the non-coding area in the 
     // first exon that occurs before cdsStart and the non-coding area in the
     // last exon that occurs after cdsEnd, thereby distinguishing the height
     // of the non-coding area with the coding area of those exons
-    addNonCodingExonPartitionsToTransform(chartTransform) {
+    addZoomedOutNonCodingExonPartitionsToTransform(chartTransform) {
         var nonCodingExonPartitions = this.gene.getNonCodingExonPartitions();
         var scaleOriginalIntronsToUniformIntrons 
             = this.gene.getScaleOriginalIntronsToUniformIntrons();
