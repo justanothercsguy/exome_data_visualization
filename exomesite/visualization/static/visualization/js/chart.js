@@ -166,7 +166,7 @@ class ChartController {
         return zoomBar;
     }
 
-    addZoomedInIntronsToTransform(chartTransform, hoveredExon) {
+    getZoomedInIntronCoordinates(hoveredExon) {
         var zoomLineCoordinates = [];
         var nonCodingHeight = this.exonBar.nonCodingHeight;
         var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
@@ -185,7 +185,11 @@ class ChartController {
                 [width, nonCodingHeight], 
                 [width - scaleSingleExonToChart(basePairsOutsideExonLimit), nonCodingHeight]
             ]);
+        return zoomLineCoordinates;
+    }
 
+    addZoomedInIntronsToTransform(chartTransform, hoveredExon) {
+        var zoomLineCoordinates = this.getZoomedInIntronCoordinates(hoveredExon);
         var zoomLine = chartTransform.append("g")
             .selectAll("path")
             .data(zoomLineCoordinates)
