@@ -1,17 +1,18 @@
 class Gene {
     constructor(cdsStart, cdsEnd, exonStarts, exonEnds, 
-        basePairsOutsideExonLimit, variants) {
+        basePairsOutsideExonLimit, variants, nonCodingLengthLimit) {
         this.cdsStart = cdsStart;
         this.cdsEnd = cdsEnd;
         this.exons = this.initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds);
         this.basePairsOutsideExonLimit = basePairsOutsideExonLimit;
         this.variants = variants;
+        this.nonCodingLengthLimit = nonCodingLengthLimit;
     }
 
     // Handle exceptional case where the first exon starts and ends before cdsStart
     // or the last exon starts and ends after cdsEnd, by excluding those exons
     // For example in SAMD11, start = 861120 and end = 861180, while cdsStart = 861321
-    initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds) {
+    initializeExons(cdsStart, cdsEnd, exonStarts, exonEnds, nonCodingLengthLimit) {
         var exons = [];    
         var length = exonStarts.length;
         for (var i = 0; i < length; i++) {
@@ -19,6 +20,9 @@ class Gene {
                 exons.push(new Exon(exonStarts[i], exonEnds[i]));
             }
         }
+        exons = this.limitNonCodingExonLength(
+            exons, nonCodingLengthLimit, cdsStart, cdsEnd,);
+
         return exons;
     }
 
@@ -141,22 +145,23 @@ class Gene {
     // so that (cdsStart - exon[i].start) = 200. Same thing if (exon[j].end - cdsEnd) > 200.
     // Here, (cdsStart - exon[i].start) and (exon[j].end - cdsEnd) are the lengths of the non-coding
     // exon partitions.
-    limitNonCodingExonLength(nonCodingLengthLimit) {
-        var firstExon = this.getExons()[0];
-        var lastExon = this.getExons()[this.getIntronCount()];
-        var cdsStart = this.cdsStart;
-        var cdsEnd = this.cdsEnd;
+    limitNonCodingExonLength(exons, nonCodingLengthLimit, cdsStart, cdsEnd) {
+        var length = exons.length;
+        var firstExon = exons[0];
+        var lastExon = exons[length-1];
+        var newExons = exons.slice();
 
         if (this.doesExonContainCdsStart(firstExon)
         && (cdsStart - firstExon.getStart() > nonCodingLengthLimit)) {
-            this.exons[0] = new Exon(cdsStart - nonCodingLengthLimit, firstExon.getEnd());
+            newExons[0] = new Exon(cdsStart - nonCodingLengthLimit, firstExon.getEnd());
         }
 
         if (this.doesExonContainCdsEnd(lastExon)
         && (lastExon.getEnd() - cdsEnd > nonCodingLengthLimit)) {
-            this.exons[this.getIntronCount()] = 
+            newExons[this.getIntronCount()] = 
                 new Exon(lastExon.getStart(), cdsEnd + nonCodingLengthLimit);
         }
+        return newExons;
     }
 
     getExonLengths(exons) {

@@ -32,13 +32,9 @@
                 var basePairsOutsideExonLimit = 50; 
                 var gene = new Gene(
                     cdsStart, cdsEnd, exonStarts, exonEnds, 
-                    basePairsOutsideExonLimit, variants
+                    basePairsOutsideExonLimit, variants, nonCodingLengthLimit
                 );
 
-                gene.limitNonCodingExonLength(nonCodingLengthLimit);
-                
-                console.log(gene.getExons());
-  
                 var chartMargin = {top: 30, right: 30, bottom: 50, left: 120};
                 var chartDimension = {width: 1200, height: 300};
                 var yAxisVariableString = "MAF";
@@ -55,9 +51,6 @@
 
                 console.log("chartController draw zoomed out chart");
                 chartController.drawZoomedOutChart();
-
-                // console.log("chartController draw zoomed in chart");
-                // console.log(chartController.drawZoomedInChart());
             });
         </script>
     </head>
