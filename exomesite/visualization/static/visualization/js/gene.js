@@ -30,8 +30,6 @@ class Gene {
         newExons = this.limitNonCodingExonLength(
             exons, nonCodingLengthLimit, cdsStart, cdsEnd,);
 
-        console.log(newExons);
-
         return newExons;
     }
 
@@ -52,7 +50,6 @@ class Gene {
         }
 
         this.setNonCodingExonIndices(nonCodingExonIndices);
-        console.log(this.getNonCodingExonIndices());
     }
 
     getNonCodingExonIndices() {
@@ -435,7 +432,6 @@ class Gene {
         var upperBound = exons[exons.length - 1].getEnd();
         var length = 0;
         var variantList = [];
-        console.log(variants);
 
         variantsFiltered = variants.filter(function(d) {
             if (d.fields.position >= lowerBound && d.fields.position <= upperBound) {

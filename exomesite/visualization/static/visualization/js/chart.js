@@ -21,6 +21,7 @@ class ChartController {
         this.hoveredExonIndex = -1;
         this.variantTransformZoomedOut = null;
         this.variantTransformZoomedIn = null;
+        this.yAxisTransformZoomedIn = null;
     }
     
     getChartHeight() {
@@ -63,6 +64,14 @@ class ChartController {
 
     setVariantTransformZoomedIn(variantTransformZoomedIn) {
         this.variantTransformZoomedIn = variantTransformZoomedIn;
+    }
+
+    getYAxisTransformZoomedIn() {
+        return this.yAxisTransformZoomedIn;
+    }
+
+    setYAxisTransformZoomedIn(yAxisTransformZoomedIn) {
+        this.yAxisTransformZoomedIn = yAxisTransformZoomedIn;
     }
 
     addSvgToDiv(divName) {
@@ -130,11 +139,17 @@ class ChartController {
         var variantTransformZoomedIn = this.addTransformToSvg(
             svgZoomedIn, this.chartMargin.left, 
             (this.chartMargin.top + this.exonBar.codingHeight + yGapBetweenExonsAndVariants));
-        
+
         this.setVariantTransformZoomedIn(variantTransformZoomedIn);
 
         var textTransformZoomedIn = this.addTransformToSvg(
             svgZoomedIn, this.chartMargin.left, this.chartMargin.top / 2);
+        
+        var yAxisTransformZoomedIn = this.addTransformToSvg(
+            svgZoomedIn, this.chartMargin.left / 4, 
+            (this.chartMargin.top + this.exonBar.codingHeight + yGapBetweenExonsAndVariants));
+
+        this.setYAxisTransformZoomedIn(yAxisTransformZoomedIn);
 
         // render exons and introns in the exon transform handle for zoomed in chart
         var hoveredExon = this.gene.getExons()[this.getHoveredExonIndex()];
@@ -150,18 +165,34 @@ class ChartController {
         // filter variants by the hovered over exon and render them for the zoomed in chart
         var variantLollipops = this.addVariantsToTransform(
             variantTransformZoomedIn, "chart-zoomed-in");
+
+        // render y axis scale labels 
+        var yAxisLabel = this.addZoomedInYAxisLabelToTransform(yAxisTransformZoomedIn);
     }
 
-    addZoomedInVariantsToTransform(chartTransform, hoveredExon) {
-        console.log("called addZoomedInVariantsToTransform()");
+    addZoomedInYAxisLabelToTransform(chartTransform) {
+        var yAxisVariableString = this.yAxisVariableString
+        var height = this.getChartHeight();
+        var variantList = this.gene.getVariantList();
+        var yAxisVariableString = this.yAxisVariableString;
+        var scaleYAxis = this.getYAxisScale(
+            yAxisVariableString, variantList, this.getChartHeight());
 
-        var hoveredExonIndex = this.getHoveredExonIndex();
-        var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
-        var filteredVariantMap = this.gene.getFilteredVariantMap(
-            hoveredExon.getStart(), hoveredExon.getEnd(), hoveredExonIndex);
-
-        console.log("filteredVariantMap");
-        console.log(filteredVariantMap);
+        var yAxisTextLabel = chartTransform.append("g").append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", - 10)
+            .attr("x", 0 - (height / 2))
+            .attr("dy", "1em")
+            .attr("text-anchor", "middle")
+            .text(yAxisVariableString);
+        
+        var yAxis = chartTransform.append("g")
+            .attr("class", "axis axis--y")
+            .attr("transform", "translate(" + 
+                (this.chartMargin.left / 2) + "," + 0 + ")")
+            .call(d3.axisLeft(scaleYAxis));
+        
+        return yAxisTextLabel;
     }
 
     addZoomedInExonToTransform(chartTransform, hoveredExon) {
@@ -488,26 +519,16 @@ class ChartController {
         // clear the previous variant visualization
         chartTransform.selectAll("g").remove();
 
-        console.log("chartName");
-        console.log(chartName);
-        console.log(variantMap);
-        console.log(variantList);
-
         var lollipopRect = chartTransform.selectAll("g")
             .data(variantList)
             .enter().append("g")
             .attr("transform", function (d) {
                 if (chartName == "chart-zoomed-out") {
                     return "translate(" +
-                        // scaleUniformIntronsToChart(
-                        //     scaleOriginalIntronsToUniformIntrons(d.position)
-                        // ) 
                         chartController.scaleOriginalIntronsToChart(d.position) 
                             + "," + 0 + ")";
                 }    
                 else if (chartName == "chart-zoomed-in") {
-                    console.log(scaleSingleExonToChart(
-                        d.position - hoveredExonStarts + basePairsOutsideExonLimit));
                     return "translate(" + scaleSingleExonToChart(
                         d.position - hoveredExonStarts + basePairsOutsideExonLimit
                     ) + "," + 0 + ")";
@@ -528,9 +549,6 @@ class ChartController {
             .enter().append("g").append('circle')
             .attr('cx', function (d) {
                 if (chartName == "chart-zoomed-out") {
-                // return (scaleUniformIntronsToChart(
-                //     scaleOriginalIntronsToUniformIntrons(d.position))
-                // );
                     return chartController.scaleOriginalIntronsToChart(d.position);
                 }
                 else if (chartName == "chart-zoomed-in") {
@@ -688,10 +706,10 @@ function changeYAxisVariable(chartController, newYAxisVariable) {
 
     var variantTransformZoomedOut = chartController.getVariantTransformZoomedOut();
     var variantTransformZoomedIn = chartController.getVariantTransformZoomedIn();
+    var yAxisTransformZoomedIn = chartController.getYAxisTransformZoomedIn();
     
     // redraw the zoomed out view chart (top) and zoomed in view chart (bottom)
     chartController.addVariantsToTransform(variantTransformZoomedOut, "chart-zoomed-out");
-
-    // FIXED BUG WITH THIS LINE 
     chartController.addVariantsToTransform(variantTransformZoomedIn, "chart-zoomed-in");
+    chartController.addZoomedInYAxisLabelToTransform(yAxisTransformZoomedIn);
 }
