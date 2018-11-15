@@ -6,10 +6,10 @@ class Gene {
         this.exons = this.initializeExons(cdsStart, cdsEnd, 
             exonStarts, exonEnds, nonCodingLengthLimit);
         this.basePairsOutsideExonLimit = basePairsOutsideExonLimit;
-        this.variants = null;
+        this.variantList = null;
         this.nonCodingExonIndices = null;
         this.nonCodingLengthLimit = nonCodingLengthLimit;
-        this.initializeVariants(variants);
+        this.initializeVariantList(variants);
         this.initializeNonCodingExonIndices(this.exons, cdsStart, cdsEnd);
     }
 
@@ -71,12 +71,12 @@ class Gene {
         return this.basePairsOutsideExonLimit;
     }
 
-    getVariants() {
-        return this.variants;
+    getVariantList() {
+        return this.variantList;
     }
 
-    setVariants(variants) {
-        this.variants = variants;
+    setVariantList(variantList) {
+        this.variantList = variantList;
     }
 
     getExonCount() {
@@ -421,13 +421,13 @@ class Gene {
         return nonCodingExonPartitions;
     }
 
-    // initializeVariants() has to be called after limitNonCodingLength() is called.
+    // initializeVariantList() has to be called after limitNonCodingLength() is called.
     // This makes me wonder if I should pass in nonCodingLengthLimit to the 
     // Gene constructor and call limitNonCodingLength as a part of initializeExons().
     // I am also not sure if I should make a Variant class, seeing I already have 
     // a Variant class in exomesite/visualization/models.py 
-    initializeVariants(variants) {
-        console.log("initializeVariants()");
+    initializeVariantList(variants) {
+        console.log("initializeVariantList()");
 
         var variantsFiltered = null;
         var exons = this.getExons();
@@ -449,11 +449,45 @@ class Gene {
             variantList.push(variantsFiltered[i].fields);   
         }
 
-        this.setVariants(variantList);
+        this.setVariantList(variantList);
     }
 
-    getFilteredVariants(exonStart, exonEnd, hoveredExonIndex) {
-        console.log("called getFilteredVariants()");
+    getFilteredVariantList(exonStart, exonEnd, hoveredExonIndex) {
+        console.log("called getFilteredVariantList()");
+        var lowerBound = exonStart;
+        var upperBound = exonEnd;
+        var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
+        var nonCodingExonIndices = this.getNonCodingExonIndices();
+        var variants = this.getVariantList();
+        var variantsFiltered = null;
+
+        if (nonCodingExonIndices.includes(hoveredExonIndex)) {
+            // case where first exon is hovered over 
+            if (hoveredExonIndex == nonCodingExonIndices[0]) {
+                upperBound += basePairsOutsideExonLimit;
+            }
+            // case where last exon is hovered over 
+            else if (hoveredExonIndex == nonCodingExonIndices[1]) {
+                lowerBound -= basePairsOutsideExonLimit;
+            }
+        }
+        else {
+            upperBound += basePairsOutsideExonLimit;
+            lowerBound -= basePairsOutsideExonLimit;
+        }
+
+        variantsFiltered = variants.filter(function(d) {
+            if (d.position >= lowerBound && d.position <= upperBound) {
+                return true;
+            }
+            return false;
+        });
+        
+        return variantsFiltered;
+    }
+
+    getFilteredVariantMap(exonStart, exonEnd, hoveredExonIndex) {
+        console.log("called getFilteredVariantMap()");
         var lowerBound = exonStart;
         var upperBound = exonEnd;
         var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
@@ -464,17 +498,14 @@ class Gene {
         if (nonCodingExonIndices.includes(hoveredExonIndex)) {
             // case where first exon is hovered over 
             if (hoveredExonIndex == nonCodingExonIndices[0]) {
-                console.log("first exon");
                 upperBound += basePairsOutsideExonLimit;
             }
             // case where last exon is hovered over 
             else if (hoveredExonIndex == nonCodingExonIndices[1]) {
-                console.log("last exon");
                 lowerBound -= basePairsOutsideExonLimit;
             }
         }
         else {
-            console.log("coding exon index"); 
             upperBound += basePairsOutsideExonLimit;
             lowerBound -= basePairsOutsideExonLimit;
         }
@@ -493,10 +524,10 @@ class Gene {
     // sometimes there are multiple variants in the same base pair position
     // return a map object where key = position and value = array of variants
     getVariantMap() {
-        var variants = this.getVariants();
+        var variantList = this.getVariantList();
         var map = {};
 
-        variants.forEach(function(variant) {
+        variantList.forEach(function(variant) {
             var position = variant.position;
             if (!map[position]) {
                 map[position] = [variant];

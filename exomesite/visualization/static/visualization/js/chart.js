@@ -112,7 +112,8 @@ class ChartController {
             this.addZoomedOutNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
         
         console.log("chart add variants to transform map");
-        var variantLollipops = this.addZoomedOutVariantsToTransform(variantTransformZoomedOut);           
+        var variantLollipops = this.addVariantsToTransform(
+            variantTransformZoomedOut, "chart-zoomed-out");           
     }
 
     drawZoomedInChart(svgZoomedIn) {
@@ -147,7 +148,8 @@ class ChartController {
                 textTransformZoomedIn, hoveredExon, textSize);
         
         // filter variants by the hovered over exon and render them for the zoomed in chart
-        var variants = this.addZoomedInVariantsToTransform(variantTransformZoomedIn, hoveredExon);
+        var variantLollipops = this.addVariantsToTransform(
+            variantTransformZoomedIn, "chart-zoomed-in");
     }
 
     addZoomedInVariantsToTransform(chartTransform, hoveredExon) {
@@ -155,11 +157,11 @@ class ChartController {
 
         var hoveredExonIndex = this.getHoveredExonIndex();
         var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
-        var filteredVariants = this.gene.getFilteredVariants(
+        var filteredVariantMap = this.gene.getFilteredVariantMap(
             hoveredExon.getStart(), hoveredExon.getEnd(), hoveredExonIndex);
 
-        console.log("filtered variants");
-        console.log(filteredVariants);
+        console.log("filteredVariantMap");
+        console.log(filteredVariantMap);
     }
 
     addZoomedInExonToTransform(chartTransform, hoveredExon) {
@@ -441,50 +443,104 @@ class ChartController {
         return nonCodingExonBars;
     }
 
-    addZoomedOutVariantsToTransform(chartTransform) {
-        var variantData = this.gene.getVariants();
-        var variantMap = this.gene.getVariantMap();
-        var yAxisVariableString = this.yAxisVariableString;
+    scaleOriginalIntronsToChart(basePairPosition) {
         var scaleOriginalIntronsToUniformIntrons = 
             this.gene.getScaleOriginalIntronsToUniformIntrons();
         var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
+        
+        return (scaleUniformIntronsToChart(
+            scaleOriginalIntronsToUniformIntrons(basePairPosition)
+        ));
+    }
+
+    addVariantsToTransform(chartTransform, chartName) {
+        var chartController = this;
+        var variantList = this.gene.getVariantList();
+        var variantMap = this.gene.getVariantMap();
+        var yAxisVariableString = this.yAxisVariableString;
         var scaleVariantFlagToLollipopColor = this.getScaleVariantFlagToLollipopColor();
         var scaleYAxis = this.getYAxisScale(
-            yAxisVariableString, variantData, this.getChartHeight());
+            yAxisVariableString, variantList, this.getChartHeight());
+
+        var scaleOriginalIntronsToUniformIntrons = 
+            this.gene.getScaleOriginalIntronsToUniformIntrons();
+        var scaleUniformIntronsToChart = this.getScaleUniformIntronsToChart();
+
+        var hoveredExon = null; 
+        var hoveredExonIndex = null;
+        var hoveredExonStarts = null;
+        var hoveredExonEnds = null;
+        var scaleSingleExonToChart = null;
+        var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
+
+        if (chartName == "chart-zoomed-in") {
+            hoveredExonIndex = this.getHoveredExonIndex();;
+            hoveredExon = this.gene.getExons()[hoveredExonIndex];
+            hoveredExonStarts = hoveredExon.getStart();
+            hoveredExonEnds = hoveredExon.getEnd();
+            scaleSingleExonToChart = this.getScaleSingleExonToChart(hoveredExon.getLength());
+            variantMap = this.gene.getFilteredVariantMap(
+                hoveredExonStarts, hoveredExonEnds, hoveredExonIndex);
+            variantList = this.gene.getFilteredVariantList(
+                hoveredExonStarts, hoveredExonEnds, hoveredExonIndex);
+        }
 
         // clear the previous variant visualization
         chartTransform.selectAll("g").remove();
 
+        console.log("chartName");
+        console.log(chartName);
+        console.log(variantMap);
+        console.log(variantList);
+
         var lollipopRect = chartTransform.selectAll("g")
-            .data(variantData)
+            .data(variantList)
             .enter().append("g")
             .attr("transform", function (d) {
-            return "translate(" +
-                scaleUniformIntronsToChart(
-                    scaleOriginalIntronsToUniformIntrons(d.position)
-                ) + "," + 0 + ")";
+                if (chartName == "chart-zoomed-out") {
+                    return "translate(" +
+                        // scaleUniformIntronsToChart(
+                        //     scaleOriginalIntronsToUniformIntrons(d.position)
+                        // ) 
+                        chartController.scaleOriginalIntronsToChart(d.position) 
+                            + "," + 0 + ")";
+                }    
+                else if (chartName == "chart-zoomed-in") {
+                    console.log(scaleSingleExonToChart(
+                        d.position - hoveredExonStarts + basePairsOutsideExonLimit));
+                    return "translate(" + scaleSingleExonToChart(
+                        d.position - hoveredExonStarts + basePairsOutsideExonLimit
+                    ) + "," + 0 + ")";
+                }         
             })
             .append("rect")
             .attr("width", this.variantLollipop.width)
             .attr("height", function (d) {
                 return scaleYAxis(
-                    getYAxisVariableFromMap(yAxisVariableString, variantMap, d));
+                    getYAxisVariableValueFromMap(yAxisVariableString, variantMap, d));
             })
             .attr('fill', function (d) {
                 return scaleVariantFlagToLollipopColor(d.annotation);
             });
 
         var lollipopCircle = chartTransform.selectAll('circle')
-            .data(variantData)
+            .data(variantList)
             .enter().append("g").append('circle')
             .attr('cx', function (d) {
-                return (scaleUniformIntronsToChart(
-                    scaleOriginalIntronsToUniformIntrons(d.position))
-                );
+                if (chartName == "chart-zoomed-out") {
+                // return (scaleUniformIntronsToChart(
+                //     scaleOriginalIntronsToUniformIntrons(d.position))
+                // );
+                    return chartController.scaleOriginalIntronsToChart(d.position);
+                }
+                else if (chartName == "chart-zoomed-in") {
+                    return scaleSingleExonToChart(
+                        d.position - hoveredExonStarts + basePairsOutsideExonLimit);
+                }         
             })
             .attr('cy', function (d) {
                 return scaleYAxis(
-                    getYAxisVariableFromMap(yAxisVariableString, variantMap, d));
+                    getYAxisVariableValueFromMap(yAxisVariableString, variantMap, d));
             })
             .attr('r', this.variantLollipop.radius)
             .attr('fill', function (d) {
@@ -503,7 +559,7 @@ class ChartController {
             tooltip.transition()    
                 .duration(200)    
                 .style("opacity", .9); 
-å
+
             // TODO: If there is more that one varianåt in a position, we need to show a table
             // of variants when clicking or hovering over that lollipop circle.
             // For now if a position has multiple variants, the tooltip shows the first variant
@@ -609,11 +665,11 @@ class ChartController {
 }
 
 // This function is outside of the ChartController class because 
-// the anonymous function that calls it cannot use "this.getYAxisVariableFromMap"
+// the anonymous function that calls it cannot use "this.getYAxisVariableValueFromMap"
 // because in the scope of the anonymous function, "this" does not refer to the
 // ChartController object. Workaround is to store chartController as a variable
 // in the function that calls it.
-function getYAxisVariableFromMap(yAxisVariableString, variantMap, variant) {
+function getYAxisVariableValueFromMap(yAxisVariableString, variantMap, variant) {
     if (yAxisVariableString == 'MAF') {
         return variantMap[variant.position][0].allelefrequency;
     }
@@ -626,11 +682,16 @@ function getYAxisVariableFromMap(yAxisVariableString, variantMap, variant) {
 }
 
 function changeYAxisVariable(chartController, newYAxisVariable) {
-
     chartController.setYAxisVariableString(newYAxisVariable);
     console.log("newYAxisVariable");
     console.log(chartController.yAxisVariableString);
 
     var variantTransformZoomedOut = chartController.getVariantTransformZoomedOut();
-    chartController.addZoomedOutVariantsToTransform(variantTransformZoomedOut);
+    var variantTransformZoomedIn = chartController.getVariantTransformZoomedIn();
+    
+    // redraw the zoomed out view chart (top) and zoomed in view chart (bottom)
+    chartController.addVariantsToTransform(variantTransformZoomedOut, "chart-zoomed-out");
+
+    // FIXED BUG WITH THIS LINE 
+    chartController.addVariantsToTransform(variantTransformZoomedIn, "chart-zoomed-in");
 }
