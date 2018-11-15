@@ -451,7 +451,6 @@ class ChartController {
         var scaleVariantFlagToLollipopColor = this.getScaleVariantFlagToLollipopColor();
         var scaleYAxis = this.getYAxisScale(
             yAxisVariableString, variantData, this.getChartHeight());
-        var tooltip = this.getTooltip();
 
         // clear the previous variant visualization
         chartTransform.selectAll("g").remove();
@@ -491,14 +490,21 @@ class ChartController {
             .attr('fill', function (d) {
                 return scaleVariantFlagToLollipopColor(d.annotation);
             });
-        
+            
+        this.addVariantDataToTooltip(lollipopCircle, variantMap);
+
+        return lollipopCircle;
+    }
+
+    addVariantDataToTooltip(lollipopCircle, variantMap) {
         // When hovering over a circle, open a tooltip displaying variant data
+        var tooltip = this.getTooltip();
         lollipopCircle.on("mouseover", function(d, i) {   
             tooltip.transition()    
                 .duration(200)    
                 .style("opacity", .9); 
-
-            // TODO: If there is more that one variant in a position, we need to show a table
+å
+            // TODO: If there is more that one varianåt in a position, we need to show a table
             // of variants when clicking or hovering over that lollipop circle.
             // For now if a position has multiple variants, the tooltip shows the first variant
             tooltip.html("chromosome: " + variantMap[d.position][0].chrom + "<br/>"
@@ -518,8 +524,6 @@ class ChartController {
                 .duration(500)    
                 .style("opacity", 0);
         });
-
-        return lollipopCircle;
     }
 
     getScaleVariantFlagToLollipopColor() {
