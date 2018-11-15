@@ -428,19 +428,20 @@ class Gene {
     // a Variant class in exomesite/visualization/models.py 
     initializeVariants(variants) {
         console.log("initializeVariants()");
-        
+
         var variantsFiltered = null;
         var exons = this.getExons();
         var lowerBound = exons[0].getStart();
         var upperBound = exons[exons.length - 1].getEnd();
         var length = 0;
         var variantList = [];
+        console.log(variants);
 
         variantsFiltered = variants.filter(function(d) {
-          if (d.fields.position >= lowerBound && d.fields.position <= upperBound) {
-            return true;
-          }
-          return false;
+            if (d.fields.position >= lowerBound && d.fields.position <= upperBound) {
+                return true;
+            }
+            return false;
         });
 
         length = variantsFiltered.length;
@@ -449,6 +450,44 @@ class Gene {
         }
 
         this.setVariants(variantList);
+    }
+
+    getFilteredVariants(exonStart, exonEnd, hoveredExonIndex) {
+        console.log("called getFilteredVariants()");
+        var lowerBound = exonStart;
+        var upperBound = exonEnd;
+        var basePairsOutsideExonLimit = this.getBasePairsOutsideExonLimit();
+        var nonCodingExonIndices = this.getNonCodingExonIndices();
+        var variants = this.getVariantMap();
+        var variantsFiltered = null;
+
+        if (nonCodingExonIndices.includes(hoveredExonIndex)) {
+            // case where first exon is hovered over 
+            if (hoveredExonIndex == nonCodingExonIndices[0]) {
+                console.log("first exon");
+                upperBound += basePairsOutsideExonLimit;
+            }
+            // case where last exon is hovered over 
+            else if (hoveredExonIndex == nonCodingExonIndices[1]) {
+                console.log("last exon");
+                lowerBound -= basePairsOutsideExonLimit;
+            }
+        }
+        else {
+            console.log("coding exon index"); 
+            upperBound += basePairsOutsideExonLimit;
+            lowerBound -= basePairsOutsideExonLimit;
+        }
+
+        var variantsFiltered = Object.keys(variants).reduce(
+            function(variantsFiltered, key) {
+                if ( key >= lowerBound && key <= upperBound ) {
+                    variantsFiltered[key] = variants[key];
+                }
+                return variantsFiltered;
+            }, {});
+
+        return variantsFiltered;
     }
 
     // sometimes there are multiple variants in the same base pair position

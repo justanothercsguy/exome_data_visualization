@@ -112,8 +112,7 @@ class ChartController {
             this.addZoomedOutNonCodingExonPartitionsToTransform(exonTransformZoomedOut);
         
         console.log("chart add variants to transform map");
-        var variantLollipops = this.addVariantsToTransform(
-            variantTransformZoomedOut, this.getTooltip());           
+        var variantLollipops = this.addZoomedOutVariantsToTransform(variantTransformZoomedOut);           
     }
 
     drawZoomedInChart(svgZoomedIn) {
@@ -147,6 +146,20 @@ class ChartController {
             = this.addZoomedInBasePairOutsideExonLimitTextToTransform(
                 textTransformZoomedIn, hoveredExon, textSize);
         
+        // filter variants by the hovered over exon and render them for the zoomed in chart
+        var variants = this.addZoomedInVariantsToTransform(variantTransformZoomedIn, hoveredExon);
+    }
+
+    addZoomedInVariantsToTransform(chartTransform, hoveredExon) {
+        console.log("called addZoomedInVariantsToTransform()");
+
+        var hoveredExonIndex = this.getHoveredExonIndex();
+        var basePairsOutsideExonLimit = this.gene.getBasePairsOutsideExonLimit();
+        var filteredVariants = this.gene.getFilteredVariants(
+            hoveredExon.getStart(), hoveredExon.getEnd(), hoveredExonIndex);
+
+        console.log("filtered variants");
+        console.log(filteredVariants);
     }
 
     addZoomedInExonToTransform(chartTransform, hoveredExon) {
@@ -428,7 +441,7 @@ class ChartController {
         return nonCodingExonBars;
     }
 
-    addVariantsToTransform(chartTransform) {
+    addZoomedOutVariantsToTransform(chartTransform) {
         var variantData = this.gene.getVariants();
         var variantMap = this.gene.getVariantMap();
         var yAxisVariableString = this.yAxisVariableString;
@@ -615,5 +628,5 @@ function changeYAxisVariable(chartController, newYAxisVariable) {
     console.log(chartController.yAxisVariableString);
 
     var variantTransformZoomedOut = chartController.getVariantTransformZoomedOut();
-    chartController.addVariantsToTransform(variantTransformZoomedOut);
+    chartController.addZoomedOutVariantsToTransform(variantTransformZoomedOut);
 }
