@@ -171,6 +171,9 @@ class ChartController {
     }
 
     addZoomedInYAxisLabelToTransform(chartTransform) {
+        // clear the previous y axis label and tick marks
+        chartTransform.selectAll("g").remove();
+
         var yAxisVariableString = this.yAxisVariableString
         var height = this.getChartHeight();
         var variantList = this.gene.getVariantList();
