@@ -13,49 +13,22 @@
         <script src="{% static 'visualization/js/chart.js' %}"></script>
         <script src="{% static 'visualization/js/gene.js' %}"></script>
         <script src="{% static 'visualization/js/utils.js' %}"></script>
+        <script src="{% static 'visualization/js/main.js' %}"></script>
         <link rel="stylesheet" type="text/css" href="{% static 'visualization/css/style.css' %}" />
         <!-- 
             This script below can be turned into a separate JS file later
         -->
         <script type="text/javascript">
+            // global variable for storing data and drawing charts
             var chartController = null;
 
             $(window).on("load", function() {                
-                // remove '&quot;' string and parse json from variant_list_json
-                var variants = JSON.parse("{{variant_list_json}}".replace(/&quot;/g,'"'));
-                var cdsStart = jsonStringToInt("{{gene.cdsstart}}");
-                var cdsEnd = jsonStringToInt("{{gene.cdsend}}");
-                var exonStarts = jsonStringArrayToIntArray("{{gene.exonstarts}}");
-                var exonEnds = jsonStringArrayToIntArray("{{gene.exonends}}");
-
-                var nonCodingLengthLimit = 200;
-                var basePairsOutsideExonLimit = 50; 
-                var gene = new Gene(
-                    cdsStart, cdsEnd, exonStarts, exonEnds, 
-                    basePairsOutsideExonLimit, variants, nonCodingLengthLimit
-                );
-
-                var chartMargin = {top: 30, right: 30, bottom: 50, left: 120};
-                var chartDimension = {width: 1200, height: 300};
-                var yAxisVariableString = "MAF";
-                var exonBar = {nonCodingHeight: 10, codingHeight: 20, color: "#868686"};
-                var variantLollipop = {width: 0.2, radius: 3};
-   
-                chartController = new ChartController(
-                    chartMargin, chartDimension, yAxisVariableString, 
-                    exonBar, variantLollipop, gene
-                );
-                
-                console.log("chartController");
-                console.log(chartController);
-
-                console.log("chartController draw zoomed out chart");
-                chartController.drawZoomedOutChart();
+                initializeCharts("{{variant_list_json}}", "{{gene_json}}");
             });
         </script>
     </head>
     <body>
-        <h5>Gene: {{ gene }}</h5>
+        <h5>Gene: {{ gene_name }}</h5>
         <div class="y-axis-button-container">
             <button type="button" class="MAF" value="MAF" 
                 onclick="changeYAxisVariable(

@@ -1,6 +1,6 @@
 from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 
@@ -38,7 +38,15 @@ def result(request, gene_name2):
 
     try:
         # if there are variants of the same gene, get the one with the most exons
-        gene = Gene.objects.filter(name2=gene_name2).order_by('-exoncount')[0]
+        # however the statement .order_by('-exoncount')[0] cannot be json serialized
+        # gene = Gene.objects.filter(name2=gene_name2).order_by('-exoncount')[0]
+
+        # new query will return a queryset that can be json serialized but I will
+        # have to filter out multiple transcripts of the same gene by the one with
+        # the most exons (highest exoncount value) in the JavaScript
+        gene = Gene.objects.filter(name2=gene_name2)
+        gene_name = gene.order_by('-exoncount')[0]
+        print(Gene.objects.filter(name2=gene_name2))
     except:
         error_message = "Could not find gene " + str(gene_name2)
         return render(request, 'visualization/index.html', {
@@ -56,7 +64,8 @@ def result(request, gene_name2):
 
     # json serialize the QuerySet of Variant objects
     return render(request, 'visualization/result.html', {
-        'gene': gene,
+        'gene_name': gene_name,
+        'gene_json': serialize('json', gene, cls=DjangoJSONEncoder),
         'variant_list_json': serialize('json', variant_list, cls=DjangoJSONEncoder)
     })
 

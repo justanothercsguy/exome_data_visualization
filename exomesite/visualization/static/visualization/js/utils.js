@@ -16,3 +16,16 @@ function jsonStringArrayToIntArray(jsonStringArray) {
 
     return intArray;
 }
+
+function getGeneTranscriptWithMostExons(geneJson) {
+    var maxExonCount = 0;
+    var length = geneJson.length;
+    var geneTranscriptWithMostExons = null;
+
+    for (var i = 0; i < length; i++) {
+        if (geneJson[i].fields.exoncount > maxExonCount) {
+            geneTranscriptWithMostExons = geneJson[i].fields;
+        }
+    }
+    return geneTranscriptWithMostExons;
+}
