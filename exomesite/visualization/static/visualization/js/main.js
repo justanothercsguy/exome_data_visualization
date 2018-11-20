@@ -1,3 +1,4 @@
+// initialize global chart variable in result.html
 function initializeCharts(variantJson, geneJson) {
         // remove '&quot;' string and parse json
         var variantData = JSON.parse(variantJson.replace(/&quot;/g,'"'));
