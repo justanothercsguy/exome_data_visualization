@@ -544,7 +544,12 @@ class ChartController {
                     getYAxisVariableValueFromMap(yAxisVariableString, variantMap, d));
             })
             .attr('fill', function (d) {
-                return scaleVariantFlagToLollipopColor(d.annotation);
+                // Solves problem of "3' UTR" being changed into weird string
+                // "3&#39; UTR" which gets mapped to color "violet" instead of "brown"
+                // TODO: make this a function while bypassing the local scope issue,
+                // which will not allow access to functions outside of addVariantsToTransform()
+                var annotation = d.annotation.replace(/&#39;/g,"'");
+                return scaleVariantFlagToLollipopColor(annotation);
             });
 
         var lollipopCircle = chartTransform.selectAll('circle')
@@ -565,7 +570,8 @@ class ChartController {
             })
             .attr('r', this.variantLollipop.radius)
             .attr('fill', function (d) {
-                return scaleVariantFlagToLollipopColor(d.annotation);
+                var annotation = d.annotation.replace(/&#39;/g,"'");
+                return scaleVariantFlagToLollipopColor(annotation);
             });
             
         this.addVariantDataToTooltip(lollipopCircle, variantMap);
